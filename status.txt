@@ -1,1 +1,1 @@
-https://vulkan-tutorial.com/en/Generating_Mipmaps
+https://vulkan-tutorial.com/en/Multisampling

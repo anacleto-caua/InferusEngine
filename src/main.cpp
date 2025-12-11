@@ -330,7 +330,7 @@ class HelloTriangleApplication {
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "No Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
+        appInfo.apiVersion = VK_API_VERSION_1_3;
 
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -664,21 +664,29 @@ class HelloTriangleApplication {
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
         uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
-                                             nullptr);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
-                                             availableExtensions.data());
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,availableExtensions.data());
 
-        std::set<std::string> requiredExtensions(deviceExtensions.begin(),
-                                                 deviceExtensions.end());
+        std::set<std::string> requiredExtensions(deviceExtensions.begin(),deviceExtensions.end());
 
-        for (const auto &extension : availableExtensions) {
-            requiredExtensions.erase(extension.extensionName);
+        for(const auto &requiredExtension: requiredExtensions) {
+            bool isExtAvailable = false;
+            
+            for (const auto &availableExtension : availableExtensions) {
+                if(requiredExtension == availableExtension.extensionName) {
+                    isExtAvailable = true;
+                    break;
+                }
+            }
+
+            if(!isExtAvailable) {
+                throw std::runtime_error("device extension required but not found: -> " + requiredExtension);
+            }
         }
 
-        return requiredExtensions.empty();
+        return true;
     }
 
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
@@ -753,26 +761,30 @@ class HelloTriangleApplication {
             queueCreateInfos.push_back(queueCreateInfo);
         }
 
-        // Device specific features we wanna use, for now, none
+        // Device specific features we wanna use
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.sampleRateShading = VK_TRUE; // Enable sample shading feature for the device
-
+        
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         createInfo.pEnabledFeatures = &deviceFeatures;
-        createInfo.queueCreateInfoCount =
-            static_cast<uint32_t>(queueCreateInfos.size());
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
-        createInfo.enabledExtensionCount =
-            static_cast<uint32_t>(deviceExtensions.size());
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+        
+        // Enable sychronization2 features
+        VkPhysicalDeviceSynchronization2Features sync2Features = {};
+        sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+        sync2Features.synchronization2 = VK_TRUE;
+        
+        createInfo.pNext = &sync2Features;
 
         if (enableValidationLayers) {
             // Both parameters are not used anymore but it's recommended to set
             // for backwards compatibility
-            createInfo.enabledLayerCount =
-                static_cast<uint32_t>(validationLayers.size());
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
         } else {
             createInfo.enabledLayerCount = 0;

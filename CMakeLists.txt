@@ -45,6 +45,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Vulkan::Vulkan
 )
 
+# Global definitions
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    GLM_FORCE_RADIANS
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_ENABLE_EXPERIMENTAL
+    GLFW_INCLUDE_VULKAN
+)
+
 # Output directories for easily finding assets
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"

@@ -33,9 +33,30 @@ foreach(SHADER_SOURCE IN LISTS SHADER_SOURCE_FILES)
     list(APPEND SPV_BINARY_FILES ${SPV_OUTPUT})
 endforeach()
 
-# Add shader compilation target
-add_custom_target(Shaders ALL DEPENDS ${SPV_BINARY_FILES})
+# Copy assets
+file(GLOB_RECURSE ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/*")
 
+set(ASSET_DESTINATION_FILES "")
+
+foreach(ASSET_SOURCE IN LISTS ASSET_FILES)
+    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets" "${ASSET_SOURCE}")
+    set(ASSET_OUTPUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/${REL_PATH}")
+    add_custom_command(
+        OUTPUT ${ASSET_OUTPUT}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ASSET_SOURCE}" "${ASSET_OUTPUT}"
+        DEPENDS "${ASSET_SOURCE}"
+        COMMENT "Updating asset: ${REL_PATH}"
+    )
+    
+    list(APPEND ASSET_DESTINATION_FILES ${ASSET_OUTPUT})
+endforeach()
+
+# Add compilation targets
+add_custom_target(Shaders ALL DEPENDS ${SPV_BINARY_FILES})
+add_custom_target(CopyAssets ALL DEPENDS ${ASSET_DESTINATION_FILES})
+
+# Add files to compile
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 
@@ -43,7 +64,7 @@ file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/sr
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
 # Add dependencies
-add_dependencies(${PROJECT_NAME} Shaders)
+add_dependencies(${PROJECT_NAME} Shaders CopyAssets)
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
@@ -87,14 +108,3 @@ elseif(UNIX)
         Xi
     )
 endif()
-
-# Copy assets, textures and shaders to the build directory
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets
-
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets"
-
-    COMMENT "Copying assets to output directory..."
-)

@@ -1,5 +1,3 @@
-#include "AppTypes.hpp"
-#include "Vertex.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -16,16 +14,15 @@
 #include <chrono>
 
 #include <vulkan/vulkan_core.h>
-
 #include <GLFW/glfw3.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
-
-
 #include <stb_image.h>
 #include <tiny_obj_loader.h>
+
+#include "AppTypes.hpp"
+#include "Vertex.hpp"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -38,9 +35,9 @@ const std::string TEXTURE_PATH = "assets/viking_room/viking_room.png";
 const std::vector<const char *> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
+    const bool enableValidationLayers = false;
 #else
-const bool enableValidationLayers = true;
+    const bool enableValidationLayers = true;
 #endif
 
 const std::vector<const char *> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME };
@@ -1025,8 +1022,8 @@ class ParticleSimulation {
         * I oughta take a deeper look into this part.
         */
         
-        auto vertShaderCode = readFile("shaders/vert.spv");
-        auto fragShaderCode = readFile("shaders/frag.spv");
+        auto vertShaderCode = readFile("shaders/shader.vert.spv");
+        auto fragShaderCode = readFile("shaders/shader.frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);

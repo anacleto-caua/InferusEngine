@@ -27,18 +27,14 @@ void DeviceContext::pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
-    if (deviceCount == 0) {
-        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    if (deviceCount < 1) {
+        throw std::runtime_error("failed to find any devices!");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
     std::multimap<int, VkPhysicalDevice> candidates;
-
-    if (deviceCount < 1) {
-        throw std::runtime_error("failed to find any devices!");
-    }
 
     for (const auto &device : devices) {
         if (!isDeviceSuitable(device, surface)) {

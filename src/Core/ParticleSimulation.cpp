@@ -115,7 +115,7 @@ class ParticleSimulation {
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
     VkImageView textureImageView;
-    VkSampler textureSampler; // The same sampler can be used to access multiple textures
+    VkSampler textureSampler;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -124,8 +124,6 @@ class ParticleSimulation {
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
 
-    // VkCommandPool commandPoolGraphics;
-    // VkCommandPool commandPoolTransfer;
     std::vector<VkCommandBuffer> commandBuffers;
 
     std::vector <VkSemaphore> imageAvailableSemaphores;
@@ -158,10 +156,9 @@ class ParticleSimulation {
         createSurface();
 
         m_device = std::make_unique<DeviceContext>(instance, surface, deviceExtensions, enableValidationLayers, validationLayers);
-        // createCommandPools();
 
         // TODO: FOR NOW
-        msaaSamples = getMaxUsableSampleCount();
+        msaaSamples = m_device->getMaxUsableSampleCount();
 
         createSwapChain();
         createImageViews();
@@ -212,9 +209,6 @@ class ParticleSimulation {
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-        // vkDestroyCommandPool(device, commandPoolGraphics, nullptr);
-        // vkDestroyCommandPool(device, commandPoolTransfer, nullptr);
-
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, m_pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
@@ -244,7 +238,6 @@ class ParticleSimulation {
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
-        // Adding glfw required extensions
         std::vector<const char *> extensions = getRequiredVkInstanceExtensions();
   
         if (!checkForVkInstanceExtensionsSupport(extensions)) {
@@ -253,15 +246,13 @@ class ParticleSimulation {
         createInfo.enabledExtensionCount = extensions.size();
         createInfo.ppEnabledExtensionNames = extensions.data();
 
-        // Checking validation layers for debug
         createInfo.enabledLayerCount = 0;
         if (enableValidationLayers && !checkValidationLayerSupport()) {
             throw std::runtime_error("validation layers requested, but not available!");
         }
 
-        // Adding validation layers for debug
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
         if (enableValidationLayers) {
+            VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
 
@@ -272,7 +263,6 @@ class ParticleSimulation {
             createInfo.pNext = nullptr;
         }
 
-        // Creating the instance
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
             throw std::runtime_error("failed to create instance!");
         }
@@ -295,7 +285,6 @@ class ParticleSimulation {
     }
 
     bool checkForVkInstanceExtensionsSupport(std::vector<const char *>instanceExtensions) {
-        // Checking for Vulkan available extensions
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -346,8 +335,7 @@ class ParticleSimulation {
         return true;
     }
 
-    void populateDebugMessengerCreateInfo(
-        VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
         createInfo = {};
         createInfo.sType =
             VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -362,15 +350,13 @@ class ParticleSimulation {
         createInfo.pfnUserCallback = debugCallback;
     }
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL
-    debugCallback(
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
         void *pUserData) {
 
-        std::cerr << "validation layer: " << pCallbackData->pMessage
-                  << std::endl;
+        std::cerr << "validation layer: " << pCallbackData->pMessage << '\n';
 
         return VK_FALSE;
     }
@@ -406,21 +392,6 @@ class ParticleSimulation {
             VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
-    }
-
-    VkSampleCountFlagBits getMaxUsableSampleCount() {
-        VkPhysicalDeviceProperties physicalDeviceProperties;
-        vkGetPhysicalDeviceProperties(m_device->m_physicalDevice, &physicalDeviceProperties);
-
-        VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-
-        return VK_SAMPLE_COUNT_1_BIT;
     }
 
     void createSwapChain() {
@@ -483,9 +454,8 @@ class ParticleSimulation {
              */
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-            // Better explicit than implicit
-            createInfo.queueFamilyIndexCount = 0; // Optional
-            createInfo.pQueueFamilyIndices = nullptr; // Optional
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = nullptr;
         }
 
         createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
@@ -581,9 +551,7 @@ class ParticleSimulation {
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
 
-    // There are lot of interferences that could damage our swap chain, such as window resizing, so it's important to recreate it in some occasions
     void recreateSwapChain() {
-
         // Handles minimization
         int width = 0, height = 0;
         glfwGetFramebufferSize(window, &width, &height);
@@ -618,8 +586,7 @@ class ParticleSimulation {
         VkInstance instance,
         VkDebugUtilsMessengerEXT debugMessenger,
         const VkAllocationCallbacks *pAllocator) {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-            instance, "vkDestroyDebugUtilsMessengerEXT");
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr) {
             func(instance, debugMessenger, pAllocator);
         }
@@ -708,7 +675,7 @@ class ParticleSimulation {
         uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uboLayoutBinding.descriptorCount = 1;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+        uboLayoutBinding.pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 1;
@@ -868,9 +835,7 @@ class ParticleSimulation {
     }
 
     bool hasStencilComponent(VkFormat format) {
-        return 
-            format == VK_FORMAT_D32_SFLOAT_S8_UINT || 
-            format == VK_FORMAT_D24_UNORM_S8_UINT;
+        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
     void createTextureImage() {
@@ -1079,10 +1044,10 @@ class ParticleSimulation {
 
         // Lod related
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.minLod = 0.0f; // Optional
+        samplerInfo.minLod = 0.0f;
         //samplerInfo.minLod = static_cast<float>(mipLevels / 2); // <---- uncomment to test the LODs
         samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
-        samplerInfo.mipLodBias = 0.0f; // Optional
+        samplerInfo.mipLodBias = 0.0f;
 
         if (vkCreateSampler(m_device->m_logicalDevice, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
@@ -1191,8 +1156,8 @@ class ParticleSimulation {
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0; // Optional
-        beginInfo.pInheritanceInfo = nullptr; // Optional
+        beginInfo.flags = 0;
+        beginInfo.pInheritanceInfo = nullptr;
 
         if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording command buffer!");
@@ -1697,8 +1662,8 @@ class ParticleSimulation {
             descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrite.descriptorCount = 1;
             descriptorWrite.pBufferInfo = &bufferInfo;
-            descriptorWrite.pImageInfo = nullptr; // Optional
-            descriptorWrite.pTexelBufferView = nullptr; // Optional
+            descriptorWrite.pImageInfo = nullptr;
+            descriptorWrite.pTexelBufferView = nullptr;
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
@@ -1878,7 +1843,7 @@ class ParticleSimulation {
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex;
-        presentInfo.pResults = nullptr; // Optional
+        presentInfo.pResults = nullptr;
 
         result = vkQueuePresentKHR(m_device->m_presentQueue, &presentInfo);
 

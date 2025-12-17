@@ -34,6 +34,7 @@ public:
     std::vector<const char*> m_requiredDeviceExtensions;
     
     SwapChainSupportDetails querySwapChainSupport(VkSurfaceKHR surface);
+    VkSampleCountFlagBits getMaxUsableSampleCount();
     // TOFIX: Somehow I doubt this is right
     void executeCommand(std::function<void(VkCommandBuffer)> recorder, VkCommandPool cmdPool, VkQueue queue);
 

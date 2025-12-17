@@ -12,12 +12,15 @@ DeviceContext::DeviceContext(VkInstance instance, VkSurfaceKHR surface, const st
     m_queueIndices = findQueueFamilies(m_physicalDevice, surface);
     createLogicalDevice(surface, enableValidationLayers, validationLayers);
     createCommandPools();
+    createTextureSampler();
 }
 
 DeviceContext::~DeviceContext() {
     vkDestroyCommandPool(m_logicalDevice, m_graphicsCmdPool, nullptr);
     vkDestroyCommandPool(m_logicalDevice, m_transferCmdPool, nullptr);
 
+    vkDestroySampler(m_logicalDevice, m_textureSampler, nullptr);
+    
     if(m_logicalDevice != VK_NULL_HANDLE) {
         vkDestroyDevice(m_logicalDevice, nullptr);
     }
@@ -292,6 +295,42 @@ void DeviceContext::createCommandPools() {
 
     if (vkCreateCommandPool(m_logicalDevice, &poolInfoTransfer, nullptr, &m_transferCmdPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create transfer command pool!");
+    }
+}
+
+void DeviceContext::createTextureSampler() {
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;   // About over sampling
+    samplerInfo.minFilter = VK_FILTER_LINEAR;   // About under sampling
+
+    // There are many modes, the repeat may be the most common because 
+    // it let's you do repeat stuff like tile floors and tile walls
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    
+    // Quering the m_logicalDevice properties so we know what anisotropy we can use
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
+
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy; // Just uses the max since performance isn't a concern
+
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Color to sample for outside of the texture, no arbitrary color, just black, white or transparent
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+    // Lod related
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.minLod = 0.0f;
+    //samplerInfo.minLod = static_cast<float>(mipLevels / 2); // <---- uncomment to test the LODs
+    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+    samplerInfo.mipLodBias = 0.0f;
+
+    if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create texture sampler!");
     }
 }
 

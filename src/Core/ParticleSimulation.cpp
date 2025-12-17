@@ -115,7 +115,6 @@ class ParticleSimulation {
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
     VkImageView textureImageView;
-    VkSampler textureSampler;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -170,7 +169,6 @@ class ParticleSimulation {
         createFramebuffers();
         createTextureImage();
         createTextureImageView();
-        createTextureSampler();
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
@@ -187,7 +185,6 @@ class ParticleSimulation {
 
         cleanupSwapChain();
 
-        vkDestroySampler(device, textureSampler, nullptr);
         vkDestroyImageView(device, textureImageView, nullptr);
         vkDestroyImage(device, textureImage, nullptr);
         vkFreeMemory(device, textureImageMemory, nullptr);
@@ -1018,42 +1015,6 @@ class ParticleSimulation {
         textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     }
 
-    void createTextureSampler() {
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;   // About over sampling
-        samplerInfo.minFilter = VK_FILTER_LINEAR;   // About under sampling
-
-        // There are many modes, the repeat may be the most common because 
-        // it let's you do repeat stuff like floors and walls
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        
-        // Quering the m_device->m_logicalDevice properties so we know what anisotropy we can use
-        VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(m_device->m_physicalDevice, &properties);
-
-        samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy; // Just uses the max since performance isn't a concern
-
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Color to sample for outside of the texture, no arbitrary color, just black, white or transparent
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-        // Lod related
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.minLod = 0.0f;
-        //samplerInfo.minLod = static_cast<float>(mipLevels / 2); // <---- uncomment to test the LODs
-        samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
-        samplerInfo.mipLodBias = 0.0f;
-
-        if (vkCreateSampler(m_device->m_logicalDevice, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-    }
-
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1652,7 +1613,7 @@ class ParticleSimulation {
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = textureImageView;
-            imageInfo.sampler = textureSampler;
+            imageInfo.sampler = m_device->m_textureSampler;
 
             VkWriteDescriptorSet descriptorWrite{};
             descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

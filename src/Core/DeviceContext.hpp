@@ -28,6 +28,8 @@ public:
     
     VkCommandPool m_graphicsCmdPool;
     VkCommandPool m_transferCmdPool;
+
+    VkSampler m_textureSampler;
     
     QueueFamilyIndices m_queueIndices;
 
@@ -47,4 +49,5 @@ private:
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
     void createLogicalDevice(VkSurfaceKHR surface, bool enableValidationLayers, std::vector<const char *> validationLayers);
     void createCommandPools();
+    void createTextureSampler();
 };

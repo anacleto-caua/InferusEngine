@@ -31,3 +31,9 @@ struct SwapChainSupportDetails {
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
+
+struct QueueContext {
+    VkQueue queue;
+    uint32_t queueFamilyIndex;
+    VkCommandPool mainCmdPool;
+};

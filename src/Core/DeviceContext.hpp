@@ -5,7 +5,6 @@
 #include <vulkan/vulkan_core.h>
 #include "Types/AppTypes.hpp"
 
-// Forward declare to avoid circular includes
 struct VulkanContext; 
 
 class DeviceContext {
@@ -33,12 +32,19 @@ public:
     
     QueueFamilyIndices m_queueIndices;
 
+    // TODO: Make a proper migration from QueueFamilyIndices with the sparse VkCommandPool's and VkQueue's to use a single struct or object 
+    QueueContext m_graphicsQueueCtx;
+    QueueContext m_transferQueueCtx;
+    QueueContext m_presentQueueCtx;
+
     std::vector<const char*> m_requiredDeviceExtensions;
     
     SwapChainSupportDetails querySwapChainSupport(VkSurfaceKHR surface);
     VkSampleCountFlagBits getMaxUsableSampleCount();
     // TOFIX: Somehow I doubt this is right
     void executeCommand(std::function<void(VkCommandBuffer)> recorder, VkCommandPool cmdPool, VkQueue queue);
+    // TODO: That's a temporary overwrite before a proper migration
+    void executeCommand(std::function<void(VkCommandBuffer)> recorder, QueueContext queueCtx);
 
 private:
     void pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);

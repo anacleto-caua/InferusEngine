@@ -240,10 +240,10 @@ void DeviceContext::createLogicalDevice(VkSurfaceKHR surface, bool enableValidat
         queueCreateInfo.queueFamilyIndex = queueFamily;
         queueCreateInfo.queueCount = 1;
         queueCreateInfo.pQueuePriorities = &queuePriority;
+
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    // Device specific features we wanna use
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
     deviceFeatures.sampleRateShading = VK_TRUE;
@@ -276,6 +276,10 @@ void DeviceContext::createLogicalDevice(VkSurfaceKHR surface, bool enableValidat
     vkGetDeviceQueue(m_logicalDevice, m_queueIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_logicalDevice, m_queueIndices.transferFamily.value(), 0, &m_transferQueue);
     vkGetDeviceQueue(m_logicalDevice, m_queueIndices.presentFamily.value(), 0, &m_presentQueue);
+    
+    m_graphicsQueueCtx = {m_graphicsQueue, m_queueIndices.graphicsFamily.value(), nullptr};
+    m_transferQueueCtx = {m_transferQueue, m_queueIndices.transferFamily.value(), nullptr};
+    m_presentQueueCtx = {m_presentQueue, m_queueIndices.presentFamily.value(), nullptr};
 }
 
 void DeviceContext::createCommandPools() {
@@ -287,6 +291,7 @@ void DeviceContext::createCommandPools() {
     if (vkCreateCommandPool(m_logicalDevice, &poolInfoGraphics, nullptr, &m_graphicsCmdPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics command pool!");
     }
+    m_graphicsQueueCtx.mainCmdPool = m_graphicsCmdPool;
 
     VkCommandPoolCreateInfo poolInfoTransfer{};
     poolInfoTransfer.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -296,6 +301,7 @@ void DeviceContext::createCommandPools() {
     if (vkCreateCommandPool(m_logicalDevice, &poolInfoTransfer, nullptr, &m_transferCmdPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create transfer command pool!");
     }
+    m_transferQueueCtx.mainCmdPool = m_transferCmdPool;
 }
 
 void DeviceContext::createTextureSampler() {
@@ -332,6 +338,10 @@ void DeviceContext::createTextureSampler() {
     if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
     }
+}
+
+void DeviceContext::executeCommand(std::function<void(VkCommandBuffer)> recorder, QueueContext queueCtx) {
+    executeCommand(recorder, queueCtx.mainCmdPool, queueCtx.queue);
 }
 
 void DeviceContext::executeCommand(std::function<void(VkCommandBuffer)> recorder, VkCommandPool cmdPool, VkQueue queue) {

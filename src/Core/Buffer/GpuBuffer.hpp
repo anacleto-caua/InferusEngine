@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include "Core/DeviceContext.hpp"
+#include "Core/Types/AppTypes.hpp"
 
 class GpuBuffer {
 public:
@@ -13,7 +14,7 @@ public:
 
     void copyFromCpu(const void *sourceData);
     void copyFromCpu(const void *sourceData, size_t size);
-    
+
     void mapAndWrite(const void* data, VkDeviceSize size);
 
     void copyFromBuffer(GpuBuffer *srcBuffer);

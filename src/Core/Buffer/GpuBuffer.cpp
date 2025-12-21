@@ -49,11 +49,9 @@ void GpuBuffer::copyFromCpu(const void *sourceData, size_t size) {
         queueCtx
     );
 
-    size_t sizeCast = static_cast<size_t>(size);
-
     void* mappedData;
-    vkMapMemory(stagingBuffer.m_deviceCtx.m_logicalDevice, stagingBuffer.m_memory, 0, sizeCast, 0, &mappedData);
-    memcpy(mappedData, sourceData, sizeCast);
+    vkMapMemory(stagingBuffer.m_deviceCtx.m_logicalDevice, stagingBuffer.m_memory, 0, size, 0, &mappedData);
+    memcpy(mappedData, sourceData, size);
     vkUnmapMemory(stagingBuffer.m_deviceCtx.m_logicalDevice, stagingBuffer.m_memory);
 
     this->copyFromBuffer(&stagingBuffer, size);

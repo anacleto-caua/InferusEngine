@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -19,6 +20,7 @@
 #include <stb_image.h>
 #include <tiny_obj_loader.h>
 
+#include "Buffer/GpuBuffer.hpp"
 #include "PipelineBuilder.hpp"
 #include "Types/Vertex.hpp"
 #include "DeviceContext.hpp"
@@ -98,18 +100,13 @@ class ParticleSimulation {
     VkPipeline graphicsPipeline;
     VkDescriptorSetLayout descriptorSetLayout;
 
-    std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    std::vector<Vertex> vertices;
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+    std::unique_ptr<GpuBuffer> m_indexBuffer;
+    std::unique_ptr<GpuBuffer> m_vertexBuffer;
     
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-    std::vector<void*> uniformBuffersMapped;
+    std::vector<std::unique_ptr<GpuBuffer>> m_uniformBuffers;
 
     uint32_t mipLevels;
     VkImage textureImage;
@@ -191,32 +188,33 @@ class ParticleSimulation {
 
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-        vkDestroyBuffer(device, vertexBuffer, nullptr);
-        vkFreeMemory(device, vertexBufferMemory, nullptr);
-
-        vkDestroyBuffer(device, indexBuffer, nullptr);
-        vkFreeMemory(device, indexBufferMemory, nullptr);
+        m_vertexBuffer.reset();
+        m_indexBuffer.reset();
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
             vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
             vkDestroyFence(device, inFlightFences[i], nullptr);
         }
-
+        
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
+        
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, m_pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
+       
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            m_uniformBuffers[i].reset();
+        }
 
         m_device.reset();
         vkDestroySurfaceKHR(instance, surface, nullptr);
-
+        
         if (enableValidationLayers) {
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
-
+        
         vkDestroyInstance(instance, nullptr);
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -847,25 +845,19 @@ class ParticleSimulation {
             throw std::runtime_error("failed to load texture image!");
         }
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(
+        GpuBuffer stagingBuffer = GpuBuffer(
+            *m_device,
             imageSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer,
-            stagingBufferMemory
+            m_device->m_transferQueueCtx
         );
+
+        stagingBuffer.copyFromCpu(pixels, imageSize);
+        stbi_image_free(pixels);
 
         uint32_t transferFamily = m_device->m_queueIndices.transferFamily.value();
         uint32_t graphicsFamily = m_device->m_queueIndices.graphicsFamily.value();
-
-        void* data;
-        vkMapMemory(m_device->m_logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, pixels, static_cast<size_t>(imageSize));
-        vkUnmapMemory(m_device->m_logicalDevice, stagingBufferMemory);
-
-        stbi_image_free(pixels);
 
         createImage(
             texWidth,
@@ -879,6 +871,8 @@ class ParticleSimulation {
             textureImage,
             textureImageMemory
         );
+
+        copyBufferToImage(stagingBuffer.m_vkBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
         // Transition the layout from undefined
         {
@@ -918,8 +912,6 @@ class ParticleSimulation {
                 m_device->m_transferQueue
             );
         }
-
-        copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
         // PART A: Release from Transfer Queue
         // We use the Transfer Pool and Transfer Queue here
@@ -1006,9 +998,6 @@ class ParticleSimulation {
         }
 
         generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
-
-        vkDestroyBuffer(m_device->m_logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(m_device->m_logicalDevice, stagingBufferMemory, nullptr);
     }
 
     void createTextureImageView() {
@@ -1141,7 +1130,7 @@ class ParticleSimulation {
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        VkBuffer vertexBuffers[] = { vertexBuffer };
+        VkBuffer vertexBuffers[] = { m_vertexBuffer->m_vkBuffer };
         VkDeviceSize offsets[] = { 0 };
 
         /*
@@ -1161,7 +1150,7 @@ class ParticleSimulation {
 
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->m_vkBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
@@ -1403,55 +1392,6 @@ class ParticleSimulation {
         );
     }
 
-    void createBuffer(
-        VkDeviceSize size,
-        VkBufferUsageFlags usage,
-        VkMemoryPropertyFlags properties,
-        VkBuffer& buffer,
-        VkDeviceMemory& bufferMemory)
-    {
-        VkBufferCreateInfo bufferInfo{};
-
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        if (vkCreateBuffer(m_device->m_logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create vertex buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device->m_logicalDevice, buffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(
-                memRequirements.memoryTypeBits, 
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            );
-
-        if (vkAllocateMemory(m_device->m_logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate vertex buffer memory!");
-        }
-
-        vkBindBufferMemory(m_device->m_logicalDevice, buffer, bufferMemory, 0);
-    }
-
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-        VkBufferCopy copyRegion{};
-        copyRegion.size = size;
-
-        m_device->executeCommand(
-            [&](VkCommandBuffer cmd) {
-                vkCmdCopyBuffer(cmd, srcBuffer, dstBuffer, 1, &copyRegion);
-            },
-            m_device->m_transferCmdPool,
-            m_device->m_transferQueue
-        );
-    }
-
     void loadModel() {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -1498,77 +1438,41 @@ class ParticleSimulation {
 
     void createVertexBuffer() {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        createBuffer(bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer,
-            stagingBufferMemory
-        );
-
-        void* data;
-        vkMapMemory(m_device->m_logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(m_device->m_logicalDevice, stagingBufferMemory);
-
-        createBuffer(bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        m_vertexBuffer = std::make_unique<GpuBuffer>(
+            *m_device,
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT ,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            vertexBuffer,
-            vertexBufferMemory
+            m_device->m_graphicsQueueCtx
         );
-
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-        vkDestroyBuffer(m_device->m_logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(m_device->m_logicalDevice, stagingBufferMemory, nullptr);
+        m_vertexBuffer->copyFromCpu(vertices.data(), bufferSize);
     }
 
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        createBuffer(bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer,
-            stagingBufferMemory
-        );
-
-        void* data;
-        vkMapMemory(m_device->m_logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(m_device->m_logicalDevice, stagingBufferMemory);
-
-        createBuffer(bufferSize,
+        m_indexBuffer = std::make_unique<GpuBuffer>(
+            *m_device,
+            bufferSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            indexBuffer,
-            indexBufferMemory
+            m_device->m_graphicsQueueCtx
         );
-
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-        vkDestroyBuffer(m_device->m_logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(m_device->m_logicalDevice, stagingBufferMemory, nullptr);
+        m_indexBuffer->copyFromCpu(indices.data(), bufferSize);
     }
 
     void createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+        m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-
-            vkMapMemory(m_device->m_logicalDevice, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+            m_uniformBuffers[i] = std::make_unique<GpuBuffer>(
+                *m_device,
+                bufferSize,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                m_device->m_graphicsQueueCtx
+            );
         }
     }
 
@@ -1606,7 +1510,7 @@ class ParticleSimulation {
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.buffer = m_uniformBuffers[i]->m_vkBuffer;
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
             
@@ -1838,7 +1742,7 @@ class ParticleSimulation {
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1; // GLM was developed to OpenGl and we need to compensate for the inverted Y coordinate
 
-        memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+        m_uniformBuffers[currentImage]->mapAndWrite(&ubo, sizeof(ubo));
     }
 
     void mainLoop() {

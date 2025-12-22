@@ -20,10 +20,10 @@
 #include <stb_image.h>
 #include <tiny_obj_loader.h>
 
-#include "Buffer/GpuBuffer.hpp"
-#include "PipelineBuilder.hpp"
-#include "Types/Vertex.hpp"
-#include "DeviceContext.hpp"
+#include "RHI/GpuBuffer.hpp"
+#include "RHI/PipelineBuilder.hpp"
+#include "RHI/DeviceContext.hpp"
+#include "RHI/Types/Vertex.hpp"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 

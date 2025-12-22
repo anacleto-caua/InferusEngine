@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include "Core/DeviceContext.hpp"
-#include "Core/Types/AppTypes.hpp"
+#include "./DeviceContext.hpp"
+#include "./Types/AppTypes.hpp"
 
 class GpuBuffer {
 public:

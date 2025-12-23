@@ -89,31 +89,29 @@ class ParticleSimulation {
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkImage colorImage;
-    VkDeviceMemory colorImageMemory;
-    VkImageView colorImageView;
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-
     bool framebufferResized = false;
-
+    
     VkRenderPass renderPass;
-
+    
     VkPipelineLayout m_pipelineLayout;
     VkPipeline graphicsPipeline;
     VkDescriptorSetLayout descriptorSetLayout;
-
+    
     std::vector<uint32_t> indices;
     std::vector<Vertex> vertices;
-
+    
     std::unique_ptr<GpuBuffer> m_indexBuffer;
     std::unique_ptr<GpuBuffer> m_vertexBuffer;
     
     std::vector<std::unique_ptr<GpuBuffer>> m_uniformBuffers;
-
+    
     uint32_t mipLevels;
+
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     
     std::unique_ptr<Texture> m_texture;
-
+    
+    std::unique_ptr<Image> m_colorImage;
     std::unique_ptr<Image> m_depthImage;
 
     VkDescriptorPool descriptorPool;
@@ -515,9 +513,7 @@ class ParticleSimulation {
 
         VkDevice device = m_deviceCtx->m_logicalDevice;
 
-        vkDestroyImageView(device, colorImageView, nullptr);
-        vkDestroyImage(device, colorImage, nullptr);
-        vkFreeMemory(device, colorImageMemory, nullptr);
+        m_colorImage.reset();
 
         m_depthImage.reset();
 
@@ -755,7 +751,7 @@ class ParticleSimulation {
         for (size_t i = 0; i < swapChainImageViews.size(); i++) {
             
             std::array<VkImageView, 3> attachments = {
-                colorImageView,
+                m_colorImage->m_imageView,
                 m_depthImage->m_imageView,
                 swapChainImageViews[i]
             };
@@ -898,19 +894,18 @@ class ParticleSimulation {
     void createColorResources() {
         VkFormat colorFormat = swapChainImageFormat;
 
-        createImage(
-            swapChainExtent.width, 
-            swapChainExtent.height, 
-            1, 
-            msaaSamples, 
-            colorFormat, 
-            VK_IMAGE_TILING_OPTIMAL, 
-            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-            colorImage, 
-            colorImageMemory);
-
-        colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        m_colorImage = std::make_unique<Image>(
+            &*m_deviceCtx,
+            swapChainExtent.width,
+            swapChainExtent.height,
+            1,
+            msaaSamples,
+            colorFormat,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT
+        );
     }
 
     void createCommandBuffers() {

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -24,6 +25,7 @@
 #include "RHI/PipelineBuilder.hpp"
 #include "RHI/DeviceContext.hpp"
 #include "RHI/Types/Vertex.hpp"
+#include "Resources/Image.hpp"
 #include "Resources/Texture.hpp"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -113,9 +115,7 @@ class ParticleSimulation {
     
     std::unique_ptr<Texture> m_texture;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
+    std::unique_ptr<Image> m_depthImage;
 
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
@@ -520,9 +520,7 @@ class ParticleSimulation {
         vkDestroyImage(device, colorImage, nullptr);
         vkFreeMemory(device, colorImageMemory, nullptr);
 
-        vkDestroyImageView(device, depthImageView, nullptr);
-        vkDestroyImage(device, depthImage, nullptr);
-        vkFreeMemory(device, depthImageMemory, nullptr);
+        m_depthImage.reset();
 
         /*
         * Quote from: https://vulkan-tutorial.com/en/Drawing_a_triangle/Swap_chain_recreation
@@ -759,7 +757,7 @@ class ParticleSimulation {
             
             std::array<VkImageView, 3> attachments = {
                 colorImageView,
-                depthImageView,
+                m_depthImage->m_imageView,
                 swapChainImageViews[i]
             };
 
@@ -780,21 +778,20 @@ class ParticleSimulation {
 
     void createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
-        createImage(
-            swapChainExtent.width, 
+        m_depthImage = std::make_unique<Image>(
+            &*m_deviceCtx,
+            swapChainExtent.width,
             swapChainExtent.height,
             1,
             msaaSamples,
-            depthFormat, 
-            VK_IMAGE_TILING_OPTIMAL, 
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-            depthImage, 
-            depthImageMemory);
+            depthFormat,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_IMAGE_ASPECT_DEPTH_BIT
+        );
 
-        depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-        transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
-
+        transitionImageLayout(m_depthImage->m_vkImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
     }
 
     VkFormat findSupportedFormat(
@@ -1039,6 +1036,7 @@ class ParticleSimulation {
 
     }
 
+    // TODO: Migrate this to the Image class
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

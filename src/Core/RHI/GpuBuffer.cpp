@@ -108,7 +108,7 @@ void GpuBuffer::copyBufferToImage(Image &image) {
             vkCmdCopyBufferToImage(
                 cmd,
                 m_vkBuffer,
-                image.m_image,
+                image.m_vkImage,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 1,
                 &region

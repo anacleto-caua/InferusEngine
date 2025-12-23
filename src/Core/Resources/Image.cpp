@@ -33,12 +33,12 @@ Image::Image(
     imageInfo.samples = numSamples;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateImage(m_deviceCtx->m_logicalDevice, &imageInfo, nullptr, &m_image) != VK_SUCCESS) {
+    if (vkCreateImage(m_deviceCtx->m_logicalDevice, &imageInfo, nullptr, &m_vkImage) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(m_deviceCtx->m_logicalDevice, m_image, &memRequirements);
+    vkGetImageMemoryRequirements(m_deviceCtx->m_logicalDevice, m_vkImage, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -49,18 +49,18 @@ Image::Image(
         throw std::runtime_error("failed to allocate image memory!");
     }
 
-    vkBindImageMemory(m_deviceCtx->m_logicalDevice, m_image, m_imageMemory, 0);
+    vkBindImageMemory(m_deviceCtx->m_logicalDevice, m_vkImage, m_imageMemory, 0);
 }
 
 Image::Image(Image&& other) noexcept : m_deviceCtx(other.m_deviceCtx) {
-    m_image = other.m_image;
+    m_vkImage = other.m_vkImage;
     m_imageView = other.m_imageView;
     m_imageMemory = other.m_imageMemory;
     m_width = other.m_width;
     m_height = other.m_height;
     m_mipLevels = other.m_mipLevels;
 
-    other.m_image = VK_NULL_HANDLE;
+    other.m_vkImage = VK_NULL_HANDLE;
     other.m_imageView = VK_NULL_HANDLE;
     other.m_imageMemory = VK_NULL_HANDLE;
 }
@@ -70,14 +70,14 @@ Image& Image::operator=(Image&& other) noexcept {
         destroy();
 
         m_deviceCtx = other.m_deviceCtx;
-        m_image = other.m_image;
+        m_vkImage = other.m_vkImage;
         m_imageView = other.m_imageView;
         m_imageMemory = other.m_imageMemory;
         m_width = other.m_width;
         m_height = other.m_height;
         m_mipLevels = other.m_mipLevels;
 
-        other.m_image = VK_NULL_HANDLE;
+        other.m_vkImage = VK_NULL_HANDLE;
         other.m_imageView = VK_NULL_HANDLE;
         other.m_imageMemory = VK_NULL_HANDLE;
     }
@@ -93,7 +93,7 @@ void Image::destroy() {
     if (m_deviceCtx) { 
         VkDevice device = m_deviceCtx->m_logicalDevice;
         if (m_imageView) vkDestroyImageView(device, m_imageView, nullptr);
-        if (m_image) vkDestroyImage(device, m_image, nullptr);
+        if (m_vkImage) vkDestroyImage(device, m_vkImage, nullptr);
         if (m_imageMemory) vkFreeMemory(device, m_imageMemory, nullptr);
     }
 }

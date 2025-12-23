@@ -26,7 +26,7 @@ public:
     Image(Image&& other) noexcept;
     Image& operator=(Image&& other) noexcept;
     
-    VkImage m_image;
+    VkImage m_vkImage;
     VkImageView m_imageView;
     VkDeviceMemory m_imageMemory;
 

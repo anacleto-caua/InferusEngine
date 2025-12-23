@@ -39,7 +39,7 @@ Texture::Texture(
     stagingBuffer.copyFromCpu(pixels, imageSize);
     stbi_image_free(pixels);
 
-    VkImage &textureImage = m_image->m_image; 
+    VkImage &textureImage = m_image->m_vkImage; 
     VkDeviceMemory &textureImageMemory = m_image->m_imageMemory; 
 
     m_image = Image(
@@ -191,7 +191,7 @@ void Texture::generateMipmaps() {
 void Texture::recordGenerateMipmapsCmd(VkCommandBuffer cmd) {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image = m_image->m_image;
+    barrier.image = m_image->m_vkImage;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -231,8 +231,8 @@ void Texture::recordGenerateMipmapsCmd(VkCommandBuffer cmd) {
         blit.dstSubresource.layerCount = 1;
 
         vkCmdBlitImage(cmd,
-            m_image->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            m_image->m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            m_image->m_vkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            m_image->m_vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1, &blit,
             VK_FILTER_LINEAR);
 

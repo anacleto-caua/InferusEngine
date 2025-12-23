@@ -5,14 +5,8 @@
 #include "Core/RHI/GpuBuffer.hpp"
 
 Texture::Texture(
-    DeviceContext &deviceCtx, 
-    const std::string& filepath,
-    VkSampleCountFlagBits numSamples,
-    VkFormat format,
-    VkImageTiling tiling,
-    VkImageUsageFlags usage,
-    VkMemoryPropertyFlags properties,
-    VkImageAspectFlags aspectFlags
+    DeviceContext &deviceCtx,
+    const std::string& filepath
 ) : m_deviceCtx(deviceCtx) {
     int texW, texH, texChannels;
     
@@ -39,11 +33,8 @@ Texture::Texture(
     stagingBuffer.copyFromCpu(pixels, imageSize);
     stbi_image_free(pixels);
 
-    VkImage &textureImage = m_image->m_vkImage; 
-    VkDeviceMemory &textureImageMemory = m_image->m_imageMemory; 
-
     m_image = Image(
-        deviceCtx,
+        &deviceCtx,
         width,
         height,
         mipLevels,
@@ -52,7 +43,8 @@ Texture::Texture(
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        0);
+        0
+    );
 
     stagingBuffer.copyBufferToImage(*m_image);
 
@@ -68,7 +60,7 @@ Texture::Texture(
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-        barrier.image = textureImage;
+        barrier.image = m_image->m_vkImage;;
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = 1;
@@ -106,7 +98,7 @@ Texture::Texture(
         barrier.srcQueueFamilyIndex = m_deviceCtx.m_transferQueueCtx.queueFamilyIndex;
         barrier.dstQueueFamilyIndex = m_deviceCtx.m_graphicsQueueCtx.queueFamilyIndex;
 
-        barrier.image = textureImage;
+        barrier.image = m_image->m_vkImage;;
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = 1;
@@ -147,7 +139,7 @@ Texture::Texture(
         barrier.srcQueueFamilyIndex = m_deviceCtx.m_transferQueueCtx.queueFamilyIndex;
         barrier.dstQueueFamilyIndex = m_deviceCtx.m_graphicsQueueCtx.queueFamilyIndex;
 
-        barrier.image = textureImage;
+        barrier.image = m_image->m_vkImage;;
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = 1;

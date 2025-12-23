@@ -11,13 +11,7 @@ class Texture {
 public:
     Texture(
         DeviceContext &deviceCtx, 
-        const std::string& filepath,
-        VkSampleCountFlagBits numSamples,
-        VkFormat format,
-        VkImageTiling tiling,
-        VkImageUsageFlags usage,
-        VkMemoryPropertyFlags properties,
-        VkImageAspectFlags aspectFlags
+        const std::string& filepath
     );
     
     ~Texture();
@@ -27,9 +21,10 @@ public:
     
     std::optional<Image> m_image;
 
+    void generateMipmaps();
+    
 private:
     DeviceContext& m_deviceCtx;
 
-    void generateMipmaps();
     void recordGenerateMipmapsCmd(VkCommandBuffer cmd);
 };

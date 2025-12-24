@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <vulkan/vulkan.h>
 #include "Core/RHI/Types/AppTypes.hpp"
 
@@ -15,6 +16,14 @@ struct BarrierConfig {
 
     VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT; 
     VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+    uint32_t baseMipLevel = 0;
+
+    VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+    uint32_t levelCount = 1;
+    uint32_t baseArrayLayer = 0;
+    uint32_t layerCount = 1;
     
     QueueContext execQueueCtx; 
 };
@@ -43,6 +52,54 @@ public:
     BarrierBuilder& stages(VkPipelineStageFlags src, VkPipelineStageFlags dst) {
         config.srcStage = src;
         config.dstStage = dst;
+        return *this;
+    }
+
+    BarrierBuilder& baseMipLevel(uint32_t baseMipLevel) {
+        config.baseMipLevel = baseMipLevel;
+        return *this;
+    }
+
+    BarrierBuilder& aspectMask(VkImageAspectFlags aspectMask) {
+        config.aspectMask = aspectMask;
+        return *this;
+    }
+
+    BarrierBuilder& levelCount(uint32_t levelCount) {
+        config.levelCount = levelCount;
+        return *this;
+    }
+
+    BarrierBuilder& baseArrayLayer(uint32_t baseArrayLayer) {
+        config.baseArrayLayer = baseArrayLayer;
+        return *this;
+    }
+
+    BarrierBuilder& layerCount(uint32_t layerCount) {
+        config.layerCount = layerCount;
+        return *this;
+    }
+
+    // Rewrites
+    BarrierBuilder& execQueueCtx(QueueContext execQueueCtx) {
+        config.execQueueCtx = execQueueCtx;
+        return *this;
+    }
+
+    BarrierBuilder& vkImage(VkImage image) {
+        config.image = image;
+        return *this;
+    }
+
+    BarrierBuilder& layouts(VkImageLayout oldLayout, VkImageLayout newLayout) {
+        config.oldLayout = oldLayout;
+        config.newLayout = newLayout;
+        return *this;
+    }
+
+    BarrierBuilder& accessMasks(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
+        config.srcAccessMask = srcAccessMask;
+        config.dstAccessMask = dstAccessMask;
         return *this;
     }
 };

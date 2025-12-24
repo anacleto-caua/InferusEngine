@@ -115,8 +115,15 @@ void Image::destroy() {
 }
 
 void Image::memoryBarrier(const BarrierBuilder& builder) {
+    m_deviceCtx->executeCommand(
+        [&](VkCommandBuffer cmd){ memoryBarrier(builder, cmd); },
+        builder.config.execQueueCtx
+    );
+}
+
+void Image::memoryBarrier(const BarrierBuilder& builder, VkCommandBuffer& commandBuffer) {
     const BarrierConfig& cfg = builder.config;
-    
+
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 
@@ -131,23 +138,18 @@ void Image::memoryBarrier(const BarrierBuilder& builder) {
     barrier.srcAccessMask = cfg.srcAccessMask;
     barrier.dstAccessMask = cfg.dstAccessMask;
 
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.aspectMask = cfg.aspectMask;
+    barrier.subresourceRange.baseMipLevel = cfg.baseMipLevel;
+    barrier.subresourceRange.levelCount = cfg.levelCount;
+    barrier.subresourceRange.baseArrayLayer = cfg.baseArrayLayer;
+    barrier.subresourceRange.layerCount = cfg.layerCount;
 
-    m_deviceCtx->executeCommand(
-        [&](VkCommandBuffer cmd){
-            vkCmdPipelineBarrier(
-                cmd,
-                cfg.srcStage, cfg.dstStage,
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier
-            );
-        },
-        cfg.execQueueCtx
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        builder.config.srcStage, builder.config.dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
     );
 }

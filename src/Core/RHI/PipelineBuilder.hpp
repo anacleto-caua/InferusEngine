@@ -1,6 +1,7 @@
 #pragma once
-#include <vulkan/vulkan.h>
+
 #include <vector>
+#include <vulkan/vulkan.h>
 
 struct PipelineBuilder {
     std::vector<VkDynamicState> m_dynamicStates{};
@@ -11,9 +12,9 @@ struct PipelineBuilder {
     VkPipelineRasterizationStateCreateInfo m_rasterizer{};
     VkPipelineMultisampleStateCreateInfo m_multisampling{};
     VkPipelineDepthStencilStateCreateInfo m_depthStencil{};
-    VkViewport m_viewport;
-    VkRect2D m_scissor;
-    VkPipelineColorBlendAttachmentState m_colorBlendAttachment;
+    VkViewport m_viewport{};
+    VkRect2D m_scissor{};
+    VkPipelineColorBlendAttachmentState m_colorBlendAttachment{};
 
     PipelineBuilder& setDefaults();
     

@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include "../RHI/DeviceContext.hpp"
+#include "Barrier.hpp"
 
 class Image {
 public:
@@ -33,9 +34,12 @@ public:
     uint32_t m_mipLevels, m_width, m_height;
     
     VkFormat m_format;
-
+    
+    void memoryBarrier(const BarrierBuilder& builder);
+    
 private:
     DeviceContext *m_deviceCtx;
 
     void destroy();
+    
 };

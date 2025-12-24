@@ -113,3 +113,41 @@ void Image::destroy() {
         if (m_imageMemory) vkFreeMemory(device, m_imageMemory, nullptr);
     }
 }
+
+void Image::memoryBarrier(const BarrierBuilder& builder) {
+    const BarrierConfig& cfg = builder.config;
+    
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+
+    barrier.oldLayout = cfg.oldLayout;
+    barrier.newLayout = cfg.newLayout;
+
+    barrier.srcQueueFamilyIndex = cfg.srcQueueFamily;
+    barrier.dstQueueFamilyIndex = cfg.dstQueueFamily;
+
+    barrier.image = cfg.image;
+
+    barrier.srcAccessMask = cfg.srcAccessMask;
+    barrier.dstAccessMask = cfg.dstAccessMask;
+
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    m_deviceCtx->executeCommand(
+        [&](VkCommandBuffer cmd){
+            vkCmdPipelineBarrier(
+                cmd,
+                cfg.srcStage, cfg.dstStage,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+            );
+        },
+        cfg.execQueueCtx
+    );
+}

@@ -47,40 +47,42 @@ Texture::Texture(
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT
     );
-    
+
     // Transition the layout from undefined
     m_image->memoryBarrier(BarrierBuilder::transitLayout(
-        m_deviceCtx.m_transferQueueCtx,
         m_image->m_vkImage,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         0,VK_ACCESS_TRANSFER_WRITE_BIT)
         .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT)
-        .levelCount(mipLevels)
+        .levelCount(mipLevels),
+        m_deviceCtx.m_transferQueueCtx
     );
 
     stagingBuffer.copyBufferToImage(*m_image);
     
+    // TODO: Check if I should have a single Command Buffer for this chain of event
+    //  or run each barrier as a single time command 
+    
     // Release from Transfer Queue
     m_image->memoryBarrier(BarrierBuilder::transitLayout(
-        m_deviceCtx.m_transferQueueCtx,
         m_image->m_vkImage,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_ACCESS_TRANSFER_WRITE_BIT,0)
         .queues(m_deviceCtx.m_transferQueueCtx,m_deviceCtx.m_graphicsQueueCtx)
         .stages(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT)
-        .levelCount(mipLevels)
-
+        .levelCount(mipLevels),
+        m_deviceCtx.m_transferQueueCtx
     );
 
     // Acquire on Graphics Queue
     m_image->memoryBarrier(BarrierBuilder::transitLayout(
-        m_deviceCtx.m_graphicsQueueCtx,
         m_image->m_vkImage,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         0, VK_ACCESS_SHADER_READ_BIT)
         .queues(m_deviceCtx.m_transferQueueCtx,m_deviceCtx.m_graphicsQueueCtx)
         .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
-        .levelCount(mipLevels)
+        .levelCount(mipLevels),
+        m_deviceCtx.m_graphicsQueueCtx
     );
 }
 
@@ -97,7 +99,6 @@ void Texture::generateMipmaps() {
 
 void Texture::recordGenerateMipmapsCmd(VkCommandBuffer cmd) {
     BarrierBuilder baseBarrierBuilder = BarrierBuilder::transitLayout(
-        m_deviceCtx.m_graphicsQueueCtx, 
         m_image->m_vkImage,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
         VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT

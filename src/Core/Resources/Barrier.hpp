@@ -24,17 +24,14 @@ struct BarrierConfig {
     uint32_t levelCount = 1;
     uint32_t baseArrayLayer = 0;
     uint32_t layerCount = 1;
-    
-    QueueContext execQueueCtx; 
 };
 
 class BarrierBuilder {
 public:
     BarrierConfig config;
 
-    static BarrierBuilder transitLayout(QueueContext& execQueueCtx, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
+    static BarrierBuilder transitLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
         BarrierBuilder builder;
-        builder.config.execQueueCtx = execQueueCtx;
         builder.config.image = image;
         builder.config.oldLayout = oldLayout;
         builder.config.newLayout = newLayout;
@@ -81,11 +78,6 @@ public:
     }
 
     // Rewrites
-    BarrierBuilder& execQueueCtx(QueueContext execQueueCtx) {
-        config.execQueueCtx = execQueueCtx;
-        return *this;
-    }
-
     BarrierBuilder& vkImage(VkImage image) {
         config.image = image;
         return *this;

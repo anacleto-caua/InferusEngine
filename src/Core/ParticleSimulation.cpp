@@ -793,7 +793,6 @@ class ParticleSimulation {
         
         m_depthImage->memoryBarrier(
             BarrierBuilder::transitLayout(
-                m_deviceCtx->m_graphicsQueueCtx,
                 m_depthImage->m_vkImage,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -801,7 +800,8 @@ class ParticleSimulation {
                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
             )
             .aspectMask(aspectMask)
-            .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT)
+            .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT),
+            m_deviceCtx->m_graphicsQueueCtx
         );
     }
 

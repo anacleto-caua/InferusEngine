@@ -114,10 +114,10 @@ void Image::destroy() {
     }
 }
 
-void Image::memoryBarrier(const BarrierBuilder& builder) {
+void Image::memoryBarrier(const BarrierBuilder& builder, QueueContext execQueueCtx) {
     m_deviceCtx->executeCommand(
         [&](VkCommandBuffer cmd){ memoryBarrier(builder, cmd); },
-        builder.config.execQueueCtx
+        execQueueCtx
     );
 }
 

@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include "../RHI/DeviceContext.hpp"
 #include "Barrier.hpp"
+#include "Core/RHI/Types/AppTypes.hpp"
 
 class Image {
 public:
@@ -35,7 +36,7 @@ public:
     
     VkFormat m_format;
     
-    void memoryBarrier(const BarrierBuilder& builder);
+    void memoryBarrier(const BarrierBuilder& builder, QueueContext execQueueCtx);
     void memoryBarrier(const BarrierBuilder& builder, VkCommandBuffer& cmd);
     
 private:

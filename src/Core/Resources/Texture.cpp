@@ -3,7 +3,6 @@
 #include <stb_image.h>
 #include <stdexcept>
 #include "Core/RHI/GpuBuffer.hpp"
-#include "Core/RHI/Types/AppTypes.hpp"
 #include "Image.hpp"
 
 Texture::Texture(

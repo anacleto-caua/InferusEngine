@@ -340,11 +340,11 @@ void DeviceContext::createTextureSampler() {
     }
 }
 
-void DeviceContext::executeCommand(std::function<void(VkCommandBuffer)> recorder, QueueContext queueCtx) {
+void DeviceContext::executeCommand(const std::function<void(VkCommandBuffer)> &recorder, const QueueContext &queueCtx) {
     executeCommand(recorder, queueCtx.mainCmdPool, queueCtx.queue);
 }
 
-void DeviceContext::executeCommand(std::function<void(VkCommandBuffer)> recorder, VkCommandPool cmdPool, VkQueue queue) {
+void DeviceContext::executeCommand(const std::function<void(VkCommandBuffer)> &recorder, VkCommandPool cmdPool, VkQueue queue) {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;

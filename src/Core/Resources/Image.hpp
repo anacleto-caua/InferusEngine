@@ -36,8 +36,8 @@ public:
     
     VkFormat m_format;
     
-    void memoryBarrier(const BarrierBuilder& builder, QueueContext execQueueCtx);
-    void memoryBarrier(const BarrierBuilder& builder, VkCommandBuffer& cmd);
+    void memoryBarrier(const BarrierBuilder& builder, const QueueContext &execQueueCtx);
+    void memoryBarrier(const BarrierBuilder& builder, VkCommandBuffer commandBuffer);
     
 private:
     DeviceContext *m_deviceCtx;

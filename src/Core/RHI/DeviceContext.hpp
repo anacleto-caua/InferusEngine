@@ -44,9 +44,9 @@ public:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     // TOFIX: Somehow I doubt this is right
-    void executeCommand(std::function<void(VkCommandBuffer)> recorder, VkCommandPool cmdPool, VkQueue queue);
+    void executeCommand(const std::function<void(VkCommandBuffer)> &recorder, VkCommandPool cmdPool, VkQueue queue);
     // TODO: That's a temporary overwrite before a proper migration
-    void executeCommand(std::function<void(VkCommandBuffer)> recorder, QueueContext queueCtx);
+    void executeCommand(const std::function<void(VkCommandBuffer)> &recorder, const QueueContext &queueCtx);
 
 private:
     void pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);

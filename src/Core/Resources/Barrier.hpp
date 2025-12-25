@@ -1,4 +1,3 @@
-#include <cstdint>
 #include <vulkan/vulkan.h>
 #include "Core/RHI/Types/AppTypes.hpp"
 

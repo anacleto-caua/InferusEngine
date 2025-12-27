@@ -170,8 +170,10 @@ class ParticleSimulation {
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
+
         createDescriptorPool();
         createDescriptorSets();
+
         createCommandBuffers();
         createSyncObjects();
     }
@@ -420,23 +422,11 @@ class ParticleSimulation {
         };
 
         if (m_deviceCtx->m_graphicsQueueCtx.queueFamilyIndex != m_deviceCtx->m_presentQueueCtx.queueFamilyIndex) {
-            /**
-             * In -VK_SHARING_MODE_CONCURRENT-
-             * Images can be used across multiple queue families
-             * without explicit ownership transfers.
-             */
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
         } else {
-            /**
-             * In -VK_SHARING_MODE_EXCLUSIVE-
-             * An image is owned by one queue family at a time and 
-             * ownership must be explicitly transferred before
-             * using it in another queue family. 
-             * This option offers the best performance.
-             */
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
             createInfo.queueFamilyIndexCount = 0;

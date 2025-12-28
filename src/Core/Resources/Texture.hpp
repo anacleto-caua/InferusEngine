@@ -20,9 +20,11 @@ public:
     Texture& operator=(const Texture&) = delete;
     
     std::optional<Image> m_image;
+    
+    VkSampler& m_sampler;
 
     void generateMipmaps();
-    
+
 private:
     DeviceContext& m_deviceCtx;
 

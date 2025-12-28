@@ -8,7 +8,7 @@
 Texture::Texture(
     DeviceContext &deviceCtx,
     const std::string& filepath
-) : m_deviceCtx(deviceCtx) {
+) : m_deviceCtx(deviceCtx), m_sampler(deviceCtx.m_textureSampler) {
     int texW, texH, texChannels;
     
     stbi_uc* pixels = stbi_load(filepath.c_str(), &texW, &texH, &texChannels, STBI_rgb_alpha);

@@ -1098,9 +1098,9 @@ class ParticleSimulation {
                 .build(m_deviceCtx->m_logicalDevice);
 
             VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageLayout = m_texture->m_image->m_layout;
             imageInfo.imageView = m_texture->m_image->m_imageView;
-            imageInfo.sampler = m_deviceCtx->m_textureSampler;
+            imageInfo.sampler = m_texture->m_sampler;
 
             DescriptorBuilder::startConfig(descriptorSets[i])
                 .addImageBinding(1, imageInfo)

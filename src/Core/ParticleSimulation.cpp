@@ -1091,7 +1091,7 @@ class ParticleSimulation {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = m_uniformBuffers[i]->m_vkBuffer;
             bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
+            bufferInfo.range = m_uniformBuffers[i]->m_size;
             
             DescriptorBuilder::startConfig(descriptorSets[i])
                 .addUniformBufferBinding(0, bufferInfo)

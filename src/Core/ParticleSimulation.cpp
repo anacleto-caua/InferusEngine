@@ -520,15 +520,12 @@ class ParticleSimulation {
     }
 
     void recreateSwapChain() {
-        // Handles minimization
-        uint32_t width = 0, height = 0;
-        m_windowCtx->getFramebufferSize(width, height);
-        while (width == 0 || height == 0) { // TODO: Try a do while here
+        uint32_t width, height;
+        do {
             m_windowCtx->getFramebufferSize(width, height);
             m_windowCtx->waitEvents();
-        }
+        } while (width == 0 || height == 0);
 
-        // We shouldn't touch resources that may still be in use.
         vkDeviceWaitIdle(m_deviceCtx->m_logicalDevice);
 
         cleanupSwapChain();
@@ -939,15 +936,6 @@ class ParticleSimulation {
 
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
-        /**
-        * Quote from: https://vulkan-tutorial.com/en/Drawing_a_triangle/Drawing/Command_buffers
-        * The actual vkCmdDraw function is a bit anticlimactic, but it's so simple because of all the information we specified in advance. It has the following parameters, aside from the command buffer:
-        *   vertexCount: Even though we don't have a vertex buffer, we technically still have 3 vertices to draw.
-        *   instanceCount: Used for instanced rendering, use 1 if you're not doing that.
-        *   firstVertex: Used as an offset into the vertex buffer, defines the lowest value of gl_VertexIndex.
-        *   firstInstance: Used as an offset for instanced rendering, defines the lowest value of gl_InstanceIndex.
-        */
-
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -1017,10 +1005,8 @@ class ParticleSimulation {
                 }
 
                 indices.push_back(uniqueVertices[vertex]);
-
             }
         }
-
     }
 
     void createVertexBuffer() {

@@ -23,11 +23,11 @@ public:
 
     void copyBufferToImage(Image &image);
 
-    QueueContext& m_queueCtx;
-
     VkBuffer m_vkBuffer;
-
+    
     VkDeviceSize m_size;
+    
+    QueueContext& m_queueCtx;
 
 private:
     DeviceContext& m_deviceCtx;

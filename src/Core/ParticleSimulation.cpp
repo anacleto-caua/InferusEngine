@@ -20,7 +20,7 @@
 #include <stb_image.h>
 #include <tiny_obj_loader.h>
 
-#include "Descriptor/DescriptorBuilder.hpp"
+#include "Descriptor/DescriptorWriter.hpp"
 #include "RHI/GpuBuffer.hpp"
 #include "RHI/PipelineBuilder.hpp"
 #include "RHI/DeviceContext.hpp"
@@ -1082,29 +1082,20 @@ class ParticleSimulation {
         }
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-            // TODO: Consider passing GpuBuffer or Image to the descriptor builder
-            // and let it be made inside the class itself
-            // instead of making the infos by hand
-
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = m_uniformBuffers[i]->m_vkBuffer;
-            bufferInfo.offset = 0;
-            bufferInfo.range = m_uniformBuffers[i]->m_size;
+            DescriptorWriter writer;
             
-            DescriptorBuilder::startConfig(descriptorSets[i])
-                .addUniformBufferBinding(0, bufferInfo)
-                .build(m_deviceCtx->m_logicalDevice);
+            writer.addUniformBufferBinding(
+                descriptorSets[i],
+                0,  *m_uniformBuffers[i]
+            );
+            
+            writer.addImageBinding(
+                descriptorSets[i],
+                1, *m_texture,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            );
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = m_texture->m_image->m_imageView;
-            imageInfo.sampler = m_texture->m_sampler;
-
-            DescriptorBuilder::startConfig(descriptorSets[i])
-                .addImageBinding(1, imageInfo)
-                .build(m_deviceCtx->m_logicalDevice);
+            writer.writeAll(m_deviceCtx->m_logicalDevice);
         }
     }
 

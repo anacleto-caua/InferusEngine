@@ -22,13 +22,14 @@
 
 #include "Core/Descriptor/DescriptorWriter.hpp"
 #include "Core/RHI/GpuBuffer.hpp"
-#include "Core/RHI/PipelineBuilder.hpp"
+#include "Core/RHI/Pipeline/PipelineBuilder.hpp"
 #include "Core/RHI/DeviceContext.hpp"
 #include "Core/RHI/Types/Vertex.hpp"
 #include "Core/RHI/Window/WindowContext.hpp"
 #include "Core/RHI/Window/GlfwWindowContext.hpp"
 #include "Core/Resources/Image.hpp"
 #include "Core/Resources/Texture.hpp"
+#include "Core/RHI/Pipeline/PipelineAttachmentBuilder.hpp"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -556,15 +557,44 @@ class ParticleSimulation {
     }
 
     void createRenderPass() {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = swapChainImageFormat;
-        colorAttachment.samples = msaaSamples;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        PipelineAttachmentBuilder colorBuilder = 
+            PipelineAttachmentBuilder::setDefaults(
+                        0,
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        swapChainImageFormat
+                    )
+                .samples(msaaSamples)
+                .loadStoreOp(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE)
+                .layout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        
+        PipelineAttachmentBuilder colorResolveBuilder = 
+            PipelineAttachmentBuilder::setDefaults(
+                    2,
+                    VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+                    swapChainImageFormat
+                )
+            .samples(VK_SAMPLE_COUNT_1_BIT)
+            .loadStoreOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_STORE)
+            .layout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+        PipelineAttachmentBuilder depthBuilder = 
+            PipelineAttachmentBuilder::setDefaults(
+                    1,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    findDepthFormat()
+                )
+                .samples(msaaSamples)
+                .loadStoreOp(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE)
+                .layout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+        auto colorAttachment = colorBuilder.attachment.description;
+        auto colorAttachmentRef = colorBuilder.attachment.reference;
+
+        auto colorAttachmentResolve = colorResolveBuilder.attachment.description;
+        auto colorAttachmentResolveRef = colorResolveBuilder.attachment.reference;
+        
+        auto depthAttachment = depthBuilder.attachment.description;
+        auto depthAttachmentRef = depthBuilder.attachment.reference;
         
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -577,38 +607,7 @@ class ParticleSimulation {
         dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = findDepthFormat();
-        depthAttachment.samples = msaaSamples;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentDescription colorAttachmentResolve{};
-        colorAttachmentResolve.format = swapChainImageFormat;
-        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachmentResolveRef{};
-        colorAttachmentResolveRef.attachment = 2;
-        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = 1;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -630,6 +629,17 @@ class ParticleSimulation {
         if (vkCreateRenderPass(m_deviceCtx->m_logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
+/*
+        renderPass = RenderPassBuilder::setDefaults(
+                swapChainImageFormat,
+                msaaSamples,
+                findDepthFormat()
+            )
+            .addColorAttachment(colorBuilder)
+            .setDepthStencil(depthBuilder)
+            .build(m_deviceCtx->m_logicalDevice);
+*/
+
     }
 
     void createDescriptorSetLayout() {

@@ -33,12 +33,12 @@ public:
     VkSampleCountFlagBits getMaxUsableSampleCount();
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-    // TOFIX: Somehow I doubt this is right
-    void executeCommand(const std::function<void(VkCommandBuffer)> &recorder, VkCommandPool cmdPool, VkQueue queue);
-    // TODO: That's a temporary overwrite before a proper migration
     void executeCommand(const std::function<void(VkCommandBuffer)> &recorder, const QueueContext &queueCtx);
-
+    void executeCommand(const std::function<void(VkCommandBuffer)> &recorder, const QueueContext &queueCtx, VkCommandPool cmdPool);
+    
 private:
+    void executeCommand(const std::function<void(VkCommandBuffer)> &recorder, VkQueue queue, VkCommandPool cmdPool);
+
     void pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
     bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);

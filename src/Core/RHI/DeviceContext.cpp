@@ -327,7 +327,7 @@ void DeviceContext::createTextureSampler() {
     // Lod related
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.minLod = 0.0f;
-    //samplerInfo.minLod = static_cast<float>(mipLevels / 2); // <---- uncomment to test the LODs
+    //samplerInfo.minLod = static_cast<float>(mipLevels / executeCommand2); // <---- uncomment to test the LODs
     samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
     samplerInfo.mipLodBias = 0.0f;
 
@@ -337,10 +337,14 @@ void DeviceContext::createTextureSampler() {
 }
 
 void DeviceContext::executeCommand(const std::function<void(VkCommandBuffer)> &recorder, const QueueContext &queueCtx) {
-    executeCommand(recorder, queueCtx.mainCmdPool, queueCtx.queue);
+    executeCommand(recorder, queueCtx.queue, queueCtx.mainCmdPool);
 }
 
-void DeviceContext::executeCommand(const std::function<void(VkCommandBuffer)> &recorder, VkCommandPool cmdPool, VkQueue queue) {
+void DeviceContext::executeCommand(const std::function<void(VkCommandBuffer)> &recorder, const QueueContext &queueCtx, VkCommandPool cmdPool) {
+    executeCommand(recorder, queueCtx.queue, cmdPool);
+}
+
+void DeviceContext::executeCommand(const std::function<void(VkCommandBuffer)> &recorder, VkQueue queue, VkCommandPool cmdPool) {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;

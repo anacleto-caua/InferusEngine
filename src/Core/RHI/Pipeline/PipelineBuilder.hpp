@@ -1,6 +1,8 @@
 #pragma once
 
+#include <string>
 #include <vector>
+
 #include <vulkan/vulkan.h>
 
 struct PipelineBuilder {
@@ -18,7 +20,7 @@ struct PipelineBuilder {
 
     PipelineBuilder& setDefaults();
     
-    PipelineBuilder& addShaderStage(VkShaderStageFlagBits stage, VkShaderModule module);
+    PipelineBuilder& addShaderStage(const VkDevice &logicalDevice, VkShaderStageFlagBits stage, const std::string& filename);
     
     VkPipeline build(VkDevice device, VkRenderPass renderPass, VkPipelineLayout pipelineLayout);
 };

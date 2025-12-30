@@ -630,14 +630,8 @@ class ParticleSimulation {
         builder.setDefaults();
         
         // Shaders
-        auto vertShaderCode = readFile("shaders/shader.vert.spv");
-        auto fragShaderCode = readFile("shaders/shader.frag.spv");
-
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
-
-        builder.addShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule);
-        builder.addShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule);
+        builder.addShaderStage(m_deviceCtx->m_logicalDevice, VK_SHADER_STAGE_VERTEX_BIT, "shaders/shader.vert.spv");
+        builder.addShaderStage(m_deviceCtx->m_logicalDevice, VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shader.frag.spv");
 
         // Vertices
         auto bindingDescription = Vertex::getBindingDescription();
@@ -650,7 +644,6 @@ class ParticleSimulation {
         builder.m_vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
         
         // Other configs
-        // TODO: Find a cleaner way to set this, remember to fetch the max acceptable msaaSamples
         builder.m_multisampling.rasterizationSamples = msaaSamples;
 
         // Create pipeline layout
@@ -667,24 +660,6 @@ class ParticleSimulation {
 
         // Create pipeline
         graphicsPipeline = builder.build(m_deviceCtx->m_logicalDevice, renderPass, m_pipelineLayout);
-
-        // Discard unused
-        vkDestroyShaderModule(m_deviceCtx->m_logicalDevice, fragShaderModule, nullptr);
-        vkDestroyShaderModule(m_deviceCtx->m_logicalDevice, vertShaderModule, nullptr);
-    }
-
-    VkShaderModule createShaderModule(const std::vector<char>& code) {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(m_deviceCtx->m_logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module!");
-        }
-
-        return shaderModule;
     }
 
     void createFramebuffers() {

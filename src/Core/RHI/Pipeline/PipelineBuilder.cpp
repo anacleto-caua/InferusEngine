@@ -1,6 +1,7 @@
 #include "PipelineBuilder.hpp"
 #include <stdexcept>
 #include <vector>
+#include <fstream>
 
 PipelineBuilder& PipelineBuilder::setDefaults() {
     m_dynamicStates = {
@@ -63,19 +64,42 @@ PipelineBuilder& PipelineBuilder::setDefaults() {
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addShaderStage(VkShaderStageFlagBits stage, VkShaderModule module) {
+PipelineBuilder& PipelineBuilder::addShaderStage(const VkDevice &logicalDevice, VkShaderStageFlagBits stage, const std::string& filename) {
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+    
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open file! " + filename);
+    }
+
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> shaderCode(fileSize);
+
+    file.seekg(0);
+    file.read(shaderCode.data(), fileSize);
+    file.close();
+
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = shaderCode.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(shaderCode.data());
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create shader module!");
+    }
+
     VkPipelineShaderStageCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     info.stage = stage;
-    info.module = module;
+    info.module = shaderModule;
     info.pName = "main";
+
     m_shaderStages.push_back(info);
 
     return *this;
 }
 
 VkPipeline PipelineBuilder::build(VkDevice device, VkRenderPass renderPass, VkPipelineLayout pipelineLayout) {
-    
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
@@ -125,6 +149,10 @@ VkPipeline PipelineBuilder::build(VkDevice device, VkRenderPass renderPass, VkPi
     VkPipeline newPipeline;
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
+    }
+
+    for(VkPipelineShaderStageCreateInfo shaderStage : m_shaderStages) {
+        vkDestroyShaderModule(device, shaderStage.module, nullptr);
     }
 
     return newPipeline;

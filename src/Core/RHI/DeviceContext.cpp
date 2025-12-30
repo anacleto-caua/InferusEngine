@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 #include "Core/RHI/Types/QueueCriteria.hpp"
 
@@ -171,55 +172,46 @@ bool DeviceContext::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surf
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-    int32_t bestGraphicsQIndex = -1;
-    int32_t bestTransferQIndex = -1;
-    int32_t bestPresentQIndex = -1;
-
+    
     QueueCriteria baseCriteria =
-        QueueCriteria::startCriteria()
+        QueueCriteria::startCriteria(nullptr)
             .desireExclusivenessAgainst(&m_presentQueueCtx)
             .desireExclusivenessAgainst(&m_graphicsQueueCtx)
             .desireExclusivenessAgainst(&m_transferQueueCtx);
+    
+    QueueCriteria presentCriteria =
+        QueueCriteria::startCriteria(baseCriteria, &m_presentQueueCtx)
+            .requireSurfaceSupport(m_physicalDevice, surface);
+    
+    QueueCriteria graphicsCriteria =
+        QueueCriteria::startCriteria(baseCriteria, &m_graphicsQueueCtx)
+            .addRequiredFlags(VK_QUEUE_GRAPHICS_BIT);
 
-    bestPresentQIndex = 
-        QueueCriteria::startCriteria(baseCriteria)
-            .requireSurfaceSupport(m_physicalDevice, surface)
-            .evaluateQueues(queueFamilies);
-    if(keepChoices) {
-        m_presentQueueCtx.queueFamilyIndex = static_cast<uint32_t>(bestPresentQIndex);
-    }
-
-    bestGraphicsQIndex = 
-        QueueCriteria::startCriteria(baseCriteria)
-            .addRequiredFlags(VK_QUEUE_GRAPHICS_BIT)
-            .evaluateQueues(queueFamilies);
-    if(keepChoices) {
-        m_graphicsQueueCtx.queueFamilyIndex = static_cast<uint32_t>(bestGraphicsQIndex);
-    }
-
-    bestTransferQIndex = 
-        QueueCriteria::startCriteria(baseCriteria)
+    QueueCriteria transferCriteria =
+        QueueCriteria::startCriteria(baseCriteria, &m_transferQueueCtx)
             .addRequiredFlags(VK_QUEUE_TRANSFER_BIT)
             .addAvoidedFlags(VK_QUEUE_GRAPHICS_BIT)
-            .addAvoidedFlags(VK_QUEUE_COMPUTE_BIT)
-            .evaluateQueues(queueFamilies);
-    if(keepChoices) {
-        m_transferQueueCtx.queueFamilyIndex = static_cast<uint32_t>(bestTransferQIndex);
-    }
+            .addAvoidedFlags(VK_QUEUE_COMPUTE_BIT);
 
-    bool querySuccess = false;
-    if(
-        (
-            bestGraphicsQIndex != -1 &&
-            bestTransferQIndex != -1 &&
-            bestPresentQIndex != -1
-        ) 
-    ) {
-        querySuccess = true;
-    }
+    std::vector<QueueCriteria*> criterias = {
+        &presentCriteria,
+        &graphicsCriteria,
+        &transferCriteria
+    };
 
-    return querySuccess;
+    for(QueueCriteria* criteria : criterias) {
+        int32_t bestIndex = criteria->evaluateQueues(queueFamilies);
+
+        if(bestIndex == -1) {
+            return false;
+        }
+        
+        if(keepChoices) {
+            criteria->m_queueCtxToFit->queueFamilyIndex = static_cast<uint32_t>(bestIndex);
+        }
+    }
+    
+    return true;
 }
 
 void DeviceContext::createLogicalDevice(VkSurfaceKHR surface, bool enableValidationLayers, std::vector<const char *> validationLayers) {

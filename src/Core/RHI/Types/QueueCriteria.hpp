@@ -15,6 +15,8 @@ private:
     };
 
 public:
+    QueueContext* m_queueCtxToFit;
+
     int32_t evaluateQueues(std::vector<VkQueueFamilyProperties> queueFamilies) {
         std::vector<QueueScoreBoard> scores;
         scores.reserve(queueFamilies.size());
@@ -44,12 +46,15 @@ public:
         return -1;
     }
 
-    static QueueCriteria startCriteria() {
+    static QueueCriteria startCriteria(QueueContext* queueCtx) {
         QueueCriteria criteria;
+        criteria.m_queueCtxToFit = queueCtx;
         return criteria;
     }
 
-    static QueueCriteria startCriteria(const QueueCriteria& copyCriteria) {
+    static QueueCriteria startCriteria(const QueueCriteria& baseCriteria, QueueContext* queueCtx) {
+        QueueCriteria copyCriteria = baseCriteria;
+        copyCriteria.m_queueCtxToFit = queueCtx;
         return copyCriteria;
     }
 

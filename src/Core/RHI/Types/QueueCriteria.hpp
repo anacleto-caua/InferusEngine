@@ -70,7 +70,7 @@ public:
         return  *this;
     }
 
-    QueueCriteria& desireExclusivenessAgainst(const QueueContext& queueCtx) {
+    QueueCriteria& desireExclusivenessAgainst(QueueContext* queueCtx) {
         m_uniqueAgainst.push_back(queueCtx);
         return *this;
     }
@@ -81,7 +81,7 @@ private:
     // VkQueueFlags forbiddenFlags = 0;
     // VkQueueFlags desiredFlags = 0;
 
-    std::vector<QueueContext> m_uniqueAgainst;
+    std::vector<QueueContext*> m_uniqueAgainst;
 
     bool m_requiresSurfaceSupport = false;
     VkPhysicalDevice m_device = VK_NULL_HANDLE;
@@ -113,8 +113,11 @@ private:
             score += 100; 
         }
 
-        for(QueueContext queueCtx : m_uniqueAgainst) {
-            if(queueCtx.queueFamilyIndex != queueFamilyIndex) {
+        for(QueueContext* queueCtx : m_uniqueAgainst) {
+            if(
+                (queueCtx->queueFamilyIndex != queueFamilyIndex) &&
+                (queueCtx->queueFamilyIndex != -1)
+            ) {
                 score+=10;
             }
         }

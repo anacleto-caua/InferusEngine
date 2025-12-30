@@ -1,5 +1,6 @@
 #include "DeviceContext.hpp"
 
+#include <cstdint>
 #include <set>
 #include <map>
 #include <cstring>
@@ -177,9 +178,9 @@ bool DeviceContext::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surf
 
     QueueCriteria baseCriteria =
         QueueCriteria::startCriteria()
-            .desireExclusivenessAgainst(m_presentQueueCtx)
-            .desireExclusivenessAgainst(m_graphicsQueueCtx)
-            .desireExclusivenessAgainst(m_presentQueueCtx);
+            .desireExclusivenessAgainst(&m_presentQueueCtx)
+            .desireExclusivenessAgainst(&m_graphicsQueueCtx)
+            .desireExclusivenessAgainst(&m_transferQueueCtx);
 
     bestPresentQIndex = 
         QueueCriteria::startCriteria(baseCriteria)
@@ -192,7 +193,6 @@ bool DeviceContext::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surf
     bestGraphicsQIndex = 
         QueueCriteria::startCriteria(baseCriteria)
             .addRequiredFlags(VK_QUEUE_GRAPHICS_BIT)
-            // .addRequiredFlags(VK_QUEUE_COMPUTE_BIT)
             .evaluateQueues(queueFamilies);
     if(keepChoices) {
         m_graphicsQueueCtx.queueFamilyIndex = static_cast<uint32_t>(bestGraphicsQIndex);

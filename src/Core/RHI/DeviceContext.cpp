@@ -22,6 +22,7 @@ DeviceContext::DeviceContext(VkInstance instance, VkSurfaceKHR surface, const st
     std::cout << "Graphics queue index: " << m_graphicsQueueCtx.queueFamilyIndex << "\n";
     std::cout << "Transfer queue index: " << m_transferQueueCtx.queueFamilyIndex << "\n";
     std::cout << "Present queue index: " << m_presentQueueCtx.queueFamilyIndex << "\n";
+    std::cout << "Compute queue index: " << m_computeQueueCtx.queueFamilyIndex << "\n";
 
     createLogicalDevice(surface, enableValidationLayers, validationLayers);
     createCommandPools();
@@ -177,7 +178,8 @@ bool DeviceContext::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surf
         QueueCriteria::startCriteria(nullptr)
             .desireExclusivenessAgainst(&m_presentQueueCtx)
             .desireExclusivenessAgainst(&m_graphicsQueueCtx)
-            .desireExclusivenessAgainst(&m_transferQueueCtx);
+            .desireExclusivenessAgainst(&m_transferQueueCtx)
+            .desireExclusivenessAgainst(&m_computeQueueCtx);
     
     QueueCriteria presentCriteria =
         QueueCriteria::startCriteria(baseCriteria, &m_presentQueueCtx)
@@ -193,10 +195,17 @@ bool DeviceContext::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surf
             .addAvoidedFlags(VK_QUEUE_GRAPHICS_BIT)
             .addAvoidedFlags(VK_QUEUE_COMPUTE_BIT);
 
+    QueueCriteria computeCriteria =
+        QueueCriteria::startCriteria(baseCriteria, &m_computeQueueCtx)
+            .addRequiredFlags(VK_QUEUE_COMPUTE_BIT)
+            .addAvoidedFlags(VK_QUEUE_GRAPHICS_BIT)
+            .addAvoidedFlags(VK_QUEUE_TRANSFER_BIT);
+
     std::vector<QueueCriteria*> criterias = {
         &presentCriteria,
         &graphicsCriteria,
-        &transferCriteria
+        &transferCriteria,
+        &computeCriteria
     };
 
     for(QueueCriteria* criteria : criterias) {

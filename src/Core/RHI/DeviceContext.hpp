@@ -22,6 +22,7 @@ public:
 
     VkSampler m_textureSampler;
     
+    QueueContext m_computeQueueCtx;
     QueueContext m_graphicsQueueCtx;
     QueueContext m_transferQueueCtx;
     QueueContext m_presentQueueCtx;

@@ -19,8 +19,8 @@ public:
 
     void mapAndWrite(const void* data, VkDeviceSize size);
 
-    void copyFromBuffer(GpuBuffer *srcBuffer);
-    void copyFromBuffer(GpuBuffer *srcBuffer, VkDeviceSize size);
+    void copyFromBuffer(GpuBuffer& srcBuffer);
+    void copyFromBuffer(GpuBuffer& srcBuffer, VkDeviceSize size);
 
     void copyBufferToImage(Image &image);
 

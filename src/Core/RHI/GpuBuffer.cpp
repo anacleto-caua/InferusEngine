@@ -52,7 +52,7 @@ void GpuBuffer::copyFromCpu(const void *sourceData, size_t size) {
     );
 
     stagingBuffer.mapAndWrite(sourceData, size);
-    this->copyFromBuffer(&stagingBuffer);
+    this->copyFromBuffer(stagingBuffer);
 }
 
 void GpuBuffer::mapAndWrite(const void* data, VkDeviceSize size) {
@@ -62,11 +62,11 @@ void GpuBuffer::mapAndWrite(const void* data, VkDeviceSize size) {
     vkUnmapMemory(m_deviceCtx.m_logicalDevice, m_memory);
 }
 
-void GpuBuffer::copyFromBuffer(GpuBuffer *srcBuffer) {
+void GpuBuffer::copyFromBuffer(GpuBuffer &srcBuffer) {
     copyFromBuffer(srcBuffer, m_size);
 }
 
-void GpuBuffer::copyFromBuffer(GpuBuffer *srcBuffer, VkDeviceSize size) {
+void GpuBuffer::copyFromBuffer(GpuBuffer &srcBuffer, VkDeviceSize size) {
     VkBufferCopy copyRegion{};
     copyRegion.size = size;
     
@@ -74,7 +74,7 @@ void GpuBuffer::copyFromBuffer(GpuBuffer *srcBuffer, VkDeviceSize size) {
         [&](VkCommandBuffer cmd) {
             vkCmdCopyBuffer(
                 cmd, 
-                srcBuffer->m_vkBuffer,
+                srcBuffer.m_vkBuffer,
                 this->m_vkBuffer,
                 1,
                 &copyRegion

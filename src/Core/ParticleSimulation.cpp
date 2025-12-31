@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -32,14 +31,6 @@
 #include "Core/RHI/Pipeline/RenderPassBuilder.hpp"
 #include "Core/RHI/Pipeline/PipelineAttachmentBuilder.hpp"
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
-const uint32_t WIDTH = 1200;
-const uint32_t HEIGHT = 800;
-
-const std::string MODEL_PATH = "assets/viking_room/viking_room.obj";
-const std::string TEXTURE_PATH = "assets/viking_room/viking_room.png";
-
 const std::vector<const char *> validationLayers = { "VK_LAYER_KHRONOS_validation" }; 
 
 #ifdef NDEBUG
@@ -51,6 +42,14 @@ const std::vector<const char *> validationLayers = { "VK_LAYER_KHRONOS_validatio
 const std::vector<const char *> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME };
 
 const std::vector<const char *> instanceExtensions = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
+
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
+const uint32_t WIDTH = 1200;
+const uint32_t HEIGHT = 800;
+
+const std::string MODEL_PATH = "assets/viking_room/viking_room.obj";
+const std::string TEXTURE_PATH = "assets/viking_room/viking_room.png";
 
 class ParticleSimulation {
   public:

@@ -681,7 +681,12 @@ class ParticleSimulation {
         computePipelineInfo.layout = m_computePipelineLayout;
         // Shaders
         computePipelineInfo.stage = 
-            ShaderStageBuilder::createShaderStage(m_deviceCtx->m_logicalDevice, VK_SHADER_STAGE_COMPUTE_BIT, "shaders/shader.comp.spv");
+            ShaderStageBuilder::createShaderStage(
+                m_deviceCtx->m_logicalDevice,
+                VK_SHADER_STAGE_COMPUTE_BIT,
+                // "shaders/shader.comp.spv"
+                "shaders/gravity.comp.spv"
+            );
 
         if (vkCreateComputePipelines(m_deviceCtx->m_logicalDevice, VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &m_computePipeline) != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute pipeline!");
@@ -991,8 +996,6 @@ class ParticleSimulation {
             // Random position
             float x = (rngDist(rngEngine) * 2.0f) - 1.0f;
             float y = (rngDist(rngEngine) * 2.0f) - 1.0f;
-            x = 0;
-            y = 0;
             particle.position = glm::vec2(x, y);
                 
             // Random angle for direction
@@ -1003,7 +1006,7 @@ class ParticleSimulation {
             float velY = sin(theta);
             
             // Set velocity using the angle
-            particle.velocity = glm::normalize(glm::vec2(velX, velY)) * 0.00025f;
+            particle.velocity = glm::normalize(glm::vec2(velX, velY)) * 0.0025f;
 
             // Random color :b
             particle.color = glm::vec4(rngDist(rngEngine), rngDist(rngEngine), rngDist(rngEngine), 1.0f);

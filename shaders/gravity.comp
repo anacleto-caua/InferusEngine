@@ -1,0 +1,77 @@
+#version 450
+
+struct Particle {
+    vec2 position;
+    vec2 velocity;
+    vec4 color;
+};
+
+layout (binding = 0) uniform ParameterUBO {
+    float deltaTime;
+} ubo;
+
+layout(std140, binding = 1) readonly buffer ParticleSSBOIn {
+   Particle particlesIn[ ];
+};
+
+layout(std140, binding = 2) buffer ParticleSSBOOut {
+   Particle particlesOut[ ];
+};
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+float GRAVITY = 9.8 / 1000000;
+float AIR_RESIST = .9;
+
+float RESET_SPEED_THRESHOLD = .0005;
+float SHOOT_UP_STRENGTH = .0025;
+
+void main() 
+{
+    uint index = gl_GlobalInvocationID.x;
+
+    Particle particleIn = particlesIn[index];
+
+    vec2 newVelocity = particleIn.velocity.xy;
+    newVelocity.y += GRAVITY * ubo.deltaTime;
+    
+    vec2 newPosition = particleIn.position + (newVelocity * ubo.deltaTime);
+
+    if (newPosition.x <= -1.0) {
+        newPosition.x = -1.0;
+        newVelocity.x = -newVelocity.x * AIR_RESIST;
+    } else if (newPosition.x >= 1.0) {
+        newPosition.x = 1.0;
+        newVelocity.x = -newVelocity.x * AIR_RESIST;
+    }
+
+    if (newPosition.y <= -1.0) {
+        newPosition.y = -1.0;
+        newVelocity.y = -newVelocity.y * AIR_RESIST;
+    } else if (newPosition.y >= 1.0) {
+        newPosition.y = 1.0;
+        newVelocity.y = -newVelocity.y * AIR_RESIST;
+    }
+
+    if (newPosition.y >= 1.0) {
+        float currentSpeed = length(newVelocity);
+
+        // Respawn particles at the middle when it's low speed
+        if (currentSpeed < RESET_SPEED_THRESHOLD) {
+            newPosition = vec2(0.0, 0.0);
+
+            // Hacky random data using the particle index           
+            float angle = float(index) * 0.1;
+            newVelocity = vec2(cos(angle), -abs(sin(angle))) * SHOOT_UP_STRENGTH; // Shoot UP
+        } else {
+            // Standard bounce logic if it still has speed
+            newPosition.y = 1.0;
+            newVelocity.y = -newVelocity.y * AIR_RESIST;
+        }
+    }
+
+    particlesOut[index].position = newPosition;
+    particlesOut[index].velocity = newVelocity;
+    particlesOut[index].color = particleIn.color;
+
+}

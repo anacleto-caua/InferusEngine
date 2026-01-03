@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Core/RHI/GpuBuffer.hpp"
-#include "Core/Resources/Texture.hpp"
 #include <deque>
 #include <vector>
 #include <vulkan/vulkan.h>

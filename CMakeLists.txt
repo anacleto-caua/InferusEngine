@@ -1,6 +1,6 @@
 # Config
 cmake_minimum_required(VERSION 3.2...4.2)
-project(particles)
+project(Inferus Engine)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 26)
@@ -34,17 +34,17 @@ foreach(SHADER_SOURCE IN LISTS SHADER_SOURCE_FILES)
     list(APPEND SPV_BINARY_FILES ${SPV_OUTPUT})
 endforeach()
 
-# Copy assets
-file(GLOB_RECURSE ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/*")
+# Copy resources
+file(GLOB_RECURSE ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
 
 set(ASSET_DESTINATION_FILES "")
 
 foreach(ASSET_SOURCE IN LISTS ASSET_FILES)
-    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets" "${ASSET_SOURCE}")
-    set(ASSET_OUTPUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/${REL_PATH}")
+    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${ASSET_SOURCE}")
+    set(ASSET_OUTPUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/${REL_PATH}")
     add_custom_command(
         OUTPUT ${ASSET_OUTPUT}
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ASSET_SOURCE}" "${ASSET_OUTPUT}"
         DEPENDS "${ASSET_SOURCE}"
         COMMENT "Updating asset: ${REL_PATH}"
@@ -54,8 +54,8 @@ foreach(ASSET_SOURCE IN LISTS ASSET_FILES)
 endforeach()
 
 # Add compilation targets
-add_custom_target(Shaders ALL DEPENDS ${SPV_BINARY_FILES})
-add_custom_target(CopyAssets ALL DEPENDS ${ASSET_DESTINATION_FILES})
+add_custom_target(CompileShaders ALL DEPENDS ${SPV_BINARY_FILES})
+add_custom_target(CopyResources ALL DEPENDS ${ASSET_DESTINATION_FILES})
 
 # Add files to compile
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -65,7 +65,7 @@ file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/sr
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
 # Add dependencies
-add_dependencies(${PROJECT_NAME} Shaders CopyAssets)
+add_dependencies(${PROJECT_NAME} CompileShaders CopyResources)
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
@@ -74,8 +74,6 @@ find_package(glfw3 REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/glm-1.0.2"
-    "${CMAKE_CURRENT_SOURCE_DIR}/libs/stb_image"
-    "${CMAKE_CURRENT_SOURCE_DIR}/libs/tinyobjloader"
 )
 
 # Link libraries

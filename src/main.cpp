@@ -1,14 +1,13 @@
-#include "Core/ParticleSimulation.hpp"
+#include <exception>
+#include <iostream>
 
 int main() {
-    ParticleSimulation app;
-
     try {
-        app.run();
+        // app.run();
     } catch (const std::exception &e) {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
+        std::cerr << e.what() << "\n";
+        return 1;
     }
 
-    return EXIT_SUCCESS;
+    return 0;
 }

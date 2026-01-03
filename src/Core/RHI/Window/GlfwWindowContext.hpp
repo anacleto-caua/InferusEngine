@@ -29,8 +29,6 @@ public:
     
     bool shouldClose() override;
 
-    double getTime() override;
-
 private:
     ResizeCallback m_userResizeCallback;
 

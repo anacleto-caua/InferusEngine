@@ -60,7 +60,3 @@ void GlfwWindowContext::staticFramebufferResizeCallback(GLFWwindow* window, int 
 void GlfwWindowContext::onResize(int width, int height) {
     m_userResizeCallback(width, height);
 }
-
-double GlfwWindowContext::getTime() {
-    return glfwGetTime();
-}

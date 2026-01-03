@@ -19,7 +19,4 @@ public:
     virtual void update() = 0;
 
     virtual bool shouldClose() = 0;
-
-    virtual double getTime() = 0;
-
 };

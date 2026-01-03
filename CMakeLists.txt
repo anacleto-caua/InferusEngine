@@ -1,6 +1,6 @@
 # Config
 cmake_minimum_required(VERSION 3.2...4.2)
-project(Inferus Engine)
+project(InferusEngine)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 26)

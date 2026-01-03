@@ -8,14 +8,14 @@
 
 #include <GLFW/glfw3.h>
 
-class GlfwWindowContext: public WindowContext {
+class GLFWWindowContext: public WindowContext {
 public:
     using ResizeCallback = std::function<void(int width, int height)>;
 
-    GLFWwindow *m_glfwWindow = nullptr;
+    GLFWwindow *glfwWindow = nullptr;
 
-    GlfwWindowContext(uint32_t width, uint32_t height, const std::string &title, ResizeCallback callback);
-    ~GlfwWindowContext() override;
+    GLFWWindowContext(uint32_t width, uint32_t height, const std::string &title, ResizeCallback callback);
+    ~GLFWWindowContext() override;
 
     std::vector<const char*> getRequiredExtensions() override;
 
@@ -30,7 +30,7 @@ public:
     bool shouldClose() override;
 
 private:
-    ResizeCallback m_userResizeCallback;
+    ResizeCallback userResizeCallback;
 
     static void staticFramebufferResizeCallback(GLFWwindow* window, int width, int height);
     void onResize(int width, int height);

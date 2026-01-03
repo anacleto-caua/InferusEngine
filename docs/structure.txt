@@ -3,9 +3,11 @@ InferusEngine/
 ├── shaders/                        # Take a guess
 ├── src/
 │   ├── Core/                       # The application lifecycle
+│   │   ├── Window/
+│   │   │   ├── WindowContext.hpp           # Generic window wrapper
+│   │   │   └── GLFWWindowContext.hpp       # GLFW Wrapper following Window.hpp
+│   │   │
 │   │   ├── Engine.hpp                  # Main Loop, owns Window & Renderer
-│   │   ├── Window.hpp                  # Generic window wrapper
-│   │   ├── GLFWWindow.hpp              # GLFW Wrapper following Window.hpp
 │   │   └── Input.hpp                   # Future use
 │   │
 │   ├── RHI/                        # Render Hardware Interface (Mostly RAII wrappers)

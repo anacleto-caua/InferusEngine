@@ -5,12 +5,13 @@
 
 int main() {
     // TODO: Temporary config
-    std::string const title = "Inferus Engine";
-    uint32_t const width = 1200;
-    uint32_t const height = 800;
+    std::string const APP_NAME = "Inferus Engine";
+    std::string const ENGINE_NAME = "Inferus Engine";
+    uint32_t const WIDTH = 1200;
+    uint32_t const HEIGHT = 800;
 
     Engine app = Engine();
-    app.init(title, width, height);
+    app.init(APP_NAME, ENGINE_NAME, WIDTH, HEIGHT);
 
     try {
         app.run();

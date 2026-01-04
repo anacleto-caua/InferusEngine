@@ -3,10 +3,7 @@ InferusEngine/
 ├── shaders/                        # Take a guess
 ├── src/
 │   ├── Core/                       # The application lifecycle
-│   │   ├── Window/
-│   │   │   ├── WindowContext.hpp           # Generic window wrapper
-│   │   │   └── GLFWWindowContext.hpp       # GLFW Wrapper following Window.hpp
-│   │   │
+│   │   ├── Window.hpp                  # GLFW Wrapper
 │   │   ├── Engine.hpp                  # Main Loop, owns Window & Renderer
 │   │   └── Input.hpp                   # Future use
 │   │

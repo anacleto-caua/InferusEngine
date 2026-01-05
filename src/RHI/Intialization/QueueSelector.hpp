@@ -86,9 +86,9 @@ public:
         return *this;
     }
 
-    QueueSelector& requireSurfaceSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
-        device = device;
-        surface = surface;
+    QueueSelector& requireSurfaceSupport(const VkPhysicalDevice &device, const VkSurfaceKHR &surface) {
+        this->device = device;
+        this->surface = surface;
         requiresSurfaceSupport = true;
         return  *this;
     }

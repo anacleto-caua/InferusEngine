@@ -8,7 +8,7 @@
 #include "Intialization/DeviceSelector.hpp"
 #include "Intialization/QueueSelector.hpp"
 
-void VulkanContext::init(const std::string &appName, const std::string &engineName, std::vector<const char*> instanceExtensions, std::vector<const char*> deviceExtensions) {
+void VulkanContext::init(Window &window, const std::string &appName, const std::string &engineName, std::vector<const char*> instanceExtensions, std::vector<const char*> deviceExtensions) {
     // Instance
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -48,6 +48,9 @@ void VulkanContext::init(const std::string &appName, const std::string &engineNa
     // Physical device
     physicalDevice = DeviceSelector::selectPhysicalDevice(instance, deviceExtensions);
 
+    // Surface creation
+    window.createSurface(instance, surface);
+
     // Select queues
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
@@ -62,8 +65,7 @@ void VulkanContext::init(const std::string &appName, const std::string &engineNa
         .desireExclusivenessAgainst(&computeQueueCtx);
 
     QueueSelector::startCriteria(baseSelector, &presentQueueCtx)
-        // TODO: Change from nullptr to the real vk surface
-        .requireSurfaceSupport(physicalDevice, nullptr)
+        .requireSurfaceSupport(physicalDevice, surface)
         .select();
 
     QueueSelector::startCriteria(baseSelector, &graphicsQueueCtx)

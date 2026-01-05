@@ -11,7 +11,7 @@ void Engine::init(const std::string &appName, std::string const &engineName, uin
     instanceExtensions.insert(instanceExtensions.end(), windowRequiredExtension.begin(), windowRequiredExtension.end());
     instanceExtensions.insert(instanceExtensions.end(), INSTANCE_EXTENSIONS.begin(), INSTANCE_EXTENSIONS.end());
 
-    vulkanContext.init(appName, engineName, instanceExtensions, DEVICE_EXTENSIONS);
+    vulkanContext.init(window, appName, engineName, instanceExtensions, DEVICE_EXTENSIONS);
 }
 
 void Engine::run() {

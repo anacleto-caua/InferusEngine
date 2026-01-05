@@ -1,9 +1,11 @@
-#include "RHITypes.hpp"
 #include <iostream>
-#include <string>
 #include <vector>
+#include <string>
 
 #include <vulkan/vulkan.h>
+
+#include "Core/Window.hpp"
+#include "RHITypes.hpp"
 
 class VulkanContext {
 public:
@@ -33,7 +35,7 @@ public:
     VulkanContext() = default;
     ~VulkanContext();
 
-    void init(const std::string &appName, const std::string &engineName, std::vector<const char*> instanceExtensions, std::vector<const char*> deviceExtensions);
+    void init(Window &window, const std::string &appName, const std::string &engineName, std::vector<const char*> instanceExtensions, std::vector<const char*> deviceExtensions);
 
 private:
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

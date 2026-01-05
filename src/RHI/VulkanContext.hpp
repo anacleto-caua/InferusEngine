@@ -20,8 +20,6 @@ public:
     QueueContext computeQueueCtx;
 
 private:
-    const std::vector<char const*> VALIDATION_LAYERS = { "VK_LAYER_KHRONOS_validation" };
-    const std::vector<char const*> VALIDATION_LAYERS_EXTENSION = { "VK_EXT_debug_utils" };
     VkDebugUtilsMessengerEXT DEBUG_MESSENGER;
 
     #ifdef NDEBUG
@@ -34,8 +32,16 @@ private:
 public:
     VulkanContext() = default;
     ~VulkanContext();
-
-    void init(Window &window, const std::string &appName, const std::string &engineName, std::vector<const char*> instanceExtensions, std::vector<const char*> deviceExtensions);
+    
+    void init(
+        Window &window,
+        const std::string &appName,
+        const std::string &engineName,
+        const std::vector<const char*> &instanceExtensions,
+        const std::vector<const char*> &deviceExtensions,
+        const std::vector<const char*> &validationLayers,
+        const std::vector<const char*> &validationLayersExts
+    );
 
 private:
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

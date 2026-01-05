@@ -8,7 +8,15 @@
 #include "Intialization/DeviceSelector.hpp"
 #include "Intialization/QueueSelector.hpp"
 
-void VulkanContext::init(Window &window, const std::string &appName, const std::string &engineName, std::vector<const char*> instanceExtensions, std::vector<const char*> deviceExtensions) {
+void VulkanContext::init(
+    Window &window,
+    const std::string &appName,
+    const std::string &engineName,
+    const std::vector<const char*> &instanceExtensions,
+    const std::vector<const char*> &deviceExtensions,
+    const std::vector<const char*> &validationLayers,
+    const std::vector<const char*> &validationLayersExts
+) {
     // Instance
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -23,19 +31,20 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
     instanceCreateInfo.pApplicationInfo = &appInfo;
     instanceCreateInfo.enabledLayerCount = 0;
 
+    std::vector<const char*> allInstanceExtensions = instanceExtensions;
     // Validation layers
     if (ENABLE_VALIDATION_LAYERS) {
         // Both parameters are not used anymore but it's recommended to set for backwards compatibility
-        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-        instanceCreateInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 
-        instanceExtensions.insert(instanceExtensions.end(), VALIDATION_LAYERS_EXTENSION.begin(), VALIDATION_LAYERS_EXTENSION.end());
+        allInstanceExtensions.insert(allInstanceExtensions.end(), validationLayersExts.begin(), validationLayersExts.end());
     } else {
         instanceCreateInfo.enabledLayerCount = 0;
     }
 
-    instanceCreateInfo.enabledExtensionCount = instanceExtensions.size();
-    instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
+    instanceCreateInfo.enabledExtensionCount = allInstanceExtensions.size();
+    instanceCreateInfo.ppEnabledExtensionNames = allInstanceExtensions.data();
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("failed to create instance");
@@ -96,10 +105,6 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamilyIndex : uniqueQueueFamilyIndexes) {
-        if (queueFamilyIndex < 0) {
-            throw std::runtime_error("no valid queue found!");
-        }
-
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
@@ -116,12 +121,13 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
 
     // Logical device
     VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.samplerAnisotropy = VK_TRUE; 
     deviceFeatures.sampleRateShading = VK_TRUE;
 
-    VkPhysicalDeviceSynchronization2Features sync2Features = {};
+    VkPhysicalDeviceSynchronization2Features sync2Features{};
     sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
     sync2Features.synchronization2 = VK_TRUE;
+    sync2Features.pNext = nullptr;
 
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -138,6 +144,7 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
 }
 
 VulkanContext::~VulkanContext() {
+    if (surface) { vkDestroySurfaceKHR(instance, surface, nullptr); }
     if (device) { vkDestroyDevice(device, nullptr); }
     if (ENABLE_VALIDATION_LAYERS) { destroyDebugUtilsMessengerEXT(); }
     if (instance) { vkDestroyInstance(instance, nullptr); }

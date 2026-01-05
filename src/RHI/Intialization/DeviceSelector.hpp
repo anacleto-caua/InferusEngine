@@ -14,9 +14,9 @@ class DeviceSelector {
 public:
     static VkPhysicalDevice selectPhysicalDevice(VkInstance instance, std::vector<const char*> requiredExtensions) {
         uint32_t physicalDevicesCount;
-        VkPhysicalDevice *physicalDevices;
         vkEnumeratePhysicalDevices(instance, &physicalDevicesCount, nullptr);
-        vkEnumeratePhysicalDevices(instance, &physicalDevicesCount, physicalDevices);
+        std::vector<VkPhysicalDevice> physicalDevices(physicalDevicesCount);
+        vkEnumeratePhysicalDevices(instance, &physicalDevicesCount, physicalDevices.data());
 
         std::vector<std::pair<int32_t, VkPhysicalDevice>> devicePickList;
         int32_t score = 0;
@@ -37,7 +37,7 @@ public:
             }
         );
 
-        VkPhysicalDevice selectedDevice = devicePickList.front().second;
+        VkPhysicalDevice selectedDevice = devicePickList[0].second;
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(selectedDevice, &deviceProperties);
                 
@@ -51,7 +51,7 @@ public:
     }
 
 private:
-    static int32_t evaluateDevice(VkPhysicalDevice device, std::vector<const char*> requiredExtensions) {
+    static int32_t evaluateDevice(VkPhysicalDevice device, std::vector<const char*> &requiredExtensions) {
         int32_t deviceScore = 0;
 
         // Are required extensions supported

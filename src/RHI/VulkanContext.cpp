@@ -40,11 +40,11 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("failed to create instance");
     }
-    
+
     if (ENABLE_VALIDATION_LAYERS) {
         setupDebugMessenger();
     }
-    
+
     // Physical device
     physicalDevice = DeviceSelector::selectPhysicalDevice(instance, deviceExtensions);
 
@@ -66,6 +66,7 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
 
     QueueSelector::startCriteria(baseSelector, &presentQueueCtx)
         .requireSurfaceSupport(physicalDevice, surface)
+        .clearExclusiveness()
         .select();
 
     QueueSelector::startCriteria(baseSelector, &graphicsQueueCtx)
@@ -92,7 +93,7 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
         transferQueueCtx.index,
         computeQueueCtx.index
     };
-    
+
     float queuePriority = 1.0f;
     for (uint32_t queueFamilyIndex : uniqueQueueFamilyIndexes) {
         if (queueFamilyIndex < 0) {
@@ -107,15 +108,21 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
+    std::cout << "Picked queues -v-\n";
+    std::cout << "Graphics queue index: " << graphicsQueueCtx.index << "\n";
+    std::cout << "Present queue index: " << presentQueueCtx.index << "\n";
+    std::cout << "Transfer queue index: " << transferQueueCtx.index << "\n";
+    std::cout << "Compute queue index: " << computeQueueCtx.index << "\n";
+
     // Logical device
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
     deviceFeatures.sampleRateShading = VK_TRUE;
-    
+
     VkPhysicalDeviceSynchronization2Features sync2Features = {};
     sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
     sync2Features.synchronization2 = VK_TRUE;
-    
+
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
@@ -130,13 +137,10 @@ void VulkanContext::init(Window &window, const std::string &appName, const std::
     }
 }
 
-VulkanContext::~VulkanContext() {            
-    if (ENABLE_VALIDATION_LAYERS) {
-        destroyDebugUtilsMessengerEXT();
-    }
-    if(instance) { 
-        vkDestroyInstance(instance, nullptr);
-    }
+VulkanContext::~VulkanContext() {
+    if (device) { vkDestroyDevice(device, nullptr); }
+    if (ENABLE_VALIDATION_LAYERS) { destroyDebugUtilsMessengerEXT(); }
+    if (instance) { vkDestroyInstance(instance, nullptr); }
 }
 
 void VulkanContext::setupDebugMessenger() {

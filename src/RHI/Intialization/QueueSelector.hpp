@@ -61,6 +61,7 @@ public:
     static QueueSelector startCriteria(QueueContext* queueCtx, const std::vector<VkQueueFamilyProperties> &queueFamilies) {
         QueueSelector criteria;
         criteria.queueCtxToFit = queueCtx;
+        criteria.candidateQueues = queueFamilies;
         return criteria;
     }
 
@@ -97,19 +98,20 @@ public:
         return *this;
     }
 
+    QueueSelector& clearExclusiveness() {
+        uniqueAgainst.clear();
+        return *this;
+    }
+
 private:
     bool checkForSurfaceSupport(uint32_t index) {
-        if (!requiresSurfaceSupport || device == VK_NULL_HANDLE || surface == VK_NULL_HANDLE) {
-            return true;
-        }
-        
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, index, surface, &presentSupport);
-        return presentSupport;
+        return static_cast<bool>(presentSupport);
     }
 
     int32_t evaluateQueue(uint32_t index) {
-        if (!checkForSurfaceSupport(index)) {
+        if (requiresSurfaceSupport && !checkForSurfaceSupport(index)) {
             return -1;
         }
 

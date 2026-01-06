@@ -1,5 +1,6 @@
 #include "VulkanContext.hpp"
 
+#include <iostream>
 #include <set>
 #include <stdexcept>
 
@@ -94,7 +95,14 @@ void VulkanContext::init(
         .addAvoidedFlags(VK_QUEUE_TRANSFER_BIT)
         .select();
 
-    // Create queues
+        
+    std::cout << "Picked queues -v-\n";
+    std::cout << "Graphics queue index: " << graphicsQueueCtx.index << "\n";
+    std::cout << "Present queue index: " << presentQueueCtx.index << "\n";
+    std::cout << "Transfer queue index: " << transferQueueCtx.index << "\n";
+    std::cout << "Compute queue index: " << computeQueueCtx.index << "\n";
+    
+    // Prepare to create queues
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilyIndexes = {
         graphicsQueueCtx.index,
@@ -112,12 +120,6 @@ void VulkanContext::init(
         queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
     }
-
-    std::cout << "Picked queues -v-\n";
-    std::cout << "Graphics queue index: " << graphicsQueueCtx.index << "\n";
-    std::cout << "Present queue index: " << presentQueueCtx.index << "\n";
-    std::cout << "Transfer queue index: " << transferQueueCtx.index << "\n";
-    std::cout << "Compute queue index: " << computeQueueCtx.index << "\n";
 
     // Logical device
     VkPhysicalDeviceFeatures deviceFeatures{};
@@ -141,6 +143,12 @@ void VulkanContext::init(
     if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
         throw std::runtime_error("failed to create vk device");
     }
+    
+    // Create queues
+    vkGetDeviceQueue(device, graphicsQueueCtx.index, 0, &graphicsQueueCtx.queue);
+    vkGetDeviceQueue(device, presentQueueCtx.index, 0, &presentQueueCtx.queue);
+    vkGetDeviceQueue(device, transferQueueCtx.index, 0, &transferQueueCtx.queue);
+    vkGetDeviceQueue(device, computeQueueCtx.index, 0, &computeQueueCtx.queue);
 }
 
 VulkanContext::~VulkanContext() {

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "RHI/VulkanContext.hpp"
 
 struct FrameData {
@@ -9,6 +11,9 @@ class Renderer {
 public:
     VulkanContext vulkanContext;
 private:
+    static const int MAX_FRAMES_IN_FLIGHT = 2;
+    std::array<FrameData, MAX_FRAMES_IN_FLIGHT> frames;
+    uint32_t currentFrame = 0;
 
 public:
     Renderer() = default;

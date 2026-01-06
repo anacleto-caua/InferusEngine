@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Window.hpp"
-#include "RHI/VulkanContext.hpp"
+#include "Renderer/Renderer.hpp"
 
 class Engine {
 public:
@@ -9,7 +9,7 @@ private:
     bool engineShouldClose = false;
 
     Window window;
-    VulkanContext vulkanContext;
+    Renderer renderer;
 
 public:
     Engine() = default;

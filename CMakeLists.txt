@@ -74,6 +74,7 @@ find_package(glfw3 REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/glm-1.0.2"
+    "${CMAKE_CURRENT_SOURCE_DIR}/libs/spdlog/include"
 )
 
 # Link libraries
@@ -88,6 +89,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     GLM_ENABLE_EXPERIMENTAL
     GLFW_INCLUDE_VULKAN
+    SPDLOG_HEADER_ONLY
 )
 
 # Os specifics

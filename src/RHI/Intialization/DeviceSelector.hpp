@@ -2,13 +2,15 @@
 
 #include <algorithm>
 #include <stdexcept>
-#include <iostream>
 #include <utility>
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
 #include <vulkan/vulkan.h>
+#include <spdlog/spdlog.h>
+
+#include "Utils/LogFormatter.hpp"
 
 class DeviceSelector {
 public:
@@ -40,12 +42,12 @@ public:
         VkPhysicalDevice selectedDevice = devicePickList[0].second;
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(selectedDevice, &deviceProperties);
-                
-        std::cout << "Chosen Device: "          << deviceProperties.deviceName      << "\n";
-        std::cout << "Device ID: "              << deviceProperties.deviceID        << "\n";
-        std::cout << "Device Type: "            << deviceProperties.deviceType      << "\n";
-        std::cout << "Device Driver Version: "  << deviceProperties.driverVersion   << "\n";
-        std::cout << "Device Api Version: "     << deviceProperties.apiVersion      << "\n";
+
+        spdlog::info("Chosen Device: {}", deviceProperties.deviceName);
+        spdlog::info("Device ID: {}", deviceProperties.deviceID);
+        spdlog::info("Device Type: {}", deviceProperties.deviceType);
+        spdlog::info("Device Driver Version: {}", VkVersion{deviceProperties.driverVersion});
+        spdlog::info("Device Api Version: {}", VkVersion{deviceProperties.apiVersion});
 
         return selectedDevice;
     }

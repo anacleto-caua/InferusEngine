@@ -10,6 +10,9 @@ int main() {
     uint32_t const WIDTH = 1200;
     uint32_t const HEIGHT = 800;
 
+    // [Time] [Log Level] Message
+    spdlog::set_pattern("[%H:%M:%S] [%^%l%$] %v");
+
     Engine app = Engine();
     app.init(APP_NAME, ENGINE_NAME, WIDTH, HEIGHT);
 

@@ -1,8 +1,8 @@
-#include <iostream>
 #include <vector>
 #include <string>
 
 #include <vulkan/vulkan.h>
+#include <spdlog/spdlog.h>
 
 #include "Core/Window.hpp"
 #include "RHITypes.hpp"
@@ -51,8 +51,8 @@ private:
         void *pUserData
     ) {
 
-        std::cerr << "Validation Layer: " << pCallbackData->pMessage << '\n';
-
+        spdlog::debug("Validation Layer: {}", pCallbackData->pMessage);
+           
         return VK_FALSE;
     }
 

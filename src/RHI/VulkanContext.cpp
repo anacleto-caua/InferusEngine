@@ -1,6 +1,5 @@
 #include "VulkanContext.hpp"
 
-#include <iostream>
 #include <set>
 #include <stdexcept>
 
@@ -95,13 +94,12 @@ void VulkanContext::init(
         .addAvoidedFlags(VK_QUEUE_TRANSFER_BIT)
         .select();
 
-        
-    std::cout << "Picked queues -v-\n";
-    std::cout << "Graphics queue index: " << graphicsQueueCtx.index << "\n";
-    std::cout << "Present queue index: " << presentQueueCtx.index << "\n";
-    std::cout << "Transfer queue index: " << transferQueueCtx.index << "\n";
-    std::cout << "Compute queue index: " << computeQueueCtx.index << "\n";
-    
+    spdlog::info("Picked queues:");
+    spdlog::info(" - Graphics: {}", graphicsQueueCtx.index);
+    spdlog::info(" - Present:  {}", presentQueueCtx.index);
+    spdlog::info(" - Transfer: {}", transferQueueCtx.index);
+    spdlog::info(" - Compute:  {}", computeQueueCtx.index);
+
     // Prepare to create queues
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilyIndexes = {

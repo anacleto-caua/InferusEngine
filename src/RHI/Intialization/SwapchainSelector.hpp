@@ -27,39 +27,29 @@ private:
     std::vector<VkPresentModeKHR> preferableModes;
     
 public:
-    static void select(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+    static SwapchainSelector start(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
         SwapchainSelector selector = SwapchainSelector();
         selector.physicalDevice = physicalDevice;
         selector.surface = surface;
 
         selector.checkForRequiredCapabilites();
+
+        return selector;
     }
 
-    void addPreferableFormat(VkFormat format) {
+    SwapchainSelector& addPreferableFormat(VkFormat format) {
         preferableFormats.push_back(format);
+        return *this;
     }
     
-    void addPreferableColorSpace(VkColorSpaceKHR colorSpace) {
+    SwapchainSelector& addPreferableColorSpace(VkColorSpaceKHR colorSpace) {
         preferableColorSpaces.push_back(colorSpace);
+        return *this;
     }
 
-    void addPreferableMode(VkPresentModeKHR mode) {
+    SwapchainSelector& addPreferableMode(VkPresentModeKHR mode) {
         preferableModes.push_back(mode);
-    }
-
-private:
-    void checkForRequiredCapabilites() {
-        VkSurfaceCapabilitiesKHR capabilities{};
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities);
-        bool hasCapabilities = false;
-
-        // Check for required capabilities
-        hasCapabilities = true;
-        // ...
-
-        if (hasCapabilities) {
-            throw std::runtime_error("required surface capabilites not found");
-        }
+        return *this;
     }
 
     VkSurfaceFormatKHR pickSurfaceFormat() {
@@ -144,4 +134,18 @@ private:
         return presentModes[0];
     }
 
+private:
+    void checkForRequiredCapabilites() {
+        VkSurfaceCapabilitiesKHR capabilities{};
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities);
+        bool hasCapabilities = false;
+
+        // Check for required capabilities
+        hasCapabilities = true;
+        // ...
+
+        if (hasCapabilities) {
+            throw std::runtime_error("required surface capabilites not found");
+        }
+    }
 };

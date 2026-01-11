@@ -113,10 +113,10 @@ public:
 
         VkSurfaceFormatKHR pickedSurfaceFormat = scoredSurfaceFormats[0].first;
 
-        if (std::ranges::contains(preferableFormats, pickedSurfaceFormat.format)) {
+        if (!std::ranges::contains(preferableFormats, pickedSurfaceFormat.format)) {
             spdlog::warn("unpreferable surface format picked.");
         }
-        if (std::ranges::contains(preferableColorSpaces, pickedSurfaceFormat.colorSpace)) {
+        if (!std::ranges::contains(preferableColorSpaces, pickedSurfaceFormat.colorSpace)) {
             spdlog::warn("unpreferable surface color space picked");
         }
 
@@ -142,7 +142,7 @@ public:
         }
 
         VkPresentModeKHR pickedPresentMode = presentModes[0];
-        if (std::ranges::contains(presentModes, pickedPresentMode)) {
+        if (!std::ranges::contains(presentModes, pickedPresentMode)) {
             spdlog::warn("unpreferable present mode picked");
         }
 
@@ -159,7 +159,7 @@ private:
         hasCapabilities = true;
         // ...
 
-        if (hasCapabilities) {
+        if (!hasCapabilities) {
             throw std::runtime_error("required surface capabilites not found");
         }
     }

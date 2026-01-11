@@ -1,5 +1,6 @@
 #pragma once
 
+#include "spdlog/spdlog.h"
 #include <functional>
 #include <stdexcept>
 #include <algorithm>
@@ -110,7 +111,16 @@ public:
             }
         );
 
-        return scoredSurfaceFormats[0].first;
+        VkSurfaceFormatKHR pickedSurfaceFormat = scoredSurfaceFormats[0].first;
+
+        if (std::ranges::contains(preferableFormats, pickedSurfaceFormat.format)) {
+            spdlog::warn("unpreferable surface format picked.");
+        }
+        if (std::ranges::contains(preferableColorSpaces, pickedSurfaceFormat.colorSpace)) {
+            spdlog::warn("unpreferable surface color space picked");
+        }
+
+        return pickedSurfaceFormat;
     }
 
     VkPresentModeKHR pickPresentationMode() {
@@ -131,7 +141,12 @@ public:
             }
         }
 
-        return presentModes[0];
+        VkPresentModeKHR pickedPresentMode = presentModes[0];
+        if (std::ranges::contains(presentModes, pickedPresentMode)) {
+            spdlog::warn("unpreferable present mode picked");
+        }
+
+        return pickedPresentMode;
     }
 
 private:

@@ -17,7 +17,6 @@ private:
     const uint32_t SCORE_DECREASE_PER_INDEX = 1;
 
     VkPhysicalDevice physicalDevice;
-    VkSwapchainKHR swapchain;
     VkSurfaceKHR surface;
 
     std::vector<VkSurfaceFormatKHR> surfaceFormats;
@@ -28,11 +27,10 @@ private:
     std::vector<VkPresentModeKHR> preferableModes;
     
 public:
-    static void select(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSwapchainKHR swapchain) {
+    static void select(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
         SwapchainSelector selector = SwapchainSelector();
         selector.physicalDevice = physicalDevice;
         selector.surface = surface;
-        selector.swapchain = swapchain;
 
         selector.checkForRequiredCapabilites();
     }
@@ -60,7 +58,7 @@ private:
         // ...
 
         if (hasCapabilities) {
-            throw std::runtime_error("required capabilites not found in swapchain");
+            throw std::runtime_error("required surface capabilites not found");
         }
     }
 

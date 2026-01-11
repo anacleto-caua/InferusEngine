@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Window.hpp"
 #include "spdlog/spdlog.h"
 #include <functional>
 #include <stdexcept>
@@ -147,6 +148,28 @@ public:
         }
 
         return pickedPresentMode;
+    }
+
+    VkSurfaceCapabilitiesKHR getSurfaceCapabilities() {
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
+        return surfaceCapabilities;
+    }
+
+    VkExtent2D getExtent(Window &window) {
+        VkSurfaceCapabilitiesKHR surfaceCapabilities = getSurfaceCapabilities();
+
+        VkExtent2D extent = surfaceCapabilities.currentExtent;
+        if (extent.width == std::numeric_limits<uint32_t>::max()) {
+            uint32_t width, height;
+            window.getFramebufferSize(width, height);
+        
+            extent = { width,height };
+            extent.width = std::clamp(extent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
+            extent.height = std::clamp(extent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
+        }
+
+        return extent;
     }
 
 private:

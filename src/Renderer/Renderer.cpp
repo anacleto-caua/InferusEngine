@@ -22,6 +22,9 @@ void Renderer::init(
         validationLayers,
         validationLayersExts
     );
+
+    swapchain.init(vulkanContext, window, MAX_FRAMES_IN_FLIGHT);
+
 }
 
 Renderer::~Renderer() {

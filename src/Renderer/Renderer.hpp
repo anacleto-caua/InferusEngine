@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RHI/VulkanContext.hpp"
+#include "Renderer/Swapchain.hpp"
 
 struct FrameData {
     float deltaTime;
@@ -10,6 +11,7 @@ struct FrameData {
 class Renderer {
 public:
     VulkanContext vulkanContext;
+    Swapchain swapchain;
 private:
     static const int MAX_FRAMES_IN_FLIGHT = 2;
     std::array<FrameData, MAX_FRAMES_IN_FLIGHT> frames;

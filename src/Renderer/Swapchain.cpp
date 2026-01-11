@@ -1,9 +1,13 @@
 #include "Swapchain.hpp"
 
+#include <spdlog/spdlog.h>
+
 #include "RHI/Intialization/SwapchainSelector.hpp"
 
 void Swapchain::init(const VulkanContext &vulkanContext, Window &window, uint32_t imageCount) {
-    this->device = vulkanContext.device;
+    physicalDevice = vulkanContext.physicalDevice;
+    surface = vulkanContext.surface;
+    device = vulkanContext.device;
     this->imageCount = imageCount;
 
     SwapchainSelector selector =
@@ -16,18 +20,15 @@ void Swapchain::init(const VulkanContext &vulkanContext, Window &window, uint32_
 
     surfaceFormat = selector.pickSurfaceFormat();
     presentMode = selector.pickPresentationMode();
-    surfaceCapabilities = selector.getSurfaceCapabilities();
-    extent = selector.getExtent(window);
+    querySurfaceCapabilities();
+    extent = surfaceCapabilities.currentExtent;
 
-    VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.imageExtent = extent;
     createInfo.presentMode = presentMode;
     createInfo.minImageCount = imageCount;
     createInfo.surface = vulkanContext.surface;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.preTransform = surfaceCapabilities.currentTransform;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -48,16 +49,54 @@ void Swapchain::init(const VulkanContext &vulkanContext, Window &window, uint32_
         createInfo.pQueueFamilyIndices = nullptr;
     }
 
-    vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
+    createSwapchain(VK_NULL_HANDLE);
+}
 
+void Swapchain::resizeCallback(const uint32_t width, const uint32_t height) {
+    spdlog::info("swapchain resize callback -> w:{} h:{}", width, height);
+    if (width == 0 || height == 0) return;
+    extent.width = width;
+    extent.height = height;
+    vkDeviceWaitIdle(device);
+    createSwapchain(swapchain);
+}
+
+void Swapchain::sanitExtent() {
+    extent.width = std::clamp(
+        extent.width,
+        surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width
+    );
+    extent.height = std::clamp(
+        extent.height,
+        surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height
+    );
+}
+
+void Swapchain::querySurfaceCapabilities() {
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
+}
+
+void Swapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
+    querySurfaceCapabilities();
+    sanitExtent();
+    createInfo.imageExtent = extent;
+    createInfo.oldSwapchain = oldSwapchain;
+    createInfo.preTransform = surfaceCapabilities.currentTransform;
+    vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
+    getSwapchainImages();
+    destroySwapchain(oldSwapchain);
+}
+
+void Swapchain::destroySwapchain(VkSwapchainKHR &oldSwapchain) {
+    if (swapchain) { vkDestroySwapchainKHR(device, oldSwapchain, nullptr); }
+}
+
+void Swapchain::getSwapchainImages() {
     vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
     swapchainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
 }
 
 Swapchain::~Swapchain() {
-    if (swapchain) { vkDestroySwapchainKHR(device, swapchain, nullptr); }
-    for (VkImage image : swapchainImages) {
-        if (image) { vkDestroyImage(device, image, nullptr); }
-    }
+    destroySwapchain(swapchain);
 }

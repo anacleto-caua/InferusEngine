@@ -26,5 +26,4 @@ public:
     void close();
 
 private:
-    void framebufferResizeCallback(uint32_t width, uint32_t height);
 };

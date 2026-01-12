@@ -1,6 +1,8 @@
 #include "Swapchain.hpp"
 
+#include <cstdint>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 #include "RHI/Intialization/SwapchainSelector.hpp"
 
@@ -82,19 +84,45 @@ void Swapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
     createInfo.imageExtent = extent;
     createInfo.oldSwapchain = oldSwapchain;
     createInfo.preTransform = surfaceCapabilities.currentTransform;
-    vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
-    getSwapchainImages();
+
+    if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
+        throw std::runtime_error("swapchain creation failed");
+    }
+
+    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
+    images.resize(imageCount);
+    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, images.data());
+    imageViews.resize(imageCount);
+
+    for (uint32_t i = 0; i < imageCount; i++) {
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image = images[i];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = surfaceFormat.format;
+        imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
+            throw std::runtime_error("swapchain image views creation failed");
+        }
+    }
+
     destroySwapchain(oldSwapchain);
 }
 
 void Swapchain::destroySwapchain(VkSwapchainKHR &oldSwapchain) {
     if (swapchain) { vkDestroySwapchainKHR(device, oldSwapchain, nullptr); }
-}
-
-void Swapchain::getSwapchainImages() {
-    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
-    swapchainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
+    for (VkImageView imageView : imageViews) {
+        if (imageView) { vkDestroyImageView(device, imageView, nullptr); }
+    }
 }
 
 Swapchain::~Swapchain() {

@@ -21,7 +21,8 @@ private:
 
     VkSwapchainCreateInfoKHR createInfo;
     VkSwapchainKHR swapchain;
-    std::vector<VkImage> swapchainImages;
+    std::vector<VkImage> images;
+    std::vector<VkImageView> imageViews;
 
 public:
     Swapchain() = default;
@@ -37,6 +38,4 @@ private:
 
     void createSwapchain(VkSwapchainKHR oldSwapchain);
     void destroySwapchain(VkSwapchainKHR &oldSwapchain);
-
-    void getSwapchainImages();
 };

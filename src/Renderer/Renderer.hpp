@@ -1,11 +1,17 @@
 #pragma once
 
+#include <array>
+
 #include "RHI/VulkanContext.hpp"
 #include "Renderer/Swapchain.hpp"
 
 struct FrameData {
     float deltaTime;
-    // ...
+    VkFence inFlight;
+    VkSemaphore renderFinished;
+    VkSemaphore imageAvailable;
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
 };
 
 class Renderer {
@@ -16,7 +22,6 @@ private:
     static const int MAX_FRAMES_IN_FLIGHT = 2;
     std::array<FrameData, MAX_FRAMES_IN_FLIGHT> frames;
     uint32_t currentFrame = 0;
-
 public:
     Renderer() = default;
     ~Renderer();

@@ -1,5 +1,7 @@
 #include "Renderer.hpp"
 
+#include <stdexcept>
+
 #include "Core/Window.hpp"
 
 void Renderer::init(
@@ -26,8 +28,28 @@ void Renderer::init(
 
     swapchain.init(vulkanContext, window, MAX_FRAMES_IN_FLIGHT);
 
+    VkSemaphoreCreateInfo semaphoreCreateInfo{};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (FrameData frame : frames) {
+        if (
+            vkCreateSemaphore(vulkanContext.device, &semaphoreCreateInfo, nullptr, &frame.imageAvailable) != VK_SUCCESS ||
+            vkCreateSemaphore(vulkanContext.device, &semaphoreCreateInfo, nullptr, &frame.renderFinished) != VK_SUCCESS ||
+            vkCreateFence(vulkanContext.device, &fenceCreateInfo, nullptr, &frame.inFlight) != VK_SUCCESS
+        ) {
+            throw std::runtime_error("sync objects creation failed");
+        }
+    }
 }
 
 Renderer::~Renderer() {
-
+    for (FrameData frame : frames) {
+        if(frame.imageAvailable) { vkDestroySemaphore(vulkanContext.device, frame.imageAvailable, nullptr); }
+        if(frame.renderFinished) { vkDestroySemaphore(vulkanContext.device, frame.renderFinished, nullptr); }
+        if(frame.inFlight) { vkDestroyFence(vulkanContext.device, frame.inFlight, nullptr); }
+    }
 }

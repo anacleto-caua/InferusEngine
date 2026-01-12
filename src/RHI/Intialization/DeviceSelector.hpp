@@ -1,11 +1,11 @@
 #pragma once
 
-#include <algorithm>
-#include <stdexcept>
+#include <vector>
 #include <utility>
 #include <cstdint>
 #include <cstring>
-#include <vector>
+#include <algorithm>
+#include <stdexcept>
 
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
@@ -61,7 +61,7 @@ private:
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-        
+
         bool extensionFound;
         for (const char* extension : requiredExtensions) {
             extensionFound = false;
@@ -84,7 +84,7 @@ private:
         // Apply preference for GPUs and higher resolution
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        
+
         if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
             deviceScore += 1000;
         } else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {

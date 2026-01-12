@@ -9,7 +9,7 @@ void Engine::init(const std::string &appName, std::string const &engineName, uin
 
     std::vector<const char*> VALIDATION_LAYERS = { "VK_LAYER_KHRONOS_validation" };
     std::vector<const char*> VALIDATION_LAYERS_EXTENSION = { "VK_EXT_debug_utils" };
-    
+
     window.init(width, height, appName, [this](uint32_t w, uint32_t h) { renderer.swapchain.resizeCallback(w, h); });
 
     std::vector<const char *> windowRequiredExtension = window.getRequiredExtensions();

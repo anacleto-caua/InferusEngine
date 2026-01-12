@@ -141,7 +141,7 @@ void VulkanContext::init(
     if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
         throw std::runtime_error("failed to create vk device");
     }
-    
+
     // Create queues
     vkGetDeviceQueue(device, graphicsQueueCtx.index, 0, &graphicsQueueCtx.queue);
     vkGetDeviceQueue(device, presentQueueCtx.index, 0, &presentQueueCtx.queue);
@@ -191,7 +191,7 @@ void VulkanContext::destroyDebugUtilsMessengerEXT() {
                 instance,
                 "vkDestroyDebugUtilsMessengerEXT"
             );
-    
+
     if (func != nullptr) {
         func(instance, DEBUG_MESSENGER, nullptr);
     }

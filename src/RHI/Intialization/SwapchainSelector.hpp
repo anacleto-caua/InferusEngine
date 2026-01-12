@@ -23,10 +23,10 @@ private:
     std::vector<VkSurfaceFormatKHR> surfaceFormats;
     std::vector<VkFormat> preferableFormats;
     std::vector<VkColorSpaceKHR> preferableColorSpaces;
-    
+
     std::vector<VkPresentModeKHR> presentModes;
     std::vector<VkPresentModeKHR> preferableModes;
-    
+
 public:
     static SwapchainSelector start(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
         SwapchainSelector selector = SwapchainSelector();
@@ -42,7 +42,7 @@ public:
         preferableFormats.push_back(format);
         return *this;
     }
-    
+
     SwapchainSelector& addPreferableColorSpace(VkColorSpaceKHR colorSpace) {
         preferableColorSpaces.push_back(colorSpace);
         return *this;
@@ -58,7 +58,7 @@ public:
         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
         surfaceFormats.resize(formatCount);
         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data());
-        
+
         if (formatCount <= 0) {
             throw std::runtime_error("no surface format found");
         }
@@ -97,7 +97,7 @@ public:
             VkFormat targetFormat = preferableFormats[i];
             scoreByFormat(targetFormat, i);
         }
-        
+
         for (uint32_t i = 0; i < preferableColorSpaces.size(); i++) {
             VkColorSpaceKHR targetColorSpace = preferableColorSpaces[i];
             scoreByColorSpace(targetColorSpace, i);

@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+
 #include "Core/Window.hpp"
 
 void Renderer::init(

@@ -1,7 +1,8 @@
 #include "Window.hpp"
 
-#include <GLFW/glfw3.h>
 #include <stdexcept>
+
+#include <GLFW/glfw3.h>
 
 void Window::init(uint32_t width, uint32_t height, const std::string &title, ResizeCallback callback) {
     glfwInit();
@@ -11,8 +12,8 @@ void Window::init(uint32_t width, uint32_t height, const std::string &title, Res
 
     glfwWindow = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
     glfwSetWindowUserPointer(glfwWindow, this);
-    
-     userResizeCallback = callback;
+
+    userResizeCallback = callback;
     glfwSetFramebufferSizeCallback(glfwWindow, staticFramebufferResizeCallback);
 }
 

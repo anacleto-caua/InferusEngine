@@ -1,12 +1,12 @@
 #pragma  once
 
-#include <cstdint>
 #include <vector>
 #include <string>
+#include <cstdint>
 #include <functional>
-#include <vulkan/vulkan.h>
 
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 
 class Window {
 public:
@@ -31,7 +31,7 @@ public:
     void waitEvents();
 
     void update();
-    
+
     bool shouldClose();
 
 private:

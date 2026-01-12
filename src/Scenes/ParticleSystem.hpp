@@ -1,6 +1,6 @@
 #include "Core/Engine.hpp"
 
-class ParticleSystem { 
+class ParticleSystem {
 public:
 private:
     Engine engine;

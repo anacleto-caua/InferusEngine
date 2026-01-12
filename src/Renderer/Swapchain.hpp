@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include <vulkan/vulkan.h>
 
 #include "Core/Window.hpp"
@@ -31,7 +32,7 @@ public:
     void init(const VulkanContext &vulkanContext, Window &window, uint32_t imageCount);
 
     void resizeCallback(const uint32_t width, const uint32_t height);
-    
+
 private:
     void sanitExtent();
     void querySurfaceCapabilities();

@@ -6,8 +6,8 @@
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 
-#include "Core/Window.hpp"
 #include "RHITypes.hpp"
+#include "Core/Window.hpp"
 
 class VulkanContext {
 public:
@@ -34,7 +34,7 @@ private:
 public:
     VulkanContext() = default;
     ~VulkanContext();
-    
+
     void init(
         Window &window,
         const std::string &appName,
@@ -54,7 +54,7 @@ private:
     ) {
 
         spdlog::debug("Validation Layer: {}", pCallbackData->pMessage);
-           
+
         return VK_FALSE;
     }
 

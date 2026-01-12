@@ -1,8 +1,9 @@
 #include "Swapchain.hpp"
 
 #include <cstdint>
-#include <spdlog/spdlog.h>
 #include <stdexcept>
+
+#include <spdlog/spdlog.h>
 
 #include "RHI/Intialization/SwapchainSelector.hpp"
 
@@ -36,7 +37,7 @@ void Swapchain::init(const VulkanContext &vulkanContext, Window &window, uint32_
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
-    
+
     uint32_t queueFamilyIndices[] = {
         vulkanContext.graphicsQueueCtx.index,
         vulkanContext.presentQueueCtx.index

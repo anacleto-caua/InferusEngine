@@ -1,6 +1,5 @@
 #include "VulkanContext.hpp"
 
-#include <cstddef>
 #include <set>
 #include <stdexcept>
 
@@ -138,7 +137,7 @@ void VulkanContext::init(
 
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pEnabledFeatures = NULL;
+    deviceCreateInfo.pEnabledFeatures = VK_NULL_HANDLE;
     deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());

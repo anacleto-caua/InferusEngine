@@ -51,12 +51,7 @@ private:
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
         void *pUserData
-    ) {
-
-        spdlog::debug("Validation Layer: {}", pCallbackData->pMessage);
-
-        return VK_FALSE;
-    }
+    );
 
     void setupDebugMessenger();
     void destroyDebugUtilsMessengerEXT();

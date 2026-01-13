@@ -202,3 +202,33 @@ void VulkanContext::destroyDebugUtilsMessengerEXT() {
         func(instance, DEBUG_MESSENGER, nullptr);
     }
 }
+
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+    void *pUserData
+) {
+
+    std::string msg = fmt::format("Validation Layer: {}", pCallbackData->pMessage);
+
+    switch (messageSeverity) {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            spdlog::error(msg);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            spdlog::warn(msg);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            spdlog::info(msg);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            spdlog::debug(msg);
+            break;
+        default:
+            spdlog::critical("Unknown Severity Validation Error: {}", msg);
+            break;
+    }
+
+    return VK_FALSE;
+}

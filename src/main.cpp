@@ -1,5 +1,6 @@
-#include <iostream>
 #include <exception>
+
+#include <spdlog/spdlog.h>
 
 #include "Core/Engine.hpp"
 
@@ -12,6 +13,11 @@ int main() {
 
     // [Time] [Log Level] Message
     spdlog::set_pattern("[%H:%M:%S] [%^%l%$] %v");
+    #ifdef NDEBUG
+        spdlog::set_level(spdlog::level::off);
+    #else
+        spdlog::set_level(spdlog::level::debug);
+    #endif
 
     Engine app = Engine();
     app.init(APP_NAME, ENGINE_NAME, WIDTH, HEIGHT);
@@ -19,7 +25,7 @@ int main() {
     try {
         app.run();
     } catch (const std::exception &e) {
-        std::cerr << e.what() << "\n";
+        spdlog::critical("runtime exception - ", e.what());
         return -1;
     }
 

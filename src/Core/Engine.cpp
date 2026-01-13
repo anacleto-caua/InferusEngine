@@ -46,3 +46,7 @@ bool Engine::shouldClose() {
 void Engine::close() {
     engineShouldClose = true;
 }
+
+Engine::~Engine() {
+    vkDeviceWaitIdle(renderer.vulkanContext.device);
+}

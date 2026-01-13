@@ -95,6 +95,7 @@ void Swapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
     vkGetSwapchainImagesKHR(device, swapchain, &imageCount, images.data());
     imageViews.resize(imageCount);
 
+    destroyImageViews();
     for (uint32_t i = 0; i < imageCount; i++) {
         VkImageViewCreateInfo imageViewCreateInfo{};
         imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -121,11 +122,15 @@ void Swapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
 
 void Swapchain::destroySwapchain(VkSwapchainKHR &oldSwapchain) {
     if (swapchain) { vkDestroySwapchainKHR(device, oldSwapchain, nullptr); }
+}
+
+void Swapchain::destroyImageViews() {
     for (VkImageView imageView : imageViews) {
         if (imageView) { vkDestroyImageView(device, imageView, nullptr); }
     }
 }
 
 Swapchain::~Swapchain() {
+    destroyImageViews();
     destroySwapchain(swapchain);
 }

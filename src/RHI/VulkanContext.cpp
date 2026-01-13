@@ -156,8 +156,8 @@ void VulkanContext::init(
 }
 
 VulkanContext::~VulkanContext() {
-    if (surface) { vkDestroySurfaceKHR(instance, surface, nullptr); }
     if (device) { vkDestroyDevice(device, nullptr); }
+    if (surface) { vkDestroySurfaceKHR(instance, surface, nullptr); }
     if (ENABLE_VALIDATION_LAYERS) { destroyDebugUtilsMessengerEXT(); }
     if (instance) { vkDestroyInstance(instance, nullptr); }
 }

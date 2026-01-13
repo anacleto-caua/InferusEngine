@@ -6,12 +6,12 @@
 #include "Renderer/Swapchain.hpp"
 
 struct FrameData {
-    float deltaTime;
-    VkFence inFlight;
-    VkSemaphore renderFinished;
-    VkSemaphore imageAvailable;
-    VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
+    float deltaTime = 0;
+    VkFence inFlight = VK_NULL_HANDLE;
+    VkSemaphore renderFinished = VK_NULL_HANDLE;
+    VkSemaphore imageAvailable = VK_NULL_HANDLE;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 };
 
 class Renderer {
@@ -25,6 +25,8 @@ private:
 public:
     Renderer() = default;
     ~Renderer();
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
 
     void init(
         // Vulkan Context

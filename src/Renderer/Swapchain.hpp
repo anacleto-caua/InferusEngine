@@ -28,6 +28,8 @@ private:
 public:
     Swapchain() = default;
     ~Swapchain();
+    Swapchain(const Swapchain&) = delete;
+    Swapchain& operator=(const Swapchain&) = delete;
 
     void init(const VulkanContext &vulkanContext, Window &window, uint32_t imageCount);
 
@@ -38,5 +40,6 @@ private:
     void querySurfaceCapabilities();
 
     void createSwapchain(VkSwapchainKHR oldSwapchain);
+    void destroyImageViews();
     void destroySwapchain(VkSwapchainKHR &oldSwapchain);
 };

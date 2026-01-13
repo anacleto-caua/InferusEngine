@@ -35,7 +35,7 @@ void Renderer::init(
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (FrameData frame : frames) {
+    for (FrameData &frame : frames) {
         if (
             vkCreateSemaphore(vulkanContext.device, &semaphoreCreateInfo, nullptr, &frame.imageAvailable) != VK_SUCCESS ||
             vkCreateSemaphore(vulkanContext.device, &semaphoreCreateInfo, nullptr, &frame.renderFinished) != VK_SUCCESS ||
@@ -47,9 +47,10 @@ void Renderer::init(
 }
 
 Renderer::~Renderer() {
-    for (FrameData frame : frames) {
-        if(frame.imageAvailable) { vkDestroySemaphore(vulkanContext.device, frame.imageAvailable, nullptr); }
-        if(frame.renderFinished) { vkDestroySemaphore(vulkanContext.device, frame.renderFinished, nullptr); }
-        if(frame.inFlight) { vkDestroyFence(vulkanContext.device, frame.inFlight, nullptr); }
+    for (FrameData &frame : frames) {
+        if (frame.imageAvailable) { vkDestroySemaphore(vulkanContext.device, frame.imageAvailable, nullptr); }
+        if (frame.renderFinished) { vkDestroySemaphore(vulkanContext.device, frame.renderFinished, nullptr); }
+        if (frame.inFlight) { vkDestroyFence(vulkanContext.device, frame.inFlight, nullptr); }
+        if (frame.commandPool) { vkDestroyCommandPool(vulkanContext.device, frame.commandPool, nullptr); }
     }
 }

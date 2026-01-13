@@ -13,7 +13,7 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
 # Shader compilation
 find_program(GLSLC_EXECUTABLE glslc REQUIRED HINTS "$ENV{VULKAN_SDK}/bin")
 
-file(GLOB_RECURSE SHADER_SOURCE_FILES CONFIGURE_DEPENDS 
+file(GLOB_RECURSE SHADER_SOURCE_FILES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.vert"
     "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag"
     "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.comp"
@@ -49,7 +49,7 @@ foreach(ASSET_SOURCE IN LISTS ASSET_FILES)
         DEPENDS "${ASSET_SOURCE}"
         COMMENT "Updating asset: ${REL_PATH}"
     )
-    
+
     list(APPEND ASSET_DESTINATION_FILES ${ASSET_OUTPUT})
 endforeach()
 
@@ -71,7 +71,7 @@ find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
 # Setup header only Libraries
-target_include_directories(${PROJECT_NAME} PRIVATE 
+target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/glm-1.0.2"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/spdlog/include"
@@ -93,9 +93,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 # Os specifics
 if(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE 
-        gdi32 
-        user32 
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        gdi32
+        user32
         shell32
     )
 elseif(UNIX)

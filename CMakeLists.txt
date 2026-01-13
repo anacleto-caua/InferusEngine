@@ -70,9 +70,14 @@ add_dependencies(${PROJECT_NAME} CompileShaders CopyResources)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
-# Setup header only Libraries
+# Source code
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+# Third party Libraries
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/libs/vma"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/glm-1.0.2"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/spdlog/include"
 )

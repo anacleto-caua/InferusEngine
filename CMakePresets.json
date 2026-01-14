@@ -9,7 +9,7 @@
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
-    },    
+    },
     {
       "name": "linux-base",
       "hidden": true,

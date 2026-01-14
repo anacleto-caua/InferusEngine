@@ -35,11 +35,18 @@ void Renderer::init(
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+    VkCommandPoolCreateInfo commandPoolCreateInfo{};
+    commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    commandPoolCreateInfo.queueFamilyIndex = vulkanContext.graphicsQueueCtx.index;
+
+    VkDevice &device = vulkanContext.device;
     for (FrameData &frame : frames) {
         if (
-            vkCreateSemaphore(vulkanContext.device, &semaphoreCreateInfo, nullptr, &frame.imageAvailable) != VK_SUCCESS ||
-            vkCreateSemaphore(vulkanContext.device, &semaphoreCreateInfo, nullptr, &frame.renderFinished) != VK_SUCCESS ||
-            vkCreateFence(vulkanContext.device, &fenceCreateInfo, nullptr, &frame.inFlight) != VK_SUCCESS
+            vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.imageAvailable) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.renderFinished) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceCreateInfo, nullptr, &frame.inFlight) != VK_SUCCESS ||
+            vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &frame.commandPool) != VK_SUCCESS
         ) {
             throw std::runtime_error("sync objects creation failed");
         }

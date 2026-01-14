@@ -125,8 +125,8 @@ void VulkanContext::init(
     deviceFeatures.sampleRateShading = VK_TRUE;
 
     VkPhysicalDeviceFeatures2 deviceFeatures2{};
-    deviceFeatures2.features = deviceFeatures;
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.features = deviceFeatures;
 
     VkPhysicalDeviceSynchronization2Features sync2Features{};
     sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;

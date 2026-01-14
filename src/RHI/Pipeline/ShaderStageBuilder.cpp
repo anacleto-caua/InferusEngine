@@ -6,7 +6,7 @@
 #include "Utils/IO.hpp"
 
 namespace ShaderStageBuilder {
-    VkPipelineShaderStageCreateInfo createShaderStage(const VkDevice &logicalDevice, VkShaderStageFlagBits stage, const std::string& filename) {
+    VkPipelineShaderStageCreateInfo createShaderStage(const VkDevice &logicalDevice, VkShaderStageFlagBits stage, const std::string &filename) {
         std::vector<char> shaderCode = IO::binaryRead(filename);
 
         VkShaderModuleCreateInfo createInfo{};

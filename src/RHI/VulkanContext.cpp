@@ -132,8 +132,13 @@ void VulkanContext::init(
     sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
     sync2Features.synchronization2 = VK_TRUE;
 
+    VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{};
+    dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+    dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
     deviceFeatures2.pNext= &sync2Features;
-    sync2Features.pNext = nullptr;
+    sync2Features.pNext = &dynamicRenderingFeatures;
+    dynamicRenderingFeatures.pNext = nullptr;
 
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

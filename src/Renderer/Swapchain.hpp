@@ -7,6 +7,12 @@
 #include "Core/Window.hpp"
 #include "RHI/VulkanContext.hpp"
 
+struct SCImage {
+    VkImage image = VK_NULL_HANDLE;
+    VkImageView imageView = VK_NULL_HANDLE;
+    VkSemaphore renderFinished = VK_NULL_HANDLE;
+};
+
 class Swapchain {
 public:
     VkExtent2D extent;
@@ -14,8 +20,8 @@ public:
     VkSwapchainKHR swapchain;
 
     uint32_t imageCount;
-    std::vector<VkImage> images;
-    std::vector<VkImageView> imageViews;
+    std::vector<SCImage> scImages;
+
 private:
     VkDevice device;
     VkPhysicalDevice physicalDevice;
@@ -41,6 +47,6 @@ private:
     void querySurfaceCapabilities();
 
     void createSwapchain(VkSwapchainKHR oldSwapchain);
-    void destroyImageViews();
+    void destroySCImages();
     void destroySwapchain(VkSwapchainKHR &oldSwapchain);
 };

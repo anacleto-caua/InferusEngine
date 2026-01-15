@@ -4,6 +4,7 @@
 
 #include "Core/Window.hpp"
 #include "BarrierBuilder.hpp"
+#include "Swapchain.hpp"
 
 void Renderer::init(
     // Vulkan Context
@@ -50,7 +51,6 @@ void Renderer::init(
     VkDevice device = vulkanContext.device;
     for (FrameData &frame : frames) {
         vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.imageAvailable);
-        vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.renderFinished);
         vkCreateFence(device, &fenceCreateInfo, nullptr, &frame.inFlight);
 
         vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &frame.commandPool);
@@ -62,7 +62,6 @@ void Renderer::init(
 Renderer::~Renderer() {
     for (FrameData &frame : frames) {
         if (frame.imageAvailable) { vkDestroySemaphore(vulkanContext.device, frame.imageAvailable, nullptr); }
-        if (frame.renderFinished) { vkDestroySemaphore(vulkanContext.device, frame.renderFinished, nullptr); }
         if (frame.inFlight) { vkDestroyFence(vulkanContext.device, frame.inFlight, nullptr); }
         if (frame.commandPool) { vkDestroyCommandPool(vulkanContext.device, frame.commandPool, nullptr); }
     }
@@ -98,7 +97,7 @@ VkCommandBuffer& Renderer::beginFrame() {
     vkBeginCommandBuffer(cmd, &beginInfo);
 
     BarrierBuilder::onImage(
-        swapchain.images[targetImageViewIndex],
+        swapchain.scImages[targetImageViewIndex].image,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
     )
@@ -108,7 +107,7 @@ VkCommandBuffer& Renderer::beginFrame() {
 
     VkRenderingAttachmentInfo colorAttachment{};
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachment.imageView = swapchain.imageViews[targetImageViewIndex];
+    colorAttachment.imageView = swapchain.scImages[targetImageViewIndex].imageView;
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -134,7 +133,7 @@ void Renderer::endFrame() {
     vkCmdEndRendering(cmd);
 
     BarrierBuilder::onImage(
-        swapchain.images[targetImageViewIndex],
+        swapchain.scImages[targetImageViewIndex].image,
         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     )
@@ -157,7 +156,7 @@ void Renderer::endFrame() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
 
-    VkSemaphore renderSignalSemaphores[] = { targetFrame.renderFinished };
+    VkSemaphore renderSignalSemaphores[] = { swapchain.scImages[targetImageViewIndex].renderFinished };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = renderSignalSemaphores;
 

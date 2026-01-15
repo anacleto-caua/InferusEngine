@@ -1,8 +1,10 @@
 #include "Swapchain.hpp"
 
+#include <cstdint>
 #include <stdexcept>
 
 #include <spdlog/spdlog.h>
+#include <vector>
 
 #include "RHI/Intialization/SwapchainSelector.hpp"
 
@@ -55,7 +57,7 @@ void Swapchain::init(const VulkanContext &vulkanContext, Window &window) {
 }
 
 Swapchain::~Swapchain() {
-    destroyImageViews();
+    destroySCImages();
     destroySwapchain(swapchain);
 }
 
@@ -95,15 +97,18 @@ void Swapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
     }
 
     vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
-    images.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, images.data());
-    imageViews.resize(imageCount);
+    std::vector<VkImage> imagesTemp(imageCount);
+    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, imagesTemp.data());
+    scImages.resize(imageCount);
 
-    destroyImageViews();
-    for (uint32_t i = 0; i < imageCount; i++) {
+    destroySCImages();
+    VkSemaphoreCreateInfo semaphoreCreateInfo{};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    for (uint32_t i = 0; i < scImages.size(); i++) {
+        scImages[i].image = imagesTemp[i];
         VkImageViewCreateInfo imageViewCreateInfo{};
         imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        imageViewCreateInfo.image = images[i];
+        imageViewCreateInfo.image = scImages[i].image;
         imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         imageViewCreateInfo.format = surfaceFormat.format;
         imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -116,8 +121,11 @@ void Swapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
         imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
         imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
-            throw std::runtime_error("swapchain image views creation failed");
+        if (
+            vkCreateImageView(device, &imageViewCreateInfo, nullptr, &scImages[i].imageView) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &scImages[i].renderFinished) != VK_SUCCESS
+        ) {
+            throw std::runtime_error("SCImage image view or semaphore creation failed");
         }
     }
 
@@ -128,9 +136,10 @@ void Swapchain::destroySwapchain(VkSwapchainKHR &oldSwapchain) {
     if (swapchain) { vkDestroySwapchainKHR(device, oldSwapchain, nullptr); }
 }
 
-void Swapchain::destroyImageViews() {
-    for (VkImageView imageView : imageViews) {
-        if (imageView) { vkDestroyImageView(device, imageView, nullptr); }
+void Swapchain::destroySCImages() {
+    for (SCImage scImage : scImages) {
+        if (scImage.imageView) { vkDestroyImageView(device, scImage.imageView, nullptr); }
+        if (scImage.renderFinished) { vkDestroySemaphore(device, scImage.renderFinished, nullptr); }
     }
 }
 

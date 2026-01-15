@@ -18,7 +18,7 @@ public:
     Engine& operator=(const Engine&) = delete;
 
 
-    void init(std::string const &appName, std::string const &engineName, uint32_t const width, uint32_t const height);
+    void init(std::string const &appName);
 
     void run();
 

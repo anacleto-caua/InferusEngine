@@ -1,9 +1,15 @@
 #include "Engine.hpp"
 
+#include <string>
 #include <vector>
 #include <cstdint>
 
-void Engine::init(const std::string &appName, std::string const &engineName, uint32_t const width, uint32_t const height) {
+void Engine::init(const std::string &appName) {
+    uint32_t const WIDTH = 1200;
+    uint32_t const HEIGHT = 800;
+
+    std::string const ENGINE_NAME = "Inferus Engine";
+
     std::vector<const char*> INSTANCE_EXTENSIONS = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
     std::vector<const char*> DEVICE_EXTENSIONS = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
 
@@ -12,7 +18,8 @@ void Engine::init(const std::string &appName, std::string const &engineName, uin
 
     std::vector<const char*> VMA_SUGGESTED_EXTENSIONS = { VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
 
-    window.init(width, height, appName, [this](uint32_t w, uint32_t h) { renderer.swapchain.resizeCallback(w, h); });
+    std::string windowTitle = appName + " ~ Powered by: " + ENGINE_NAME;
+    window.init(WIDTH, HEIGHT, appName, [this](uint32_t w, uint32_t h) { renderer.swapchain.resizeCallback(w, h); });
 
     std::vector<const char *> windowRequiredExtension = window.getRequiredExtensions();
     std::vector<const char *> finalInstanceExtensions;
@@ -23,14 +30,11 @@ void Engine::init(const std::string &appName, std::string const &engineName, uin
     finalDeviceExtensions.insert(finalDeviceExtensions.end(), DEVICE_EXTENSIONS.begin(), DEVICE_EXTENSIONS.end());
     finalDeviceExtensions.insert(finalDeviceExtensions.end(), VMA_SUGGESTED_EXTENSIONS.begin(), VMA_SUGGESTED_EXTENSIONS.end());
 
-    renderer.init(window, appName, engineName, finalInstanceExtensions, finalDeviceExtensions, VALIDATION_LAYERS, VALIDATION_LAYERS_EXTENSION);
+    renderer.init(window, appName, ENGINE_NAME, finalInstanceExtensions, finalDeviceExtensions, VALIDATION_LAYERS, VALIDATION_LAYERS_EXTENSION);
 }
 
 void Engine::run() {
-    while (!shouldClose()) {
-        update();
-        render();
-    }
+
 }
 
 void Engine::update() {

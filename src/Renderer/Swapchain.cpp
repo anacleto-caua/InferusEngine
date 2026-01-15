@@ -62,7 +62,6 @@ Swapchain::~Swapchain() {
 }
 
 void Swapchain::resizeCallback(const uint32_t width, const uint32_t height) {
-    spdlog::info("swapchain resize callback -> w:{} h:{}", width, height);
     if (width == 0 || height == 0) return;
     extent.width = width;
     extent.height = height;

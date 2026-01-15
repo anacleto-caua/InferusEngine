@@ -1,6 +1,5 @@
 #include "Swapchain.hpp"
 
-#include <cstdint>
 #include <stdexcept>
 
 #include <spdlog/spdlog.h>

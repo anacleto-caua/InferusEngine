@@ -1,7 +1,7 @@
 #include "Engine.hpp"
 
-#include <cstdint>
 #include <vector>
+#include <cstdint>
 
 void Engine::init(const std::string &appName, std::string const &engineName, uint32_t const width, uint32_t const height) {
     std::vector<const char*> INSTANCE_EXTENSIONS = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };

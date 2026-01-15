@@ -1,11 +1,11 @@
 #pragma once
 
-#include <functional>
-#include <stdexcept>
-#include <algorithm>
+#include <vector>
 #include <utility>
 #include <cstdint>
-#include <vector>
+#include <stdexcept>
+#include <algorithm>
+#include <functional>
 
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>

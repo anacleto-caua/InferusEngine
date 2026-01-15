@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <stdexcept>
-#include <vector>
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDefaults() {
     dynamicStates = {

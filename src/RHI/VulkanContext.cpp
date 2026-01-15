@@ -5,8 +5,8 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Intialization/DeviceSelector.hpp"
 #include "Intialization/QueueSelector.hpp"
+#include "Intialization/DeviceSelector.hpp"
 
 void VulkanContext::init(
     Window &window,

@@ -20,8 +20,6 @@ struct GraphicsPipelineBuilder {
 
     GraphicsPipelineBuilder& setDefaults();
 
-    GraphicsPipelineBuilder& setExtent(VkExtent2D extent);
-
     GraphicsPipelineBuilder& addColorFormat(VkFormat colorFormat);
 
     GraphicsPipelineBuilder& addColorFormats(const std::vector<VkFormat> &colorFormats);

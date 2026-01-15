@@ -17,10 +17,8 @@ public:
 
     void init(std::string const &appName);
 
-    void run();
-
     void update();
-    void render();
+    void render(std::function<void(VkCommandBuffer)> drawCallback);
 
     bool shouldClose();
     void close();

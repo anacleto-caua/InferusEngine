@@ -19,7 +19,7 @@ void Engine::init(const std::string &appName) {
     std::vector<const char*> VMA_SUGGESTED_EXTENSIONS = { VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
 
     std::string windowTitle = appName + " ~ Powered by: " + ENGINE_NAME;
-    window.init(WIDTH, HEIGHT, appName, [this](uint32_t w, uint32_t h) { renderer.swapchain.resizeCallback(w, h); });
+    window.init(WIDTH, HEIGHT, windowTitle, [this](uint32_t w, uint32_t h) { renderer.swapchain.resizeCallback(w, h); });
 
     std::vector<const char *> windowRequiredExtension = window.getRequiredExtensions();
     std::vector<const char *> finalInstanceExtensions;
@@ -33,15 +33,20 @@ void Engine::init(const std::string &appName) {
     renderer.init(window, appName, ENGINE_NAME, finalInstanceExtensions, finalDeviceExtensions, VALIDATION_LAYERS, VALIDATION_LAYERS_EXTENSION);
 }
 
-void Engine::run() {
-
-}
+Engine::~Engine() {}
 
 void Engine::update() {
     window.update();
 }
 
-void Engine::render() {}
+void Engine::render(std::function<void(VkCommandBuffer)> drawCallback) {
+    VkCommandBuffer &cmd = renderer.beginFrame();
+
+    if (cmd) {
+        drawCallback(cmd);
+        renderer.endFrame();
+    }
+}
 
 bool Engine::shouldClose() {
     return window.shouldClose() || this->engineShouldClose;
@@ -49,8 +54,4 @@ bool Engine::shouldClose() {
 
 void Engine::close() {
     engineShouldClose = true;
-}
-
-Engine::~Engine() {
-    vkDeviceWaitIdle(renderer.vulkanContext.device);
 }

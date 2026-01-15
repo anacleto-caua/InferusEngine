@@ -18,10 +18,12 @@ class Renderer {
 public:
     VulkanContext vulkanContext;
     Swapchain swapchain;
+    VkPipeline *pipeline;
 private:
     static const int MAX_FRAMES_IN_FLIGHT = 2;
     std::array<FrameData, MAX_FRAMES_IN_FLIGHT> frames;
-    uint32_t currentFrame = 0;
+    uint32_t targetFrameIndex = 0;
+    uint32_t targetImageViewIndex = 0;
 public:
     Renderer() = default;
     ~Renderer();
@@ -40,5 +42,9 @@ public:
         // Renderer
         // ...
     );
+
+    VkCommandBuffer& beginFrame();
+    void endFrame();
+    void bindPipeline();
 private:
 };

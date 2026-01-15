@@ -18,6 +18,8 @@ struct GraphicsPipelineBuilder {
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
+    static GraphicsPipelineBuilder start();
+
     GraphicsPipelineBuilder& setDefaults();
 
     GraphicsPipelineBuilder& addColorFormat(VkFormat colorFormat);

@@ -3,6 +3,12 @@
 #include <cstdint>
 #include <stdexcept>
 
+GraphicsPipelineBuilder GraphicsPipelineBuilder::start() {
+    GraphicsPipelineBuilder builder;
+    builder.setDefaults();
+    return builder;
+}
+
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDefaults() {
     dynamicStates = {
         VK_DYNAMIC_STATE_VIEWPORT,

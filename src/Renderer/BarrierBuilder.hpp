@@ -37,7 +37,7 @@ public:
 
     BarrierBuilder& queues(const QueueContext &srcQueueCtx, const QueueContext &dstQueueCtx) {
         barrier.srcQueueFamilyIndex = srcQueueCtx.index;
-        barrier.srcQueueFamilyIndex = dstQueueCtx.index;
+        barrier.dstQueueFamilyIndex = dstQueueCtx.index;
         return *this;
     }
 

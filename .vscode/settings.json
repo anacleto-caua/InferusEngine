@@ -1,0 +1,4 @@
+{
+    "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "glsllint.glslangValidatorArgs": ["-V"],
+}

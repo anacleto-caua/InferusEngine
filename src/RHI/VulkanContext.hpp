@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 
@@ -20,6 +21,8 @@ public:
     QueueContext presentQueueCtx;
     QueueContext transferQueueCtx;
     QueueContext computeQueueCtx;
+
+    VmaAllocator allocator;
 
 private:
     VkDebugUtilsMessengerEXT DEBUG_MESSENGER;

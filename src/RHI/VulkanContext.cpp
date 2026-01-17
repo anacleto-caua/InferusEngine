@@ -158,9 +158,17 @@ void VulkanContext::init(
     vkGetDeviceQueue(device, presentQueueCtx.index, 0, &presentQueueCtx.queue);
     vkGetDeviceQueue(device, transferQueueCtx.index, 0, &transferQueueCtx.queue);
     vkGetDeviceQueue(device, computeQueueCtx.index, 0, &computeQueueCtx.queue);
+
+    VmaAllocatorCreateInfo allocatorCreateInfo = {};
+    allocatorCreateInfo.physicalDevice = physicalDevice;
+    allocatorCreateInfo.device = device;
+    allocatorCreateInfo.instance = instance;
+
+    vmaCreateAllocator(&allocatorCreateInfo, &allocator);
 }
 
 VulkanContext::~VulkanContext() {
+    if (allocator) { vmaDestroyAllocator(allocator); }
     if (device) { vkDestroyDevice(device, nullptr); }
     if (surface) { vkDestroySurfaceKHR(instance, surface, nullptr); }
     if (ENABLE_VALIDATION_LAYERS) { destroyDebugUtilsMessengerEXT(); }

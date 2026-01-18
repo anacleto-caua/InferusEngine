@@ -30,7 +30,6 @@ void Renderer::init(
 
     swapchain.init(vulkanContext, window);
     createStaticPipelineData();
-    VkExtent2D extent = swapchain.extent;
 }
 
 Renderer::~Renderer() {

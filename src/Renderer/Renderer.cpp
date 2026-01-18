@@ -2,9 +2,9 @@
 
 #include <stdexcept>
 
+#include "Swapchain.hpp"
 #include "Core/Window.hpp"
 #include "BarrierBuilder.hpp"
-#include "Swapchain.hpp"
 
 void Renderer::init(
     // Vulkan Context

@@ -28,6 +28,12 @@ private:
     VkViewport viewport{};
     VkRenderingAttachmentInfo colorAttachment{};
     VkRenderingInfo renderingInfo{};
+
+    VkCommandBufferBeginInfo gPipelineCmdBeginInfo{};
+
+    VkSubmitInfo gPipelineCmdSubmitInfo{};
+    VkPresentInfoKHR gPipelinePresentInfo{};
+
 public:
     Renderer() = default;
     ~Renderer();

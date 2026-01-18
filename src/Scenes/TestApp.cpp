@@ -72,22 +72,6 @@ void TestApp::run() {
 
 void TestApp::drawCallback(VkCommandBuffer commandBuffer, TestApp* app) {
     if (app->pipeline != VK_NULL_HANDLE) {
-        VkExtent2D extent = app->engine.renderer.swapchain.extent;
-
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = static_cast<float>(extent.width);
-        viewport.height = static_cast<float>(extent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = extent;
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
         static float angle = 0.0f;
         angle += 0.00001f;
 

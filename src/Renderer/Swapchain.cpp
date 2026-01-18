@@ -61,14 +61,6 @@ Swapchain::~Swapchain() {
     destroySwapchain(swapchain);
 }
 
-void Swapchain::resizeCallback(const uint32_t width, const uint32_t height) {
-    if (width == 0 || height == 0) return;
-    extent.width = width;
-    extent.height = height;
-    vkDeviceWaitIdle(device);
-    recreateSwapchain();
-}
-
 void Swapchain::sanitExtent() {
     extent.width = std::clamp(
         extent.width,
@@ -85,6 +77,7 @@ void Swapchain::querySurfaceCapabilities() {
 }
 
 void Swapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
+    vkDeviceWaitIdle(device);
     querySurfaceCapabilities();
     sanitExtent();
     createInfo.imageExtent = extent;

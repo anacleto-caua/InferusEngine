@@ -45,6 +45,8 @@ public:
         // ...
     );
 
+    void resizeCallback(const uint32_t width, const uint32_t height);
+
     VkCommandBuffer& beginFrame();
     void endFrame();
     void bindPipeline();

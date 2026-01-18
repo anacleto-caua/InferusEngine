@@ -74,6 +74,13 @@ Renderer::~Renderer() {
     }
 }
 
+void Renderer::resizeCallback(const uint32_t width, const uint32_t height) {
+    if (width == 0 || height == 0) return;
+    swapchain.extent.width = width;
+    swapchain.extent.height = height;
+    swapchain.recreateSwapchain();
+}
+
 VkCommandBuffer& Renderer::beginFrame() {
     FrameData& targetFrame = frames[targetFrameIndex];
     VkCommandBuffer& cmd = targetFrame.commandBuffer;

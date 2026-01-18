@@ -38,8 +38,6 @@ public:
 
     void init(const VulkanContext &vulkanContext, Window &window);
 
-    void resizeCallback(const uint32_t width, const uint32_t height);
-
     void recreateSwapchain();
 
 private:

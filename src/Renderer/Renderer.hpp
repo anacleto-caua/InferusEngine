@@ -26,6 +26,8 @@ private:
 
     VkRect2D scissor{};
     VkViewport viewport{};
+    VkRenderingAttachmentInfo colorAttachment{};
+    VkRenderingInfo renderingInfo{};
 public:
     Renderer() = default;
     ~Renderer();
@@ -51,4 +53,6 @@ public:
     void endFrame();
     void bindPipeline();
 private:
+    void createStaticPipelineData();
+    void refreshExtent();
 };

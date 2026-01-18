@@ -61,6 +61,12 @@ Swapchain::~Swapchain() {
     destroySwapchain(swapchain);
 }
 
+void Swapchain::setExtent(const uint32_t width, const uint32_t height) {
+    extent.width = width;
+    extent.height = height;
+    sanitExtent();
+}
+
 void Swapchain::sanitExtent() {
     extent.width = std::clamp(
         extent.width,

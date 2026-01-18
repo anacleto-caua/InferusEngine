@@ -29,13 +29,53 @@ void Renderer::init(
     );
 
     swapchain.init(vulkanContext, window);
+    createStaticPipelineData();
+    VkExtent2D extent = swapchain.extent;
+}
 
+Renderer::~Renderer() {
+    for (FrameData &frame : frames) {
+        if (frame.imageAvailable) { vkDestroySemaphore(vulkanContext.device, frame.imageAvailable, nullptr); }
+        if (frame.inFlight) { vkDestroyFence(vulkanContext.device, frame.inFlight, nullptr); }
+        if (frame.commandPool) { vkDestroyCommandPool(vulkanContext.device, frame.commandPool, nullptr); }
+    }
+}
+
+void Renderer::resizeCallback(const uint32_t width, const uint32_t height) {
+    if (width == 0 || height == 0) return;
+    vkDeviceWaitIdle(vulkanContext.device);
+    swapchain.setExtent(width, height);
+    swapchain.recreateSwapchain();
+    refreshExtent();
+}
+
+void Renderer::refreshExtent() {
+    VkExtent2D extent = swapchain.extent;
+    viewport.width = static_cast<float>(extent.width);
+    viewport.height = static_cast<float>(extent.height);
+    scissor.extent = extent;
+    renderingInfo.renderArea = { {0, 0}, extent };
+}
+
+void Renderer::createStaticPipelineData() {
     viewport.x = 0.0f;
     viewport.y = 0.0f;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     scissor.offset = {0, 0};
+
+    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.clearValue = { 0.1f, 0.1f, 0.1f, 1.0f };
+    colorAttachment.pNext = VK_NULL_HANDLE;
+
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colorAttachment;
 
     VkSemaphoreCreateInfo semaphoreCreateInfo{};
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -64,21 +104,8 @@ void Renderer::init(
         allocInfo.commandPool = frame.commandPool;
         vkAllocateCommandBuffers(vulkanContext.device, &allocInfo, &frame.commandBuffer);
     }
-}
 
-Renderer::~Renderer() {
-    for (FrameData &frame : frames) {
-        if (frame.imageAvailable) { vkDestroySemaphore(vulkanContext.device, frame.imageAvailable, nullptr); }
-        if (frame.inFlight) { vkDestroyFence(vulkanContext.device, frame.inFlight, nullptr); }
-        if (frame.commandPool) { vkDestroyCommandPool(vulkanContext.device, frame.commandPool, nullptr); }
-    }
-}
-
-void Renderer::resizeCallback(const uint32_t width, const uint32_t height) {
-    if (width == 0 || height == 0) return;
-    swapchain.extent.width = width;
-    swapchain.extent.height = height;
-    swapchain.recreateSwapchain();
+    refreshExtent();
 }
 
 VkCommandBuffer& Renderer::beginFrame() {
@@ -119,31 +146,10 @@ VkCommandBuffer& Renderer::beginFrame() {
     .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
     .record(cmd);
 
-    VkRenderingAttachmentInfo colorAttachment{};
-    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     colorAttachment.imageView = swapchain.scImages[targetImageViewIndex].imageView;
-    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.clearValue = { 0.1f, 0.1f, 0.1f, 1.0f };
-    colorAttachment.pNext = VK_NULL_HANDLE;
-
-    VkRenderingInfo renderingInfo{};
-    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.renderArea = { {0, 0}, swapchain.extent };
-    renderingInfo.layerCount = 1;
-    renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachments = &colorAttachment;
-
     vkCmdBeginRendering(cmd, &renderingInfo);
 
-    VkExtent2D extent = swapchain.extent;
-
-    viewport.width = static_cast<float>(extent.width);
-    viewport.height = static_cast<float>(extent.height);
     vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-    scissor.extent = extent;
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
     return cmd;

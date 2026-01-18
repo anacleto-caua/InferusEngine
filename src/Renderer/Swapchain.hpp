@@ -40,6 +40,8 @@ public:
 
     void recreateSwapchain();
 
+    void setExtent(const uint32_t width, const uint32_t height);
+
 private:
     void sanitExtent();
     void querySurfaceCapabilities();

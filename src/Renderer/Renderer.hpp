@@ -23,6 +23,9 @@ private:
     std::array<FrameData, MAX_FRAMES_IN_FLIGHT> frames;
     uint32_t targetFrameIndex = 0;
     uint32_t targetImageViewIndex = 0;
+
+    VkRect2D scissor{};
+    VkViewport viewport{};
 public:
     Renderer() = default;
     ~Renderer();

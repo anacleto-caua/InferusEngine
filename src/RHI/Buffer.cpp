@@ -1,18 +1,41 @@
 #include "Buffer.hpp"
 
-void Buffer::init(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage) {
-    this->allocator = allocator;
+#include <stdexcept>
+
+void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
     this->size = size;
+    this->type = type;
+    this->allocator = allocator;
 
     VkBufferCreateInfo bufferCreateInfo{};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferCreateInfo.size = size;
-    bufferCreateInfo.usage = usageFlags;
 
     VmaAllocationCreateInfo allocCreateInfo{};
-    allocCreateInfo.usage = memoryUsage;
+    allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-    vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &buffer, &allocation, nullptr);
+    switch (type) {
+        case BufferType::GPU_STATIC:
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+            allocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            break;
+        case BufferType::CPU_TO_GPU:
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+            allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
+        case BufferType::STAGING_UPLOAD:
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+            allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
+        case BufferType::READBACK:
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+            allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
+    }
+
+    if (vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &buffer, &allocation, nullptr) != VK_SUCCESS) {
+        throw std::runtime_error("buffer creation failed");
+    }
 }
 
 Buffer::~Buffer() {

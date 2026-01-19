@@ -43,8 +43,17 @@ Buffer::~Buffer() {
 }
 
 void Buffer::upload(void* data, size_t size) {
+    void* mappedData = map();
+    memcpy(mappedData, data, size);
+    unmap();
+}
+
+void* Buffer::map() {
     void* mappedData;
     vmaMapMemory(allocator, allocation, &mappedData);
-    memcpy(mappedData, data, size);
+    return mappedData;
+}
+
+void Buffer::unmap() {
     vmaUnmapMemory(allocator, allocation);
 }

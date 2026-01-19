@@ -42,7 +42,36 @@ Buffer::~Buffer() {
     if (buffer) { vmaDestroyBuffer(allocator, buffer, allocation); }
 }
 
-void Buffer::upload(void* data, size_t size) {
+void Buffer::immediateCopy(VulkanContext &ctx, Buffer &src, const size_t size) {
+    VkCommandBuffer cmd = ctx.singleTimeCmdBegin(ctx.transferQueueCtx);
+    copy(cmd, src, size);
+    ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
+}
+
+void Buffer::immediateUpload(VulkanContext &ctx, const void* data, const size_t size) {
+    VkCommandBuffer cmd = ctx.singleTimeCmdBegin(ctx.transferQueueCtx);
+    upload(data, size);
+    ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
+}
+
+void Buffer::copy(VkCommandBuffer &cmd, Buffer &src, const size_t size) {
+    vmaCopyMemoryToAllocation(allocator, src.map(), allocation, 0, size);
+}
+
+void Buffer::upload(VkCommandBuffer &cmd, const void* data, const size_t size) {
+    if (!(type == BufferType::GPU_STATIC || type == BufferType::READBACK)) {
+        throw std::runtime_error("tried to upload data to a cpu-visible buffer using a command buffer for staging");
+    }
+    Buffer stagingBuffer = Buffer(allocator, size, BufferType::STAGING_UPLOAD);
+    stagingBuffer.upload(data, size);
+    copy(cmd, stagingBuffer, size);
+    return;
+}
+
+void Buffer::upload(const void* data, const size_t size) {
+    if (type == BufferType::GPU_STATIC || type == BufferType::READBACK) {
+        throw std::runtime_error("tried to upload data to a gpu-only buffer without a command buffer");
+    }
     void* mappedData = map();
     memcpy(mappedData, data, size);
     unmap();

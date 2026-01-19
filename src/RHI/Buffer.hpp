@@ -1,5 +1,7 @@
 #pragma once
 
+#include "VulkanContext.hpp"
+#include <cstddef>
 #include <cstring>
 
 #include <vk_mem_alloc.h>
@@ -31,8 +33,12 @@ public:
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
 
-    void upload(void* data, size_t size);
+    void immediateCopy(VulkanContext &ctx, Buffer &src, const size_t size);
+    void copy(VkCommandBuffer &cmd, Buffer &src, const size_t size);
+    void immediateUpload(VulkanContext &ctx, const void* data, const size_t size);
+    void upload(VkCommandBuffer &cmd, const void* data, const size_t size);
+    void upload(const void* data, const size_t size);
+private:
     void* map();
     void unmap();
-private:
 };

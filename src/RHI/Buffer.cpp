@@ -50,7 +50,7 @@ void Buffer::immediateCopy(VulkanContext &ctx, Buffer &src, const size_t size) {
 
 void Buffer::immediateUpload(VulkanContext &ctx, const void* data, const size_t size) {
     VkCommandBuffer cmd = ctx.singleTimeCmdBegin(ctx.transferQueueCtx);
-    upload(data, size);
+    upload(cmd, data, size);
     ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
 }
 

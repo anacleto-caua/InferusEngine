@@ -50,6 +50,9 @@ public:
         const std::vector<const char*> &validationLayersExts
     );
 
+    VkCommandBuffer singleTimeCmdBegin(QueueContext ctx);
+    void singleTimeCmdSubmit(QueueContext ctx, VkCommandBuffer cmd);
+
 private:
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

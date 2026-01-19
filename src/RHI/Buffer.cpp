@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
+Buffer::Buffer(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
     this->size = size;
     this->type = type;
     this->allocator = allocator;

@@ -26,15 +26,13 @@ public:
 private:
     BufferType type;
 public:
-    Buffer() = default;
+    Buffer(VmaAllocator allocator, VkDeviceSize size, BufferType type);
     ~Buffer();
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
 
-    void init(VmaAllocator allocator, VkDeviceSize size, BufferType type);
     void upload(void* data, size_t size);
     void* map();
     void unmap();
 private:
-
 };

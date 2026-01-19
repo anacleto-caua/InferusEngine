@@ -28,11 +28,12 @@ public:
 private:
     BufferType type;
 public:
-    Buffer(VmaAllocator allocator, VkDeviceSize size, BufferType type);
+    Buffer() = default;
     ~Buffer();
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
 
+    void init(VmaAllocator allocator, VkDeviceSize size, BufferType type);
     void immediateCopy(VulkanContext &ctx, Buffer &src, const size_t size);
     void copy(VkCommandBuffer &cmd, Buffer &src, const size_t size);
     void immediateUpload(VulkanContext &ctx, const void* data, const size_t size);

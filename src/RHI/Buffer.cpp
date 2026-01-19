@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-Buffer::Buffer(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
+void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
     this->size = size;
     this->type = type;
     this->allocator = allocator;
@@ -62,7 +62,8 @@ void Buffer::upload(VkCommandBuffer &cmd, const void* data, const size_t size) {
     if (!(type == BufferType::GPU_STATIC || type == BufferType::READBACK)) {
         throw std::runtime_error("tried to upload data to a cpu-visible buffer using a command buffer for staging");
     }
-    Buffer stagingBuffer = Buffer(allocator, size, BufferType::STAGING_UPLOAD);
+    Buffer stagingBuffer;
+    stagingBuffer.init(allocator, size, BufferType::STAGING_UPLOAD);
     stagingBuffer.upload(data, size);
     copy(cmd, stagingBuffer, size);
     return;

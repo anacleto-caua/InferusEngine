@@ -5,4 +5,5 @@
 struct QueueContext {
     VkQueue queue;
     uint32_t index;
+    VkCommandPool mainCmdPool;
 };

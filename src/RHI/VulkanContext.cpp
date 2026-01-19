@@ -3,10 +3,12 @@
 #include <set>
 #include <stdexcept>
 
+#include <vector>
 #include <vulkan/vulkan.h>
 
 #include "Intialization/QueueSelector.hpp"
 #include "Intialization/DeviceSelector.hpp"
+#include "RHI/RHITypes.hpp"
 
 void VulkanContext::init(
     Window &window,
@@ -153,21 +155,42 @@ void VulkanContext::init(
         throw std::runtime_error("failed to create vk device");
     }
 
-    // Create queues
-    vkGetDeviceQueue(device, graphicsQueueCtx.index, 0, &graphicsQueueCtx.queue);
-    vkGetDeviceQueue(device, presentQueueCtx.index, 0, &presentQueueCtx.queue);
-    vkGetDeviceQueue(device, transferQueueCtx.index, 0, &transferQueueCtx.queue);
-    vkGetDeviceQueue(device, computeQueueCtx.index, 0, &computeQueueCtx.queue);
-
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
     allocatorCreateInfo.physicalDevice = physicalDevice;
     allocatorCreateInfo.device = device;
     allocatorCreateInfo.instance = instance;
 
     vmaCreateAllocator(&allocatorCreateInfo, &allocator);
+
+    // Fill the rest of queue context
+    std::array queues = {
+        &graphicsQueueCtx,
+        &presentQueueCtx,
+        &transferQueueCtx,
+        &computeQueueCtx
+    };
+    VkCommandPoolCreateInfo poolCreateInfo{};
+    poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    for (QueueContext *queue : queues) {
+        vkGetDeviceQueue(device, queue->index, 0, &queue->queue);
+        poolCreateInfo.queueFamilyIndex = queue->index;
+        if (vkCreateCommandPool(device, &poolCreateInfo, nullptr, &queue->mainCmdPool) != VK_SUCCESS) {
+            throw std::runtime_error("main command pool creation failed");
+        }
+    }
 }
 
 VulkanContext::~VulkanContext() {
+    std::array queues = {
+        &graphicsQueueCtx,
+        &presentQueueCtx,
+        &transferQueueCtx,
+        &computeQueueCtx
+    };
+    for (QueueContext *queue : queues) {
+        if (queue->mainCmdPool) { vkDestroyCommandPool(device, queue->mainCmdPool, nullptr); }
+    }
     if (allocator) { vmaDestroyAllocator(allocator); }
     if (device) { vkDestroyDevice(device, nullptr); }
     if (surface) { vkDestroySurfaceKHR(instance, surface, nullptr); }

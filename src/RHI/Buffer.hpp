@@ -1,11 +1,12 @@
 #pragma once
 
-#include "VulkanContext.hpp"
 #include <cstddef>
 #include <cstring>
 
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
+
+#include "VulkanContext.hpp"
 
 enum class BufferType {
     // STRICT GPU-ONLY.

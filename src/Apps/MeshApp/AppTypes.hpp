@@ -1,6 +1,6 @@
 #include <glm/glm.hpp>
 
-struct MeshPushConstants {
+struct PushConstants {
     glm::vec4 data;
     glm::mat4 renderMatrix;
 };

@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Scenes/TestApp.hpp"
+#include "Apps/MeshApp/MeshApp.hpp"
 
 int main() {
     // [Time] [Log Level] Message
@@ -13,7 +13,7 @@ int main() {
         spdlog::set_level(spdlog::level::debug);
     #endif
 
-    TestApp app = TestApp();
+    MeshApp app = MeshApp();
     app.init();
 
     try {

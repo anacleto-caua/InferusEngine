@@ -1,4 +1,4 @@
-#include "TestApp.hpp"
+#include "MeshApp.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -6,19 +6,19 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Scenes/ShaderData.hpp"
+#include "Apps/MeshApp/AppTypes.hpp"
 #include "RHI/Pipeline/ShaderStageBuilder.hpp"
 #include "RHI/Pipeline/GraphicsPipelineBuilder.hpp"
 
-void TestApp::init() {
-    const std::string APP_NAME = "TestApp";
+void MeshApp::init() {
+    const std::string APP_NAME = "MeshApp";
     engine.init(APP_NAME);
     VkDevice device = engine.renderer.vulkanContext.device;
 
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(MeshPushConstants);
+    pushConstantRange.size = sizeof(PushConstants);
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -53,31 +53,31 @@ void TestApp::init() {
     }
 }
 
-TestApp::~TestApp() {
+MeshApp::~MeshApp() {
     VkDevice device = engine.renderer.vulkanContext.device;
     vkDeviceWaitIdle(device);
     if (pipeline) { vkDestroyPipeline(device, pipeline, nullptr); }
     if (pipelineLayout) { vkDestroyPipelineLayout(device, pipelineLayout, nullptr); }
 }
 
-void TestApp::run() {
+void MeshApp::run() {
     while (!shouldClose()) {
         engine.update();
         engine.render([this](VkCommandBuffer cmd) {
-            TestApp::drawCallback(cmd, this);
+            MeshApp::drawCallback(cmd, this);
         });
     }
     vkDeviceWaitIdle(engine.renderer.vulkanContext.device);
 }
 
-void TestApp::drawCallback(VkCommandBuffer commandBuffer, TestApp* app) {
+void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
     if (app->pipeline != VK_NULL_HANDLE) {
         static float angle = 0.0f;
         angle += 0.00001f;
 
         glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0,0,1));
 
-        MeshPushConstants constants;
+        PushConstants constants;
         constants.renderMatrix = model;
         constants.data = glm::vec4(angle, 0, 0, 0);
 
@@ -86,7 +86,7 @@ void TestApp::drawCallback(VkCommandBuffer commandBuffer, TestApp* app) {
             app->pipelineLayout,
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             0,
-            sizeof(MeshPushConstants),
+            sizeof(PushConstants),
             &constants
         );
 
@@ -95,6 +95,6 @@ void TestApp::drawCallback(VkCommandBuffer commandBuffer, TestApp* app) {
     }
 }
 
-bool TestApp::shouldClose() {
+bool MeshApp::shouldClose() {
     return engine.shouldClose();
 }

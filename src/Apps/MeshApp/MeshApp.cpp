@@ -1,11 +1,15 @@
 #include "MeshApp.hpp"
 
+#include <cstdint>
 #include <spdlog/spdlog.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
 
+#include "RHI/Buffer.hpp"
+#include "TerrainChunkData.hpp"
 #include "Apps/MeshApp/AppTypes.hpp"
 #include "RHI/Pipeline/ShaderStageBuilder.hpp"
 #include "RHI/Pipeline/GraphicsPipelineBuilder.hpp"
@@ -34,14 +38,14 @@ void MeshApp::init() {
         ShaderStageBuilder::createShaderStage(
             device,
             VK_SHADER_STAGE_VERTEX_BIT,
-            "shaders/base.vert.spv"
+            "shaders/terrain.vert.spv"
         )
     )
     .addShaderStage(
         ShaderStageBuilder::createShaderStage(
             device,
             VK_SHADER_STAGE_FRAGMENT_BIT,
-            "shaders/base.frag.spv"
+            "shaders/terrain.frag.spv"
         )
     );
 
@@ -51,6 +55,8 @@ void MeshApp::init() {
     for (VkPipelineShaderStageCreateInfo shaderStage : builder.shaderStages) {
         if (shaderStage.module) { vkDestroyShaderModule(device, shaderStage.module, nullptr); }
     }
+
+    createTerrainIndicesBuffer();
 }
 
 MeshApp::~MeshApp() {
@@ -58,6 +64,13 @@ MeshApp::~MeshApp() {
     vkDeviceWaitIdle(device);
     if (pipeline) { vkDestroyPipeline(device, pipeline, nullptr); }
     if (pipelineLayout) { vkDestroyPipelineLayout(device, pipelineLayout, nullptr); }
+}
+
+void MeshApp::createTerrainIndicesBuffer() {
+    std::vector<uint32_t> indices = TerrainChunkData::getIndices();
+    uint32_t bufferSize = indices.size() * sizeof(uint32_t);
+    terrainIndicesBuffer.init(engine.renderer.vulkanContext.allocator, bufferSize, BufferType::GPU_STATIC, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    terrainIndicesBuffer.immediateUpload(engine.renderer.vulkanContext, indices.data(), bufferSize);
 }
 
 void MeshApp::run() {
@@ -81,6 +94,8 @@ void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
         constants.renderMatrix = model;
         constants.data = glm::vec4(angle, 0, 0, 0);
 
+        vkCmdBindIndexBuffer(commandBuffer, app->terrainIndicesBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
         vkCmdPushConstants(
             commandBuffer,
             app->pipelineLayout,
@@ -91,7 +106,7 @@ void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
         );
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipeline);
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, TerrainChunkData::INDEX_COUNT, 1, 0, 0, 0);
     }
 }
 

@@ -5,10 +5,9 @@
 
 class MeshApp {
 public:
-    Buffer terrainVerticesBuffer;
-    Buffer terrainIndicesBuffer;
 private:
     Engine engine;
+    Buffer terrainIndicesBuffer;
     VkPipeline pipeline;
     VkPipelineLayout pipelineLayout;
 public:
@@ -25,4 +24,5 @@ public:
 
     static void drawCallback(VkCommandBuffer commandBuffer, MeshApp* app);
 private:
+    void createTerrainIndicesBuffer();
 };

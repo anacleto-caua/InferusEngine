@@ -37,8 +37,9 @@ public:
     void init(VmaAllocator allocator, VkDeviceSize size, BufferType type, VkBufferUsageFlags usage);
     void immediateCopy(VulkanContext &ctx, Buffer &src, const size_t size);
     void copy(VkCommandBuffer &cmd, Buffer &src, const size_t size);
+    void copy(Buffer &src, const size_t size);
     void immediateUpload(VulkanContext &ctx, const void* data, const size_t size);
-    void upload(VkCommandBuffer &cmd, const void* data, const size_t size);
+    void upload(VkCommandBuffer &cmd, Buffer &stagingBuffer, const void* data, const size_t size);
     void upload(const void* data, const size_t size);
 private:
     void* map();

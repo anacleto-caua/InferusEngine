@@ -56,22 +56,36 @@ void Buffer::immediateCopy(VulkanContext &ctx, Buffer &src, const size_t size) {
     ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
 }
 
-void Buffer::immediateUpload(VulkanContext &ctx, const void* data, const size_t size) {
-    VkCommandBuffer cmd = ctx.singleTimeCmdBegin(ctx.transferQueueCtx);
-    upload(cmd, data, size);
-    ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
+void Buffer::copy(VkCommandBuffer &cmd, Buffer &src, const size_t size) {
+    if (!(type == BufferType::GPU_STATIC || type == BufferType::READBACK)) {
+        throw std::runtime_error("tried to copy data to a cpu-only buffer using a gpu method");
+    }
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = 0;
+    copyRegion.size = size;
+    vkCmdCopyBuffer(cmd, src.buffer, this->buffer, 1, &copyRegion);
 }
 
-void Buffer::copy(VkCommandBuffer &cmd, Buffer &src, const size_t size) {
+void Buffer::copy(Buffer &src, const size_t size) {
+    if (type == BufferType::GPU_STATIC || type == BufferType::READBACK) {
+        throw std::runtime_error("tried to copy data to a gpu-only buffer with a cpu-visible dedicated method");
+    }
     vmaCopyMemoryToAllocation(allocator, src.map(), allocation, 0, size);
 }
 
-void Buffer::upload(VkCommandBuffer &cmd, const void* data, const size_t size) {
+void Buffer::immediateUpload(VulkanContext &ctx, const void* data, const size_t size) {
+    VkCommandBuffer cmd = ctx.singleTimeCmdBegin(ctx.transferQueueCtx);
+    Buffer stagingBuffer;
+    stagingBuffer.init(allocator, size, BufferType::STAGING_UPLOAD, 0);
+    upload(cmd, stagingBuffer, data, size);
+    ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
+}
+
+void Buffer::upload(VkCommandBuffer &cmd, Buffer &stagingBuffer, const void* data, const size_t size) {
     if (!(type == BufferType::GPU_STATIC || type == BufferType::READBACK)) {
         throw std::runtime_error("tried to upload data to a cpu-visible buffer using a command buffer for staging");
     }
-    Buffer stagingBuffer;
-    stagingBuffer.init(allocator, size, BufferType::STAGING_UPLOAD, 0);
     stagingBuffer.upload(data, size);
     copy(cmd, stagingBuffer, size);
     return;

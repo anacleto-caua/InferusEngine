@@ -3,6 +3,9 @@
 #include <stdexcept>
 
 void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
+    init(allocator, size, type, 0);
+}
+void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type, VkBufferUsageFlags flags) {
     this->size = size;
     this->type = type;
     this->allocator = allocator;
@@ -10,12 +13,14 @@ void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
     VkBufferCreateInfo bufferCreateInfo{};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferCreateInfo.size = size;
+    bufferCreateInfo.flags = flags;
 
     VmaAllocationCreateInfo allocCreateInfo{};
     allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
     switch (type) {
         case BufferType::GPU_STATIC:
+            bufferCreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             allocCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
             allocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
             break;
@@ -24,10 +29,12 @@ void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
             allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
             break;
         case BufferType::STAGING_UPLOAD:
+            bufferCreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
             allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
             allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
             break;
         case BufferType::READBACK:
+            bufferCreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
             allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
             break;
@@ -63,7 +70,7 @@ void Buffer::upload(VkCommandBuffer &cmd, const void* data, const size_t size) {
         throw std::runtime_error("tried to upload data to a cpu-visible buffer using a command buffer for staging");
     }
     Buffer stagingBuffer;
-    stagingBuffer.init(allocator, size, BufferType::STAGING_UPLOAD);
+    stagingBuffer.init(allocator, size, BufferType::STAGING_UPLOAD, 0);
     stagingBuffer.upload(data, size);
     copy(cmd, stagingBuffer, size);
     return;

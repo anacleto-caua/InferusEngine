@@ -34,7 +34,7 @@ public:
     Buffer& operator=(const Buffer&) = delete;
 
     void init(VmaAllocator allocator, VkDeviceSize size, BufferType type);
-    void init(VmaAllocator allocator, VkDeviceSize size, BufferType type, VkBufferUsageFlags flags);
+    void init(VmaAllocator allocator, VkDeviceSize size, BufferType type, VkBufferUsageFlags usage);
     void immediateCopy(VulkanContext &ctx, Buffer &src, const size_t size);
     void copy(VkCommandBuffer &cmd, Buffer &src, const size_t size);
     void immediateUpload(VulkanContext &ctx, const void* data, const size_t size);

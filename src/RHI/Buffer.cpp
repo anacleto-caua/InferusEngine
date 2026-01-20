@@ -6,7 +6,7 @@ void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
     init(allocator, size, type, 0);
 }
 
-void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type, VkBufferUsageFlags flags) {
+void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type, VkBufferUsageFlags usage) {
     this->size = size;
     this->type = type;
     this->allocator = allocator;
@@ -14,7 +14,7 @@ void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type, Vk
     VkBufferCreateInfo bufferCreateInfo{};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferCreateInfo.size = size;
-    bufferCreateInfo.flags = flags;
+    bufferCreateInfo.usage = usage;
 
     VmaAllocationCreateInfo allocCreateInfo{};
     allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;

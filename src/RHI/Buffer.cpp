@@ -5,6 +5,7 @@
 void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type) {
     init(allocator, size, type, 0);
 }
+
 void Buffer::init(VmaAllocator allocator, VkDeviceSize size, BufferType type, VkBufferUsageFlags flags) {
     this->size = size;
     this->type = type;

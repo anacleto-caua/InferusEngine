@@ -1,6 +1,7 @@
 #include "MeshApp.hpp"
 
 #include <cstdint>
+#include <glm/fwd.hpp>
 #include <spdlog/spdlog.h>
 
 #include <glm/glm.hpp>
@@ -85,14 +86,32 @@ void MeshApp::run() {
 
 void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
     if (app->pipeline != VK_NULL_HANDLE) {
-        static float angle = 0.0f;
-        angle += 0.00001f;
+        VkExtent2D extent = app->engine.renderer.swapchain.extent;
+        float aspect = (float)extent.width / (float)extent.height;
+        constexpr glm::float32_t POV = 60.0;
+        float focal_length = 1.0f / tan(glm::radians(POV) / 2.0f);
+        // Infinite Reverse-Z Projection
+        glm::mat4 proj = glm::mat4(0.0f);
+        proj[0][0] = focal_length / aspect;
 
-        glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0,0,1));
+        // -f handles Vulkan Y-flip directly
+        proj[1][1] = -focal_length;
+        proj[2][2] = 0.0f;    // Z-term is 0 for infinite far plane
+        proj[2][3] = -1.0f;   // Standard RH convention
+        proj[3][2] = 0.1f;    // zNear
+
+        // VIEW
+        // Eye: Up (Y=15) and Back (Z=-20)
+        glm::vec3 camPos = glm::vec3(0.0f, 15.0f, -20.0f);
+        // Center of grid: (0, 0, 0)
+        glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
+        // Up: (0, 1, 0)
+        glm::mat4 view = glm::lookAt(camPos, target, glm::vec3(0,1,0));
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 mvp = proj * view * model;
 
         PushConstants constants;
-        constants.renderMatrix = model;
-        constants.data = glm::vec4(angle, 0, 0, 0);
+        constants.lookAt = mvp;
 
         vkCmdBindIndexBuffer(commandBuffer, app->terrainIndicesBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 

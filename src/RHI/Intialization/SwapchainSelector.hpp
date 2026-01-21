@@ -105,9 +105,9 @@ public:
 
         std::sort(
             scoredSurfaceFormats.begin(), scoredSurfaceFormats.end(),
-            [](const std::pair<VkSurfaceFormatKHR, uint32_t>& a, 
+            [](const std::pair<VkSurfaceFormatKHR, uint32_t>& a,
             const std::pair<VkSurfaceFormatKHR, uint32_t>& b) -> bool {
-                return a.second > b.second; 
+                return a.second > b.second;
             }
         );
 

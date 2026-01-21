@@ -33,7 +33,7 @@ public:
             throw std::runtime_error("no valid physical devices found");
         }
 
-        std::sort(devicePickList.begin(), devicePickList.end(), 
+        std::sort(devicePickList.begin(), devicePickList.end(),
             [](const std::pair<int32_t, VkPhysicalDevice> &a, const std::pair<int32_t, VkPhysicalDevice> &b) {
                 return a.first > b.first;
             }

@@ -32,7 +32,6 @@ private:
     QueueContext* queueCtxToFit;
 
     std::vector<VkQueueFamilyProperties> candidateQueues;
-    
 public:
     void select() {
         std::vector<std::pair<uint32_t, int32_t>> validQueues;
@@ -49,12 +48,12 @@ public:
             throw std::runtime_error("no queue could fit the requirements!");
         }
 
-        std::sort(validQueues.begin(), validQueues.end(), 
+        std::sort(validQueues.begin(), validQueues.end(),
             [](const std::pair<uint32_t, int32_t>& a, const std::pair<uint32_t, int32_t>& b) {
-                return a.second > b.second; 
+                return a.second > b.second;
             }
         );
-        
+
         queueCtxToFit->index = validQueues.front().first;
     }
 
@@ -123,7 +122,7 @@ private:
 
         int score = 0;
         if ((candidateFlags & avoidedFlags) == 0) {
-            score += 100; 
+            score += 100;
         }
 
         for (QueueContext* queueCtx : uniqueAgainst) {

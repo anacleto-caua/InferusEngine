@@ -15,7 +15,7 @@ public:
     Engine(const Engine&) = delete;
     Engine& operator=(const Engine&) = delete;
 
-    void init(std::string const &appName);
+    void init(std::string const &appName, glm::mat4* pMvp);
 
     void update();
     void render(std::function<void(VkCommandBuffer)> drawCallback);

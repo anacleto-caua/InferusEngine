@@ -1,10 +1,11 @@
 #include "Engine.hpp"
 
+#include <glm/fwd.hpp>
 #include <string>
 #include <vector>
 #include <cstdint>
 
-void Engine::init(const std::string &appName) {
+void Engine::init(const std::string &appName, glm::mat4* pMvp) {
     uint32_t const WIDTH = 1200;
     uint32_t const HEIGHT = 800;
 
@@ -30,7 +31,7 @@ void Engine::init(const std::string &appName) {
     finalDeviceExtensions.insert(finalDeviceExtensions.end(), DEVICE_EXTENSIONS.begin(), DEVICE_EXTENSIONS.end());
     finalDeviceExtensions.insert(finalDeviceExtensions.end(), VMA_SUGGESTED_EXTENSIONS.begin(), VMA_SUGGESTED_EXTENSIONS.end());
 
-    renderer.init(window, appName, ENGINE_NAME, finalInstanceExtensions, finalDeviceExtensions, VALIDATION_LAYERS, VALIDATION_LAYERS_EXTENSION);
+    renderer.init(window, appName, ENGINE_NAME, finalInstanceExtensions, finalDeviceExtensions, VALIDATION_LAYERS, VALIDATION_LAYERS_EXTENSION, pMvp);
 }
 
 Engine::~Engine() {}

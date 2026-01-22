@@ -1,10 +1,12 @@
 #pragma once
 
+#include "AppTypes.hpp"
 #include "RHI/Buffer.hpp"
 #include "Core/Engine.hpp"
 
 class MeshApp {
 public:
+    PushConstants constants;
 private:
     Engine engine;
     Buffer terrainIndicesBuffer;

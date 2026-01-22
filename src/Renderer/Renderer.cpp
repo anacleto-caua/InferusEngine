@@ -14,7 +14,9 @@ void Renderer::init(
     const std::vector<const char*> &instanceExtensions,
     const std::vector<const char*> &deviceExtensions,
     const std::vector<const char*> &validationLayers,
-    const std::vector<const char*> &validationLayersExts
+    const std::vector<const char*> &validationLayersExts,
+    // Camera
+    glm::mat4* pMvp
     // Renderer
     // ...
 ) {
@@ -29,6 +31,7 @@ void Renderer::init(
     );
 
     swapchain.init(vulkanContext, window);
+    camera.init(pMvp);
     createStaticPipelineData();
 }
 
@@ -50,10 +53,16 @@ void Renderer::resizeCallback(const uint32_t width, const uint32_t height) {
 
 void Renderer::refreshExtent() {
     VkExtent2D extent = swapchain.extent;
-    viewport.width = static_cast<float>(extent.width);
-    viewport.height = static_cast<float>(extent.height);
+    float f_width = static_cast<float>(extent.width);
+    float f_height = static_cast<float>(extent.height);
+    float aspect = f_width/f_height;
+
+    viewport.width = f_width;
+    viewport.height = f_height;
     scissor.extent = extent;
     renderingInfo.renderArea = { {0, 0}, extent };
+
+    camera.setAspect(aspect);
 }
 
 void Renderer::createStaticPipelineData() {

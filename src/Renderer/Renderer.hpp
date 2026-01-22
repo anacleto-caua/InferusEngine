@@ -4,6 +4,7 @@
 
 #include "RHI/VulkanContext.hpp"
 #include "Renderer/Swapchain.hpp"
+#include "Apps/MeshApp/Components/Camera.hpp"
 
 struct FrameData {
     float deltaTime = 0;
@@ -17,6 +18,7 @@ class Renderer {
 public:
     VulkanContext vulkanContext;
     Swapchain swapchain;
+    Camera camera;
     VkPipeline *pipeline;
 private:
     static const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -48,7 +50,9 @@ public:
         const std::vector<const char*> &instanceExtensions,
         const std::vector<const char*> &deviceExtensions,
         const std::vector<const char*> &validationLayers,
-        const std::vector<const char*> &validationLayersExts
+        const std::vector<const char*> &validationLayersExts,
+        // Camera
+        glm::mat4* pMvp
         // Renderer
         // ...
     );

@@ -4,6 +4,8 @@
 #include <cstdint>
 
 namespace TerrainChunkData {
+    const uint32_t INSTANCE_COUNT = 9; // The number of terrains to be draw per call
+
     const uint32_t RESOLUTION = 64; // Width & Height
 
     const uint32_t INDEX_COUNT = (RESOLUTION - 1) * (RESOLUTION - 1) * 6;

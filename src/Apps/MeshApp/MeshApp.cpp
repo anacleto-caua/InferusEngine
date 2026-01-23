@@ -98,7 +98,7 @@ void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
         );
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipeline);
-        vkCmdDrawIndexed(commandBuffer, TerrainChunkData::INDEX_COUNT, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, TerrainChunkData::INDEX_COUNT, TerrainChunkData::INSTANCE_COUNT, 0, 0, 0);
     }
 }
 

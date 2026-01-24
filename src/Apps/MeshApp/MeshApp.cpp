@@ -10,7 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "RHI/Buffer.hpp"
-#include "TerrainChunkData.hpp"
+#include "Components/TerrainChunkData.hpp"
 #include "RHI/Pipeline/ShaderStageBuilder.hpp"
 #include "RHI/Pipeline/GraphicsPipelineBuilder.hpp"
 

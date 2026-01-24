@@ -1,13 +1,13 @@
 #include "MeshApp.hpp"
 
+#include <vector>
 #include <cstdint>
-#include <glm/fwd.hpp>
-#include <spdlog/spdlog.h>
 
 #include <glm/glm.hpp>
+#include <glm/fwd.hpp>
+#include <spdlog/spdlog.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <vector>
 
 #include "RHI/Buffer.hpp"
 #include "TerrainChunkData.hpp"

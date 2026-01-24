@@ -3,6 +3,7 @@
 #include "AppTypes.hpp"
 #include "RHI/Buffer.hpp"
 #include "Core/Engine.hpp"
+#include "Components/Heightmap.hpp"
 
 class MeshApp {
 public:
@@ -12,6 +13,7 @@ private:
     Buffer terrainIndicesBuffer;
     VkPipeline pipeline;
     VkPipelineLayout pipelineLayout;
+    Heightmap::HeightmapImage heightmap;
 public:
     MeshApp() = default;
     ~MeshApp();
@@ -27,4 +29,5 @@ public:
     static void drawCallback(VkCommandBuffer commandBuffer, MeshApp* app);
 private:
     void createTerrainIndicesBuffer();
+    void createHeightmap();
 };

@@ -2,9 +2,9 @@
 
 #include <array>
 
+#include "Camera.hpp"
 #include "RHI/VulkanContext.hpp"
 #include "Renderer/Swapchain.hpp"
-#include "Apps/MeshApp/Components/Camera.hpp"
 
 struct FrameData {
     float deltaTime = 0;

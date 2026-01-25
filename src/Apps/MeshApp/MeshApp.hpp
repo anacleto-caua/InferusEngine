@@ -6,7 +6,7 @@
 #include "RHI/Buffer.hpp"
 #include "Core/Engine.hpp"
 #include "Components/Heightmap.hpp"
-#include "RHI/Descriptor/Descriptor.hpp"
+#include "RHI/Descriptor/DescriptorSet.hpp"
 
 class MeshApp {
 public:
@@ -18,7 +18,7 @@ private:
     VkPipelineLayout pipelineLayout;
     Heightmap::HeightmapImage heightmap;
     static constexpr uint32_t TEXTURE_SAMPLER_BINDING = 0;
-    Descriptor heightmapDescriptor;
+    DescriptorSet heightmapDescriptorSet;
 public:
     MeshApp() = default;
     ~MeshApp();

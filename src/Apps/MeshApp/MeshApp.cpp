@@ -15,9 +15,9 @@
 #include "Components/Heightmap.hpp"
 #include "Renderer/BarrierBuilder.hpp"
 #include "Components/NoiseGenerator.hpp"
-#include "RHI/Descriptor/Descriptor.hpp"
 #include "Components/TerrainChunkData.hpp"
 #include "RHI/Pipeline/ShaderStageBuilder.hpp"
+#include "RHI/Descriptor/DescriptorSetBuilder.hpp"
 #include "RHI/Pipeline/GraphicsPipelineBuilder.hpp"
 
 void MeshApp::init() {
@@ -46,14 +46,16 @@ void MeshApp::init() {
 
     createTerrainIndicesBuffer();
     createHeightmap();
-    heightmapDescriptor.init(
-        device,
+
+    DescriptorSetBuilder setBuilder;
+    setBuilder.addTexture(
         TEXTURE_SAMPLER_BINDING,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         heightmap.imageView,
         heightmap.sampler
     );
+    heightmapDescriptorSet.init(device,setBuilder);
 
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -66,7 +68,7 @@ void MeshApp::init() {
     layoutInfo.pPushConstantRanges = &pushConstantRange;
 
     layoutInfo.setLayoutCount = 1;
-    layoutInfo.pSetLayouts = &heightmapDescriptor.layout;
+    layoutInfo.pSetLayouts = &heightmapDescriptorSet.layout;
 
     vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pipelineLayout);
 
@@ -196,7 +198,7 @@ void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
             app->pipelineLayout,
             TEXTURE_SAMPLER_BINDING,
             1,
-            &app->heightmapDescriptor.set,
+            &app->heightmapDescriptorSet.set,
             0,
             nullptr
         );

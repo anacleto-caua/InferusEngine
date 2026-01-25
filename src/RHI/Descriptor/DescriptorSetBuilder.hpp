@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include "RHI/Buffer.hpp"
+
 class DescriptorSetBuilder {
 public:
     struct BindConfig {
@@ -34,8 +36,9 @@ public:
     ~DescriptorSetBuilder() = default;
 
     void addTexture(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, VkImageView view, VkSampler sampler);
-    void addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
+    void addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, Buffer buffer);
     void build(VkDevice device, VkDescriptorSet& set, VkDescriptorPool& pool, VkDescriptorSetLayout& layout);
 private:
+    void addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
     void bind(BindConfig config);
 };

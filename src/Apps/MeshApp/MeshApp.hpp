@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cstdint>
+
 #include "AppTypes.hpp"
 #include "RHI/Buffer.hpp"
 #include "Core/Engine.hpp"
 #include "Components/Heightmap.hpp"
-#include <cstdint>
+#include "RHI/Descriptor/Descriptor.hpp"
 
 class MeshApp {
 public:
@@ -16,9 +18,7 @@ private:
     VkPipelineLayout pipelineLayout;
     Heightmap::HeightmapImage heightmap;
     static constexpr uint32_t TEXTURE_SAMPLER_BINDING = 0;
-    VkDescriptorSet heightmapSet;
-    VkDescriptorPool heightmapDescriptorPool;
-    VkDescriptorSetLayout heightmapSetLayout;
+    Descriptor heightmapDescriptor;
 public:
     MeshApp() = default;
     ~MeshApp();

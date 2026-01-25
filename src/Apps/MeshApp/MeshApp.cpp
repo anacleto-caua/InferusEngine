@@ -13,9 +13,9 @@
 #include "RHI/RHITypes.hpp"
 #include "RHI/VulkanContext.hpp"
 #include "Components/Heightmap.hpp"
-#include "RHI/DescriptorBuilder.hpp"
 #include "Renderer/BarrierBuilder.hpp"
 #include "Components/NoiseGenerator.hpp"
+#include "RHI/Descriptor/Descriptor.hpp"
 #include "Components/TerrainChunkData.hpp"
 #include "RHI/Pipeline/ShaderStageBuilder.hpp"
 #include "RHI/Pipeline/GraphicsPipelineBuilder.hpp"
@@ -46,21 +46,14 @@ void MeshApp::init() {
 
     createTerrainIndicesBuffer();
     createHeightmap();
-    DescriptorBuilder descriptorBuilder =
-        DescriptorBuilder::
-            begin(
-                device,
-                TEXTURE_SAMPLER_BINDING,
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-            );
-    heightmapSet = descriptorBuilder.buildTexture(
+    heightmapDescriptor.init(
         device,
+        TEXTURE_SAMPLER_BINDING,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         heightmap.imageView,
         heightmap.sampler
     );
-    heightmapSetLayout = descriptorBuilder.descriptorSetLayout;
-    heightmapDescriptorPool = descriptorBuilder.descriptorPool;
 
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -73,7 +66,7 @@ void MeshApp::init() {
     layoutInfo.pPushConstantRanges = &pushConstantRange;
 
     layoutInfo.setLayoutCount = 1;
-    layoutInfo.pSetLayouts = &heightmapSetLayout;
+    layoutInfo.pSetLayouts = &heightmapDescriptor.layout;
 
     vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pipelineLayout);
 
@@ -91,8 +84,6 @@ MeshApp::~MeshApp() {
     Heightmap::destroy(heightmap, device, engine.renderer.vulkanContext.allocator);
     if (pipeline) { vkDestroyPipeline(device, pipeline, nullptr); }
     if (pipelineLayout) { vkDestroyPipelineLayout(device, pipelineLayout, nullptr); }
-    if (heightmapDescriptorPool) vkDestroyDescriptorPool(device, heightmapDescriptorPool, nullptr);
-    if (heightmapSetLayout) vkDestroyDescriptorSetLayout(device, heightmapSetLayout, nullptr);
 }
 
 void MeshApp::createTerrainIndicesBuffer() {
@@ -205,7 +196,7 @@ void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
             app->pipelineLayout,
             TEXTURE_SAMPLER_BINDING,
             1,
-            &app->heightmapSet,
+            &app->heightmapDescriptor.set,
             0,
             nullptr
         );

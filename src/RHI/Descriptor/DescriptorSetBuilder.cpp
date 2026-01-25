@@ -3,46 +3,64 @@
 #include <stdexcept>
 
 void DescriptorSetBuilder::addTexture(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, VkImageView view, VkSampler sampler) {
-    TextureConfig textureConfig{};
-    textureConfig.binding = binding;
-    textureConfig.type = type;
-    textureConfig.stage = stage;
-    textureConfig.view = view;
-    textureConfig.sampler = sampler;
-    configs.push_back(textureConfig);
+    TextureConfig config{};
+    config.bind.binding = binding;
+    config.bind.type = type;
+    config.bind.stage = stage;
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = view;
+    imageInfo.sampler = sampler;
+
+    config.imageInfo = imageInfo;
+    textureConfigs.push_back(config);
+}
+
+void DescriptorSetBuilder::addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range) {
+    BufferConfig config{};
+    config.bind.binding = binding;
+    config.bind.type = type;
+    config.bind.stage = stage;
+
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = buffer;
+    bufferInfo.offset = offset;
+    bufferInfo.range = range;
+
+    config.bufferInfo = bufferInfo;
+    bufferConfigs.push_back(config);
+}
+
+void DescriptorSetBuilder::bind(BindConfig config) {
+    VkDescriptorSetLayoutBinding setLayout{};
+    setLayout.binding = config.binding;
+    setLayout.descriptorType = config.type;
+    setLayout.descriptorCount = 1;
+    setLayout.stageFlags = config.stage;
+    setLayout.pImmutableSamplers = nullptr;
+    bindings.push_back(setLayout);
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding = config.binding;
+    write.dstArrayElement = 0;
+    write.descriptorType = config.type;
+    write.descriptorCount = 1;
+    writes.push_back(write);
 }
 
 void DescriptorSetBuilder::build(VkDevice device, VkDescriptorSet& set, VkDescriptorPool& pool, VkDescriptorSetLayout& layout) {
-    std::vector<VkDescriptorImageInfo> imageInfos;
+    size_t setCount = bufferConfigs.size() + textureConfigs.size();
 
-    std::vector<VkWriteDescriptorSet> writes(configs.size());
-    std::vector<VkDescriptorSetLayoutBinding> bindings(configs.size());
+    for (const TextureConfig &config : textureConfigs) {
+        bind(config.bind);
+        writes.back().pImageInfo = &config.imageInfo;
+    }
 
-    for (size_t i = 0; i < configs.size(); i++) {
-        const TextureConfig& config = configs[i];
-
-        VkDescriptorSetLayoutBinding setLayout{};
-        setLayout.binding = config.binding;
-        setLayout.descriptorType = config.type;
-        setLayout.descriptorCount = 1;
-        setLayout.stageFlags = config.stage;
-        setLayout.pImmutableSamplers = nullptr;
-        bindings[i] = setLayout;
-
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = config.view;
-        imageInfo.sampler = config.sampler;
-        imageInfos.push_back(imageInfo);
-
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstBinding = config.binding;
-        write.dstArrayElement = 0;
-        write.descriptorType = config.type;
-        write.descriptorCount = 1;
-        write.pImageInfo = &imageInfos[i];
-        writes[i] = write;
+    for (const BufferConfig &config : bufferConfigs) {
+        bind(config.bind);
+        writes.back().pBufferInfo = &config.bufferInfo;
     }
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -55,8 +73,11 @@ void DescriptorSetBuilder::build(VkDevice device, VkDescriptorSet& set, VkDescri
     }
 
     std::vector<VkDescriptorPoolSize> poolSizes;
-    for (const TextureConfig& config : configs) {
-        poolSizes.push_back({config.type, 1});
+    for (const TextureConfig& config : textureConfigs) {
+        poolSizes.push_back({config.bind.type, 1});
+    }
+    for (const BufferConfig& config : bufferConfigs) {
+        poolSizes.push_back({config.bind.type, 1});
     }
 
     VkDescriptorPoolCreateInfo poolInfo{};

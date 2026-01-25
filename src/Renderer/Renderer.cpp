@@ -116,10 +116,9 @@ void Renderer::createStaticPipelineData() {
     gPipelineCmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     gPipelineCmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     gPipelineCmdSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     gPipelineCmdSubmitInfo.waitSemaphoreCount = 1;
-    gPipelineCmdSubmitInfo.pWaitDstStageMask = waitStages;
+    gPipelineCmdSubmitInfo.pWaitDstStageMask = G_PIPELINE_WAIT_STAGES;
     gPipelineCmdSubmitInfo.commandBufferCount = 1;
     gPipelineCmdSubmitInfo.signalSemaphoreCount = 1;
 

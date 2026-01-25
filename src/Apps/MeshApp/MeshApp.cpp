@@ -9,10 +9,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Components/Heightmap.hpp"
 #include "RHI/Buffer.hpp"
 #include "RHI/RHITypes.hpp"
 #include "RHI/VulkanContext.hpp"
+#include "Components/Heightmap.hpp"
+#include "RHI/DescriptorBuilder.hpp"
 #include "Renderer/BarrierBuilder.hpp"
 #include "Components/NoiseGenerator.hpp"
 #include "Components/TerrainChunkData.hpp"
@@ -24,18 +25,6 @@ void MeshApp::init() {
     const std::string APP_NAME = "MeshApp";
     engine.init(APP_NAME, &constants.mvp);
     VkDevice device = engine.renderer.vulkanContext.device;
-
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(PushConstants);
-
-    VkPipelineLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layoutInfo.pushConstantRangeCount = 1;
-    layoutInfo.pPushConstantRanges = &pushConstantRange;
-
-    vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pipelineLayout);
 
     GraphicsPipelineBuilder builder = GraphicsPipelineBuilder::start()
     .setDefaults()
@@ -55,15 +44,45 @@ void MeshApp::init() {
         )
     );
 
+    createTerrainIndicesBuffer();
+    createHeightmap();
+    DescriptorBuilder descriptorBuilder =
+        DescriptorBuilder::
+            begin(
+                device,
+                TEXTURE_SAMPLER_BINDING,
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+            );
+    heightmapSet = descriptorBuilder.buildTexture(
+        device,
+        heightmap.imageView,
+        heightmap.sampler
+    );
+    heightmapSetLayout = descriptorBuilder.descriptorSetLayout;
+    heightmapDescriptorPool = descriptorBuilder.descriptorPool;
+
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(PushConstants);
+
+    VkPipelineLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layoutInfo.pushConstantRangeCount = 1;
+    layoutInfo.pPushConstantRanges = &pushConstantRange;
+
+    layoutInfo.setLayoutCount = 1;
+    layoutInfo.pSetLayouts = &heightmapSetLayout;
+
+    vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pipelineLayout);
+
     pipeline = builder.build(device, pipelineLayout);
     engine.renderer.pipeline = &pipeline;
 
     for (VkPipelineShaderStageCreateInfo shaderStage : builder.shaderStages) {
         if (shaderStage.module) { vkDestroyShaderModule(device, shaderStage.module, nullptr); }
     }
-
-    createTerrainIndicesBuffer();
-    createHeightmap();
 }
 
 MeshApp::~MeshApp() {
@@ -72,6 +91,8 @@ MeshApp::~MeshApp() {
     Heightmap::destroy(heightmap, device, engine.renderer.vulkanContext.allocator);
     if (pipeline) { vkDestroyPipeline(device, pipeline, nullptr); }
     if (pipelineLayout) { vkDestroyPipelineLayout(device, pipelineLayout, nullptr); }
+    if (heightmapDescriptorPool) vkDestroyDescriptorPool(device, heightmapDescriptorPool, nullptr);
+    if (heightmapSetLayout) vkDestroyDescriptorSetLayout(device, heightmapSetLayout, nullptr);
 }
 
 void MeshApp::createTerrainIndicesBuffer() {
@@ -178,6 +199,16 @@ void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
         );
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipeline);
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            app->pipelineLayout,
+            TEXTURE_SAMPLER_BINDING,
+            1,
+            &app->heightmapSet,
+            0,
+            nullptr
+        );
         vkCmdDrawIndexed(commandBuffer, TerrainChunkData::INDEX_COUNT, TerrainChunkData::INSTANCE_COUNT, 0, 0, 0);
     }
 }

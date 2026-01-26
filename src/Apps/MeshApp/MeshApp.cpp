@@ -16,9 +16,9 @@
 #include "Renderer/BarrierBuilder.hpp"
 #include "Components/NoiseGenerator.hpp"
 #include "Components/TerrainChunkData.hpp"
-#include "RHI/Pipeline/ShaderStageBuilder.hpp"
-#include "RHI/Descriptor/DescriptorSetBuilder.hpp"
-#include "RHI/Pipeline/GraphicsPipelineBuilder.hpp"
+#include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
+#include "RHI/Pipeline/Initialization/ShaderStageBuilder.hpp"
+#include "RHI/Pipeline/Initialization/GraphicsPipelineBuilder.hpp"
 
 void MeshApp::init() {
     constants = {};

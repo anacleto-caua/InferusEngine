@@ -6,7 +6,7 @@
 #include "RHI/Buffer.hpp"
 #include "Core/Engine.hpp"
 #include "Components/Heightmap.hpp"
-#include "RHI/Descriptor/DescriptorSet.hpp"
+#include "RHI/Pipeline/Descriptor/DescriptorSet.hpp"
 
 class MeshApp {
 public:

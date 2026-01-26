@@ -17,7 +17,7 @@ void DescriptorSetBuilder::addTexture(uint32_t binding, VkDescriptorType type, V
     textureConfigs.push_back(config);
 }
 
-void DescriptorSetBuilder::addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, Buffer buffer) {
+const void DescriptorSetBuilder::addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, const Buffer& buffer) {
     addBuffer(binding, type, stage, buffer.buffer, 0, buffer.size);
 }
 

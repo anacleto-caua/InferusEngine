@@ -18,6 +18,7 @@
 #include "Components/TerrainChunkData.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
 #include "RHI/Pipeline/Initialization/ShaderStageBuilder.hpp"
+#include "RHI/Pipeline/Initialization/PipelineLayoutBuilder.hpp"
 #include "RHI/Pipeline/Initialization/GraphicsPipelineBuilder.hpp"
 
 void MeshApp::init() {
@@ -72,20 +73,11 @@ void MeshApp::init() {
     );
     heightmapDescriptorSet.init(device,setBuilder);
 
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(PushConstants);
-
-    VkPipelineLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layoutInfo.pushConstantRangeCount = 1;
-    layoutInfo.pPushConstantRanges = &pushConstantRange;
-
-    layoutInfo.setLayoutCount = 1;
-    layoutInfo.pSetLayouts = &heightmapDescriptorSet.layout;
-
-    vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pipelineLayout);
+    PipelineLayoutBuilder layoutBuilder;
+    layoutBuilder.start()
+    .addPushConstants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushConstants))
+    .addDescriptorSet(heightmapDescriptorSet.layout)
+    .build(device, pipelineLayout);
 
     pipeline = builder.build(device, pipelineLayout);
     engine.renderer.pipeline = &pipeline;

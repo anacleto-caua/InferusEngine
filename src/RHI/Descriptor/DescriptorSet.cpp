@@ -5,7 +5,7 @@ DescriptorSet::~DescriptorSet() {
     if (layout) vkDestroyDescriptorSetLayout(device, layout, nullptr);
 }
 
-void DescriptorSet::init(VkDevice device, DescriptorSetBuilder builder) {
+void DescriptorSet::init(VkDevice device, DescriptorSetBuilder &builder) {
     this->device = device;
     builder.build(device, set, pool, layout);
 }

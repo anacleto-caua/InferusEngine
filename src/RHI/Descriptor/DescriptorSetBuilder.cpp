@@ -76,12 +76,17 @@ void DescriptorSetBuilder::build(VkDevice device, VkDescriptorSet& set, VkDescri
         throw std::runtime_error("descriptor set layout creation failed");
     }
 
-    std::vector<VkDescriptorPoolSize> poolSizes;
+    std::map<VkDescriptorType, uint32_t> poolSizeMap;
     for (const TextureConfig& config : textureConfigs) {
-        poolSizes.push_back({config.bind.type, 1});
+        poolSizeMap[config.bind.type]++;
     }
     for (const BufferConfig& config : bufferConfigs) {
-        poolSizes.push_back({config.bind.type, 1});
+        poolSizeMap[config.bind.type]++;
+    }
+
+    std::vector<VkDescriptorPoolSize> poolSizes;
+    for (auto& [type, count] : poolSizeMap) {
+        poolSizes.push_back({type, count});
     }
 
     VkDescriptorPoolCreateInfo poolInfo{};

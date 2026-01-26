@@ -47,13 +47,28 @@ void MeshApp::init() {
     createTerrainIndicesBuffer();
     createHeightmap();
 
+    VmaAllocator allocator = engine.renderer.vulkanContext.allocator;
+    size_t chunkDataSize = sizeof(TerrainChunkData::ChunkData) * TerrainChunkData::INSTANCE_COUNT;
+    chunkDataHost.init(allocator, chunkDataSize, BufferType::STAGING_UPLOAD);
+    chunkDataDevice.init(allocator, chunkDataSize, BufferType::GPU_STATIC, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+
+    std::vector<TerrainChunkData::ChunkData> mockChunkData = TerrainChunkData::generateChunkGrid(TerrainChunkData::INSTANCE_COUNT);
+    chunkDataHost.upload(mockChunkData.data(), chunkDataSize);
+    chunkDataDevice.immediateCopy(engine.renderer.vulkanContext, chunkDataHost, chunkDataSize);
+
     DescriptorSetBuilder setBuilder;
     setBuilder.addTexture(
         TEXTURE_SAMPLER_BINDING,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
         heightmap.imageView,
         heightmap.sampler
+    );
+    setBuilder.addBuffer(
+        CHUNK_DATA_BINDING,
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
+        chunkDataDevice
     );
     heightmapDescriptorSet.init(device,setBuilder);
 
@@ -172,33 +187,33 @@ void MeshApp::run() {
     while (!shouldClose()) {
         engine.update();
         engine.render([this](VkCommandBuffer cmd) {
-            MeshApp::drawCallback(cmd, this);
+            this->drawCallback(cmd);
         });
     }
     vkDeviceWaitIdle(engine.renderer.vulkanContext.device);
 }
 
-void MeshApp::drawCallback(VkCommandBuffer commandBuffer, MeshApp* app) {
-    if (app->pipeline != VK_NULL_HANDLE) {
-        vkCmdBindIndexBuffer(commandBuffer, app->terrainIndicesBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+void MeshApp::drawCallback(VkCommandBuffer commandBuffer) {
+    if (pipeline != VK_NULL_HANDLE) {
+        vkCmdBindIndexBuffer(commandBuffer, terrainIndicesBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdPushConstants(
             commandBuffer,
-            app->pipelineLayout,
+            pipelineLayout,
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             0,
             sizeof(PushConstants),
-            &app->constants
+            &constants
         );
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         vkCmdBindDescriptorSets(
             commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            app->pipelineLayout,
+            pipelineLayout,
             TEXTURE_SAMPLER_BINDING,
             1,
-            &app->heightmapDescriptorSet.set,
+            &heightmapDescriptorSet.set,
             0,
             nullptr
         );

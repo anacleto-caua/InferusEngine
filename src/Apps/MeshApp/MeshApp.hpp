@@ -18,6 +18,9 @@ private:
     VkPipelineLayout pipelineLayout;
     Heightmap::HeightmapImage heightmap;
     static constexpr uint32_t TEXTURE_SAMPLER_BINDING = 0;
+    static constexpr uint32_t CHUNK_DATA_BINDING = 1;
+    Buffer chunkDataHost;
+    Buffer chunkDataDevice;
     DescriptorSet heightmapDescriptorSet;
 public:
     MeshApp() = default;
@@ -31,7 +34,7 @@ public:
 
     bool shouldClose();
 
-    static void drawCallback(VkCommandBuffer commandBuffer, MeshApp* app);
+    void drawCallback(VkCommandBuffer commandBuffer);
 private:
     void createTerrainIndicesBuffer();
     void createHeightmap();

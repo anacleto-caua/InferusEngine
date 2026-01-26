@@ -3,7 +3,15 @@
 #include <vector>
 #include <cstdint>
 
+#include <glm/glm.hpp>
+
 namespace TerrainChunkData {
+    struct ChunkData {
+        glm::ivec2 worldPos;
+        uint32_t instanceId;
+        uint32_t isVisible;
+    };
+
     const uint32_t INSTANCE_COUNT = 9; // The number of terrains to be draw per call
 
     const uint32_t RESOLUTION = 64; // Width & Height
@@ -34,5 +42,26 @@ namespace TerrainChunkData {
             }
         }
         return indices;
+    }
+
+    static std::vector<ChunkData> generateChunkGrid(uint32_t n) {
+        std::vector<ChunkData> chunks;
+        chunks.reserve(n * n);
+
+        uint32_t currentId = 0;
+
+        for (uint32_t x = 0; x < n; ++x) {
+            for (uint32_t y = 0; y < n; ++y) {
+                ChunkData chunk;
+                chunk.worldPos = {x, y};
+                chunk.instanceId = currentId;
+                chunk.isVisible = 1;
+
+                chunks.push_back(chunk);
+                currentId++;
+            }
+        }
+
+        return chunks;
     }
 };

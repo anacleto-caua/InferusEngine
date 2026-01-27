@@ -17,7 +17,6 @@
 #include "Components/NoiseGenerator.hpp"
 #include "Components/TerrainChunkData.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
-#include "RHI/Pipeline/Initialization/ShaderStageBuilder.hpp"
 #include "RHI/Pipeline/Initialization/PipelineLayoutBuilder.hpp"
 #include "RHI/Pipeline/Initialization/GraphicsPipelineBuilder.hpp"
 
@@ -26,24 +25,6 @@ void MeshApp::init() {
     const std::string APP_NAME = "MeshApp";
     engine.init(APP_NAME, &constants.mvp);
     VkDevice device = engine.renderer.vulkanContext.device;
-
-    GraphicsPipelineBuilder builder = GraphicsPipelineBuilder::start()
-    .setDefaults()
-    .addColorFormat(engine.renderer.swapchain.surfaceFormat.format)
-    .addShaderStage(
-        ShaderStageBuilder::createShaderStage(
-            device,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            "shaders/terrain.vert.spv"
-        )
-    )
-    .addShaderStage(
-        ShaderStageBuilder::createShaderStage(
-            device,
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "shaders/terrain.frag.spv"
-        )
-    );
 
     createTerrainIndicesBuffer();
     createHeightmap();
@@ -57,42 +38,41 @@ void MeshApp::init() {
     chunkDataHost.upload(mockChunkData.data(), chunkDataSize);
     chunkDataDevice.immediateCopy(engine.renderer.vulkanContext, chunkDataHost, chunkDataSize);
 
-    DescriptorSetBuilder setBuilder;
-    setBuilder.addTexture(
+    GraphicsPipelineBuilder gPipelineBuilder;
+    gPipelineBuilder.addColorFormat(engine.renderer.swapchain.surfaceFormat.format);
+
+    ShaderStagesBuilder shaderBuilder;
+    shaderBuilder.addShaderStage(VK_SHADER_STAGE_VERTEX_BIT, "shaders/terrain.vert.spv")
+        .addShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/terrain.frag.spv");
+
+    DescriptorSetBuilder chunkSetBuilder;
+    chunkSetBuilder.addTexture(
         TEXTURE_SAMPLER_BINDING,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
         heightmap.imageView,
         heightmap.sampler
     );
-    setBuilder.addBuffer(
+    chunkSetBuilder.addBuffer(
         CHUNK_DATA_BINDING,
         VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
         chunkDataDevice
     );
-    heightmapDescriptorSet.init(device,setBuilder);
+    heightmapDescriptorSet.init(device,chunkSetBuilder);
 
     PipelineLayoutBuilder layoutBuilder;
-    layoutBuilder.start()
-    .addPushConstants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushConstants))
-    .addDescriptorSet(heightmapDescriptorSet.layout)
-    .build(device, pipelineLayout);
+    layoutBuilder.addPushConstants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushConstants))
+        .addDescriptorSet(heightmapDescriptorSet.layout);
 
-    pipeline = builder.build(device, pipelineLayout);
-    engine.renderer.pipeline = &pipeline;
-
-    for (VkPipelineShaderStageCreateInfo shaderStage : builder.shaderStages) {
-        if (shaderStage.module) { vkDestroyShaderModule(device, shaderStage.module, nullptr); }
-    }
+    pipeline.init(device, layoutBuilder, shaderBuilder, gPipelineBuilder);
+    engine.renderer.pipeline = &pipeline.pipeline;
 }
 
 MeshApp::~MeshApp() {
     VkDevice device = engine.renderer.vulkanContext.device;
     vkDeviceWaitIdle(device);
     Heightmap::destroy(heightmap, device, engine.renderer.vulkanContext.allocator);
-    if (pipeline) { vkDestroyPipeline(device, pipeline, nullptr); }
-    if (pipelineLayout) { vkDestroyPipelineLayout(device, pipelineLayout, nullptr); }
 }
 
 void MeshApp::createTerrainIndicesBuffer() {
@@ -186,31 +166,29 @@ void MeshApp::run() {
 }
 
 void MeshApp::drawCallback(VkCommandBuffer commandBuffer) {
-    if (pipeline != VK_NULL_HANDLE) {
-        vkCmdBindIndexBuffer(commandBuffer, terrainIndicesBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer, terrainIndicesBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdPushConstants(
-            commandBuffer,
-            pipelineLayout,
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-            0,
-            sizeof(PushConstants),
-            &constants
-        );
+    vkCmdPushConstants(
+        commandBuffer,
+        pipeline.pipelineLayout,
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        0,
+        sizeof(PushConstants),
+        &constants
+    );
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        vkCmdBindDescriptorSets(
-            commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipelineLayout,
-            TEXTURE_SAMPLER_BINDING,
-            1,
-            &heightmapDescriptorSet.set,
-            0,
-            nullptr
-        );
-        vkCmdDrawIndexed(commandBuffer, TerrainChunkData::INDEX_COUNT, TerrainChunkData::INSTANCE_COUNT, 0, 0, 0);
-    }
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
+    vkCmdBindDescriptorSets(
+        commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline.pipelineLayout,
+        TEXTURE_SAMPLER_BINDING,
+        1,
+        &heightmapDescriptorSet.set,
+        0,
+        nullptr
+    );
+    vkCmdDrawIndexed(commandBuffer, TerrainChunkData::INDEX_COUNT, TerrainChunkData::INSTANCE_COUNT, 0, 0, 0);
 }
 
 bool MeshApp::shouldClose() {

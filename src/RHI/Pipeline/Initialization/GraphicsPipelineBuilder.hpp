@@ -4,7 +4,12 @@
 
 #include <vulkan/vulkan.h>
 
-struct GraphicsPipelineBuilder {
+#include "ShaderStagesBuilder.hpp"
+
+class GraphicsPipelineBuilder {
+public:
+private:
+    VkDevice device;
     std::vector<VkDynamicState> dynamicStates{};
     VkPipelineDynamicStateCreateInfo dynamicState{};
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -17,8 +22,12 @@ struct GraphicsPipelineBuilder {
     VkFormat depthAttachmentFormat = VK_FORMAT_UNDEFINED;
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+public:
 
-    static GraphicsPipelineBuilder start();
+    GraphicsPipelineBuilder();
+    ~GraphicsPipelineBuilder();
+    GraphicsPipelineBuilder(const GraphicsPipelineBuilder&) = delete;
+    GraphicsPipelineBuilder& operator=(const GraphicsPipelineBuilder&) = delete;
 
     GraphicsPipelineBuilder& setDefaults();
 
@@ -28,7 +37,6 @@ struct GraphicsPipelineBuilder {
 
     GraphicsPipelineBuilder& depthFormat(VkFormat depthFormat);
 
-    GraphicsPipelineBuilder& addShaderStage(VkPipelineShaderStageCreateInfo info);
-
-    VkPipeline build(VkDevice device, VkPipelineLayout pipelineLayout);
+    void build(VkDevice device, VkPipelineLayout pipelineLayout, ShaderStagesBuilder& shaderBuilder, VkPipeline &pipeline);
+private:
 };

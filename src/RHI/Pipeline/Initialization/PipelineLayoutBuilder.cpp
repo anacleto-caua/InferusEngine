@@ -1,9 +1,7 @@
 #include "PipelineLayoutBuilder.hpp"
 
-PipelineLayoutBuilder PipelineLayoutBuilder::start() {
-    PipelineLayoutBuilder builder;
-    builder.setDefaults();
-    return builder;
+PipelineLayoutBuilder::PipelineLayoutBuilder() {
+    setDefaults();
 }
 
 void PipelineLayoutBuilder::setDefaults() {

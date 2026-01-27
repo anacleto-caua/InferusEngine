@@ -3,10 +3,16 @@
 #include <cstdint>
 #include <stdexcept>
 
-GraphicsPipelineBuilder GraphicsPipelineBuilder::start() {
-    GraphicsPipelineBuilder builder;
-    builder.setDefaults();
-    return builder;
+#include "ShaderStagesBuilder.hpp"
+
+GraphicsPipelineBuilder::GraphicsPipelineBuilder() {
+    setDefaults();
+}
+
+GraphicsPipelineBuilder::~GraphicsPipelineBuilder() {
+    for (VkPipelineShaderStageCreateInfo stage : shaderStages) {
+        if(stage.module) { vkDestroyShaderModule(device, stage.module, nullptr); }
+    }
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDefaults() {
@@ -81,12 +87,10 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::depthFormat(VkFormat depthForm
     return *this;
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::addShaderStage(VkPipelineShaderStageCreateInfo info) {
-    shaderStages.push_back(info);
-    return *this;
-}
+void GraphicsPipelineBuilder::build(VkDevice device, VkPipelineLayout pipelineLayout, ShaderStagesBuilder& shaderBuilder, VkPipeline &pipeline) {
+    this->device = device;
+    shaderBuilder.build(device, shaderStages);
 
-VkPipeline GraphicsPipelineBuilder::build(VkDevice device, VkPipelineLayout pipelineLayout) {
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
@@ -142,10 +146,7 @@ VkPipeline GraphicsPipelineBuilder::build(VkDevice device, VkPipelineLayout pipe
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-    VkPipeline pipeline;
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
         throw std::runtime_error("graphics pipeline creation failed");
     }
-
-    return pipeline;
 }

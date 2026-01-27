@@ -11,7 +11,10 @@ class PipelineAttachmentBuilder {
 public:
     AttachmentBuild attachment;
 
-    static PipelineAttachmentBuilder setDefaults(uint32_t attachmentId, VkImageLayout imageRefLayout, VkFormat format);
+    PipelineAttachmentBuilder(uint32_t attachmentId, VkImageLayout imageRefLayout, VkFormat format);
+    ~PipelineAttachmentBuilder() = default;
+    PipelineAttachmentBuilder(const PipelineAttachmentBuilder&) = delete;
+    PipelineAttachmentBuilder& operator=(const PipelineAttachmentBuilder&) = delete;
 
     PipelineAttachmentBuilder& samples(VkSampleCountFlagBits samples);
 

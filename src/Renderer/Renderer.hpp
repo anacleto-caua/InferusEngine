@@ -32,10 +32,10 @@ private:
     VkRenderingAttachmentInfo colorAttachment{};
     VkRenderingInfo renderingInfo{};
 
-    VkCommandBufferBeginInfo gPipelineCmdBeginInfo{};
+    VkCommandBufferBeginInfo pipelineCmdBeginInfo{};
+    VkSubmitInfo pipelineCmdSubmitInfo{};
 
-    VkSubmitInfo gPipelineCmdSubmitInfo{};
-    VkPresentInfoKHR gPipelinePresentInfo{};
+    VkPresentInfoKHR presentInfo{};
 
 public:
     Renderer() = default;

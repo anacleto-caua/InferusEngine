@@ -113,20 +113,20 @@ void Renderer::createStaticPipelineData() {
         vkAllocateCommandBuffers(vulkanContext.device, &allocInfo, &frame.commandBuffer);
     }
 
-    gPipelineCmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    gPipelineCmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    pipelineCmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    pipelineCmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    gPipelineCmdSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    gPipelineCmdSubmitInfo.waitSemaphoreCount = 1;
-    gPipelineCmdSubmitInfo.pWaitDstStageMask = G_PIPELINE_WAIT_STAGES;
-    gPipelineCmdSubmitInfo.commandBufferCount = 1;
-    gPipelineCmdSubmitInfo.signalSemaphoreCount = 1;
+    pipelineCmdSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    pipelineCmdSubmitInfo.waitSemaphoreCount = 1;
+    pipelineCmdSubmitInfo.pWaitDstStageMask = G_PIPELINE_WAIT_STAGES;
+    pipelineCmdSubmitInfo.commandBufferCount = 1;
+    pipelineCmdSubmitInfo.signalSemaphoreCount = 1;
 
-    gPipelinePresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    gPipelinePresentInfo.swapchainCount = 1;
-    gPipelinePresentInfo.pSwapchains = &swapchain.swapchain;
-    gPipelinePresentInfo.waitSemaphoreCount = 1;
-    gPipelinePresentInfo.pImageIndices = &targetImageViewIndex;
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapchain.swapchain;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pImageIndices = &targetImageViewIndex;
 
     refreshExtent();
 }
@@ -155,7 +155,7 @@ VkCommandBuffer& Renderer::beginFrame() {
     vkResetFences(vulkanContext.device, 1, &targetFrame.inFlight);
 
     vkResetCommandBuffer(cmd, 0);
-    vkBeginCommandBuffer(cmd, &gPipelineCmdBeginInfo);
+    vkBeginCommandBuffer(cmd, &pipelineCmdBeginInfo);
 
     BarrierBuilder::onImage(
         swapchain.scImages[targetImageViewIndex].image,
@@ -195,14 +195,15 @@ void Renderer::endFrame() {
     VkSemaphore renderWaitSemaphores[] = { targetFrame.imageAvailable };
     VkSemaphore renderSignalSemaphores[] = { swapchain.scImages[targetImageViewIndex].renderFinished };
 
-    gPipelineCmdSubmitInfo.pCommandBuffers = &cmd;
-    gPipelineCmdSubmitInfo.pWaitSemaphores = renderWaitSemaphores;
-    gPipelineCmdSubmitInfo.pSignalSemaphores = renderSignalSemaphores;
-    gPipelinePresentInfo.pWaitSemaphores = renderSignalSemaphores;
+    pipelineCmdSubmitInfo.pCommandBuffers = &cmd;
+    pipelineCmdSubmitInfo.pWaitSemaphores = renderWaitSemaphores;
+    pipelineCmdSubmitInfo.pSignalSemaphores = renderSignalSemaphores;
 
-    vkQueueSubmit(vulkanContext.graphicsQueueCtx.queue, 1, &gPipelineCmdSubmitInfo, targetFrame.inFlight);
+    presentInfo.pWaitSemaphores = renderSignalSemaphores;
 
-    vkQueuePresentKHR(vulkanContext.presentQueueCtx.queue, &gPipelinePresentInfo);
+    vkQueueSubmit(vulkanContext.graphicsQueueCtx.queue, 1, &pipelineCmdSubmitInfo, targetFrame.inFlight);
+
+    vkQueuePresentKHR(vulkanContext.presentQueueCtx.queue, &presentInfo);
 
     targetFrameIndex = (targetFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }

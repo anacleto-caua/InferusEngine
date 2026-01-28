@@ -19,7 +19,6 @@ public:
     VulkanContext vulkanContext;
     Swapchain swapchain;
     Camera camera;
-    VkPipeline *pipeline;
 private:
     static constexpr VkPipelineStageFlags G_PIPELINE_WAIT_STAGES[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     static const int MAX_FRAMES_IN_FLIGHT = 2;

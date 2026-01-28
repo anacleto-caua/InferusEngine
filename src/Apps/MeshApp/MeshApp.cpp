@@ -66,7 +66,6 @@ void MeshApp::init() {
         .addDescriptorSet(heightmapDescriptorSet.layout);
 
     pipeline.init(device, layoutBuilder, shaderBuilder, gPipelineBuilder);
-    engine.renderer.pipeline = &pipeline.pipeline;
 }
 
 MeshApp::~MeshApp() {

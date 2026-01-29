@@ -14,6 +14,7 @@
 #include "RHI/VulkanContext.hpp"
 #include "Components/Heightmap.hpp"
 #include "Renderer/BarrierBuilder.hpp"
+#include "Renderer/ImageCopyBuilder.hpp"
 #include "Components/NoiseGenerator.hpp"
 #include "Components/TerrainChunkData.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
@@ -106,25 +107,15 @@ void MeshApp::createHeightmap() {
     .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT)
     .record(cmd);
 
-    VkBufferImageCopy imageCopy{};
-    imageCopy.bufferOffset = 0;
-    imageCopy.bufferRowLength = 0;
-    imageCopy.bufferImageHeight = 0;
-    imageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imageCopy.imageSubresource.mipLevel = 0;
-    imageCopy.imageSubresource.baseArrayLayer = 0;
-    imageCopy.imageSubresource.layerCount = TerrainChunkData::INSTANCE_COUNT;
-    imageCopy.imageOffset = {0, 0, 0};
-    imageCopy.imageExtent = {TerrainChunkData::RESOLUTION, TerrainChunkData::RESOLUTION, 1};
-
-    vkCmdCopyBufferToImage(
-        cmd,
+    ImageCopyBuilder(
         stagingBuffer.buffer,
         heightmap.image,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &imageCopy
-    );
+        {TerrainChunkData::RESOLUTION, TerrainChunkData::RESOLUTION, 1}
+    )
+    .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+    .layerCount(TerrainChunkData::INSTANCE_COUNT)
+    .record(cmd);
 
     BarrierBuilder::onImage(
         heightmap.image,

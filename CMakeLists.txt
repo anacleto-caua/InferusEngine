@@ -113,3 +113,16 @@ elseif(UNIX)
         Xi
     )
 endif()
+
+# Copy compile commands file to build/
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build"
+
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
+            "${CMAKE_SOURCE_DIR}/build/compile_commands.json"
+
+        COMMENT "Updating compile_commands.json in root build dir for LSP"
+    )
+endif()

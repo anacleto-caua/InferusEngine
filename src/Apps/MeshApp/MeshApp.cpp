@@ -25,19 +25,17 @@ void MeshApp::init() {
     constants = {};
     const std::string APP_NAME = "MeshApp";
     engine.init(APP_NAME, &constants.mvp);
+    playerPos = {0, 0, 0};
+
     VkDevice device = engine.renderer.vulkanContext.device;
 
     createTerrainIndicesBuffer();
     createHeightmap();
 
     VmaAllocator allocator = engine.renderer.vulkanContext.allocator;
-    size_t chunkDataSize = sizeof(TerrainChunkData::ChunkData) * TerrainChunkData::INSTANCE_COUNT;
-    chunkDataHost.init(allocator, chunkDataSize, BufferType::STAGING_UPLOAD);
-    chunkDataDevice.init(allocator, chunkDataSize, BufferType::GPU_STATIC, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-
-    std::vector<TerrainChunkData::ChunkData> mockChunkData = TerrainChunkData::generateChunkGrid(TerrainChunkData::INSTANCE_COUNT);
-    chunkDataHost.upload(mockChunkData.data(), chunkDataSize);
-    chunkDataDevice.immediateCopy(engine.renderer.vulkanContext, chunkDataHost, chunkDataSize);
+    chunkManager.init(&playerPos, allocator);
+    chunkManager.updateChunkLinks();
+    chunkManager.uploadChunkLinks(engine.renderer.vulkanContext);
 
     GraphicsPipelineBuilder gPipelineBuilder;
     gPipelineBuilder.addColorFormat(engine.renderer.swapchain.surfaceFormat.format);
@@ -58,7 +56,7 @@ void MeshApp::init() {
         CHUNK_DATA_BINDING,
         VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
-        chunkDataDevice
+        chunkManager.gpuBuffer
     );
     heightmapDescriptorSet.init(device,chunkSetBuilder);
 

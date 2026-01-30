@@ -41,7 +41,7 @@ void Engine::update() {
 }
 
 void Engine::render(std::function<void(VkCommandBuffer)> drawCallback) {
-    VkCommandBuffer &cmd = renderer.beginFrame();
+    VkCommandBuffer cmd = renderer.beginFrame();
 
     if (cmd) {
         drawCallback(cmd);

@@ -131,7 +131,7 @@ void Renderer::createStaticPipelineData() {
     refreshExtent();
 }
 
-VkCommandBuffer& Renderer::beginFrame() {
+VkCommandBuffer Renderer::beginFrame() {
     FrameData& targetFrame = frames[targetFrameIndex];
     VkCommandBuffer& cmd = targetFrame.commandBuffer;
 
@@ -148,14 +148,13 @@ VkCommandBuffer& Renderer::beginFrame() {
         &targetImageViewIndex
     );
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        swapchain.recreateSwapchain();
-        throw std::runtime_error("out of date khr");
+        return VK_NULL_HANDLE;
     }
-
-    vkResetFences(vulkanContext.device, 1, &targetFrame.inFlight);
 
     vkResetCommandBuffer(cmd, 0);
     vkBeginCommandBuffer(cmd, &pipelineCmdBeginInfo);
+
+    vkResetFences(vulkanContext.device, 1, &targetFrame.inFlight);
 
     BarrierBuilder::onImage(
         swapchain.scImages[targetImageViewIndex].image,

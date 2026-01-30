@@ -5,11 +5,11 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
-#include "TerrainChunkData.hpp"
+#include "TerrainConfig.hpp"
 
 namespace Heightmap {
     constexpr VkFormat IMAGE_FORMAT = VK_FORMAT_R16_UNORM;
-    constexpr VkDeviceSize HEIGHTMAP_SIZE = TerrainChunkData::RESOLUTION * TerrainChunkData::RESOLUTION * sizeof(uint16_t) * TerrainChunkData::INSTANCE_COUNT;
+    constexpr VkDeviceSize HEIGHTMAP_SIZE = TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION * sizeof(uint16_t) * TerrainConfig::INSTANCE_COUNT;
 
     struct HeightmapImage{
         VkImage image;
@@ -32,9 +32,9 @@ namespace Heightmap {
         imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageCreateInfo.extent.width = TerrainChunkData::RESOLUTION;
-        imageCreateInfo.extent.height = TerrainChunkData::RESOLUTION;
-        imageCreateInfo.arrayLayers = TerrainChunkData::INSTANCE_COUNT;
+        imageCreateInfo.extent.width = TerrainConfig::RESOLUTION;
+        imageCreateInfo.extent.height = TerrainConfig::RESOLUTION;
+        imageCreateInfo.arrayLayers = TerrainConfig::INSTANCE_COUNT;
 
         VmaAllocationCreateInfo allocCreateInfo{};
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
@@ -50,7 +50,7 @@ namespace Heightmap {
         imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
         imageViewCreateInfo.subresourceRange.levelCount = 1;
         imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-        imageViewCreateInfo.subresourceRange.layerCount = TerrainChunkData::INSTANCE_COUNT;
+        imageViewCreateInfo.subresourceRange.layerCount = TerrainConfig::INSTANCE_COUNT;
         imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;

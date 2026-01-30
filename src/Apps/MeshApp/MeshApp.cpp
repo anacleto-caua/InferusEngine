@@ -14,9 +14,10 @@
 #include "RHI/VulkanContext.hpp"
 #include "Components/Heightmap.hpp"
 #include "Renderer/BarrierBuilder.hpp"
+#include "Components/TerrainConfig.hpp"
 #include "Renderer/ImageCopyBuilder.hpp"
 #include "Components/NoiseGenerator.hpp"
-#include "Components/TerrainChunkData.hpp"
+#include "Components/ChunkIndicesGenerator.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
 #include "RHI/Pipeline/Initialization/PipelineLayoutBuilder.hpp"
 #include "RHI/Pipeline/Initialization/GraphicsPipelineBuilder.hpp"
@@ -74,7 +75,7 @@ MeshApp::~MeshApp() {
 }
 
 void MeshApp::createTerrainIndicesBuffer() {
-    std::vector<uint32_t> indices = TerrainChunkData::getIndices();
+    std::vector<uint32_t> indices = ChunkIndicesGenerator::getIndices();
     uint32_t bufferSize = indices.size() * sizeof(uint32_t);
     terrainIndicesBuffer.init(engine.renderer.vulkanContext.allocator, bufferSize, BufferType::GPU_STATIC, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     terrainIndicesBuffer.immediateUpload(engine.renderer.vulkanContext, indices.data(), bufferSize);
@@ -100,7 +101,7 @@ void MeshApp::createHeightmap() {
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     )
-    .layerCount(TerrainChunkData::INSTANCE_COUNT)
+    .layerCount(TerrainConfig::INSTANCE_COUNT)
     .access(0, VK_ACCESS_TRANSFER_WRITE_BIT)
     .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT)
     .record(cmd);
@@ -109,10 +110,10 @@ void MeshApp::createHeightmap() {
         stagingBuffer.buffer,
         heightmap.image,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        {TerrainChunkData::RESOLUTION, TerrainChunkData::RESOLUTION, 1}
+        {TerrainConfig::RESOLUTION, TerrainConfig::RESOLUTION, 1}
     )
     .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-    .layerCount(TerrainChunkData::INSTANCE_COUNT)
+    .layerCount(TerrainConfig::INSTANCE_COUNT)
     .record(cmd);
 
     BarrierBuilder::onImage(
@@ -120,9 +121,8 @@ void MeshApp::createHeightmap() {
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     )
-    .layerCount(TerrainChunkData::INSTANCE_COUNT)
-    .stages(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT)
-    .access(VK_ACCESS_TRANSFER_WRITE_BIT, 0)
+    .layerCount(TerrainConfig::INSTANCE_COUNT)
+    .stages(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT) .access(VK_ACCESS_TRANSFER_WRITE_BIT, 0)
     .queues(transferQueueCtx, graphicsQueueCtx)
     .record(cmd);
 
@@ -134,7 +134,7 @@ void MeshApp::createHeightmap() {
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     )
-    .layerCount(TerrainChunkData::INSTANCE_COUNT)
+    .layerCount(TerrainConfig::INSTANCE_COUNT)
     .stages(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
     .access(0, VK_ACCESS_SHADER_READ_BIT)
     .queues(transferQueueCtx, graphicsQueueCtx)
@@ -176,7 +176,7 @@ void MeshApp::drawCallback(VkCommandBuffer commandBuffer) {
         0,
         nullptr
     );
-    vkCmdDrawIndexed(commandBuffer, TerrainChunkData::INDEX_COUNT, TerrainChunkData::INSTANCE_COUNT, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, ChunkIndicesGenerator::INDEX_COUNT, TerrainConfig::INSTANCE_COUNT, 0, 0, 0);
 }
 
 bool MeshApp::shouldClose() {

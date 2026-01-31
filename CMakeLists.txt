@@ -80,6 +80,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/vma"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/glm-1.0.2"
     "${CMAKE_CURRENT_SOURCE_DIR}/libs/spdlog/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/libs/fnl"
 )
 
 # Link libraries

@@ -1,5 +1,11 @@
-#include "RHI/Image/ImageSystem.hpp"
 #include <cstdint>
+
+#include "RHI/Image/ImageSystem.hpp"
+
+ImageSystem::ImageSystem() {
+    data.clear();
+    freeIndices.clear();
+}
 
 ImageSystem::ImageSystem(VkDevice device, VmaAllocator allocator) {
     this->device = device;
@@ -21,7 +27,7 @@ ImageId ImageSystem::add(ImageCreateDescription imageDesc) {
 
     if(freeIndices.empty()) {
         id = { .index = (uint32_t)data.size() };
-        data.push_back(image);
+        data.resize(data.size() + 1);
     } else {
         id = { .index = freeIndices.back() };
         freeIndices.pop_back();
@@ -74,6 +80,10 @@ ImageId ImageSystem::add(ImageCreateDescription imageDesc) {
 
     data[id.index] = image;
     return id;
+}
+
+Image& ImageSystem::get(ImageId id) {
+    return data[id.index];
 }
 
 void ImageSystem::del(ImageId id) {

@@ -12,11 +12,11 @@
 #include "RHI/Buffer.hpp"
 #include "RHI/RHITypes.hpp"
 #include "RHI/VulkanContext.hpp"
-#include "Components/Heightmap.hpp"
 #include "Renderer/BarrierBuilder.hpp"
 #include "Components/TerrainConfig.hpp"
 #include "Renderer/ImageCopyBuilder.hpp"
 #include "Components/NoiseGenerator.hpp"
+#include "Components/HeightmapConfig.hpp"
 #include "Components/ChunkIndicesGenerator.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
 #include "RHI/Pipeline/Initialization/PipelineLayoutBuilder.hpp"
@@ -29,14 +29,20 @@ void MeshApp::init() {
     playerPos = {0, 0, 0};
 
     VkDevice device = engine.renderer.vulkanContext.device;
+    VmaAllocator allocator = engine.renderer.vulkanContext.allocator;
+
+    imageSystem = ImageSystem(device, allocator);
+
+    chunkManager.init(&playerPos, allocator, imageSystem);
+    chunkManager.updateChunkLinks();
+    chunkManager.fillGpuBuffer();
+    chunkManager.uploadChunkLinks(engine.renderer.vulkanContext);
+
+    heightmapId = chunkManager.heightmapId;
+    Image heightmap = imageSystem.get(heightmapId);
 
     createTerrainIndicesBuffer();
     createHeightmap();
-
-    VmaAllocator allocator = engine.renderer.vulkanContext.allocator;
-    chunkManager.init(&playerPos, allocator);
-    chunkManager.updateChunkLinks();
-    chunkManager.uploadChunkLinks(engine.renderer.vulkanContext);
 
     GraphicsPipelineBuilder gPipelineBuilder;
     gPipelineBuilder.addColorFormat(engine.renderer.swapchain.surfaceFormat.format);
@@ -45,13 +51,31 @@ void MeshApp::init() {
     shaderBuilder.addShaderStage(VK_SHADER_STAGE_VERTEX_BIT, "shaders/terrain.vert.spv")
         .addShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/terrain.frag.spv");
 
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+    vkCreateSampler(device, &samplerInfo, nullptr, &heightmapSampler);
+
     DescriptorSetBuilder chunkSetBuilder;
     chunkSetBuilder.addTexture(
         TEXTURE_SAMPLER_BINDING,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
         heightmap.imageView,
-        heightmap.sampler
+        heightmapSampler
     );
     chunkSetBuilder.addBuffer(
         CHUNK_DATA_BINDING,
@@ -71,7 +95,7 @@ void MeshApp::init() {
 MeshApp::~MeshApp() {
     VkDevice device = engine.renderer.vulkanContext.device;
     vkDeviceWaitIdle(device);
-    Heightmap::destroy(heightmap, device, engine.renderer.vulkanContext.allocator);
+    if (heightmapSampler) { vkDestroySampler(device, heightmapSampler, nullptr); }
 }
 
 void MeshApp::createTerrainIndicesBuffer() {
@@ -88,16 +112,16 @@ void MeshApp::createHeightmap() {
     QueueContext& graphicsQueueCtx = vkCtx.graphicsQueueCtx;
     std::vector<uint16_t> mockTerrain = NoiseGenerator::generateMockHeightmaps();
 
-    heightmap = Heightmap::create(vkCtx.device, allocator);
+    VkImage heightmapImage = imageSystem.get(heightmapId).image;
 
     Buffer stagingBuffer;
-    stagingBuffer.init(allocator, Heightmap::HEIGHTMAP_SIZE, BufferType::STAGING_UPLOAD);
-    stagingBuffer.upload(mockTerrain.data(), Heightmap::HEIGHTMAP_SIZE);
+    stagingBuffer.init(allocator, HeightmapConfig::HEIGHTMAP_SIZE, BufferType::STAGING_UPLOAD);
+    stagingBuffer.upload(mockTerrain.data(), HeightmapConfig::HEIGHTMAP_SIZE);
 
     VkCommandBuffer cmd = vkCtx.singleTimeCmdBegin(transferQueueCtx);
 
     BarrierBuilder::onImage(
-        heightmap.image,
+        heightmapImage,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     )
@@ -108,7 +132,7 @@ void MeshApp::createHeightmap() {
 
     ImageCopyBuilder(
         stagingBuffer.buffer,
-        heightmap.image,
+        heightmapImage,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         {TerrainConfig::RESOLUTION, TerrainConfig::RESOLUTION, 1}
     )
@@ -117,7 +141,7 @@ void MeshApp::createHeightmap() {
     .record(cmd);
 
     BarrierBuilder::onImage(
-        heightmap.image,
+        heightmapImage,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     )
@@ -130,7 +154,7 @@ void MeshApp::createHeightmap() {
 
     cmd = vkCtx.singleTimeCmdBegin(graphicsQueueCtx);
     BarrierBuilder::onImage(
-        heightmap.image,
+        heightmapImage,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     )

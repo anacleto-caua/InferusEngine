@@ -6,7 +6,9 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "RHI/Buffer.hpp"
+#include "RHI/Image/Image.hpp"
 #include "RHI/VulkanContext.hpp"
+#include "RHI/Image/ImageSystem.hpp"
 #include "Apps/MeshApp/Components/TerrainConfig.hpp"
 
 class ChunkManager {
@@ -25,6 +27,10 @@ public:
 
     Buffer cpuBuffer;
     Buffer gpuBuffer;
+
+    Buffer heightmapStagingBuffer;
+
+    ImageId heightmapId;
 private:
 public:
     ChunkManager() = default;
@@ -32,8 +38,10 @@ public:
     ChunkManager(const ChunkManager&) = delete;
     ChunkManager& operator=(const ChunkManager&) = delete;
 
-    void init(glm::vec3* pPlayerPos, VmaAllocator allocator);
+    void init(glm::vec3* pPlayerPos, VmaAllocator allocator, ImageSystem& imageSystem);
     void uploadChunkLinks(VulkanContext& vkCtx);
     void updateChunkLinks();
+    void fillGpuBuffer();
+    void uploadHeightmap();
 private:
 };

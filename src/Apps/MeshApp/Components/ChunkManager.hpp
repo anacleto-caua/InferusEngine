@@ -41,7 +41,6 @@ public:
     void init(glm::vec3* pPlayerPos, VmaAllocator allocator, ImageSystem& imageSystem);
     void uploadChunkLinks(VulkanContext& vkCtx);
     void updateChunkLinks();
-    void fillGpuBuffer();
-    void uploadHeightmap();
+    std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> genHeightmap();
 private:
 };

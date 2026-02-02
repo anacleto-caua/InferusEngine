@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 
 #include "RHI/Buffer.hpp"
 #include "RHI/Image/ImageSystem.hpp"
@@ -51,12 +52,10 @@ void ChunkManager::updateChunkLinks() {
     }
 }
 
-void ChunkManager::fillGpuBuffer() {
+std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> ChunkManager::genHeightmap() {
     std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> chunkData;
     for (ChunkLink chunk: chunkLinks) {
         chunkData[chunk.heightmapId] = NoiseGenerator::genChunk(chunk.worldPos);
     }
-}
-
-void ChunkManager::uploadHeightmap() {
+    return chunkData;
 }

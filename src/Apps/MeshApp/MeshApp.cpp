@@ -1,5 +1,6 @@
 #include "MeshApp.hpp"
 
+#include <array>
 #include <vector>
 #include <cstdint>
 
@@ -15,7 +16,6 @@
 #include "Renderer/BarrierBuilder.hpp"
 #include "Components/TerrainConfig.hpp"
 #include "Renderer/ImageCopyBuilder.hpp"
-#include "Components/NoiseGenerator.hpp"
 #include "Components/HeightmapConfig.hpp"
 #include "Components/ChunkIndicesGenerator.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
@@ -34,7 +34,6 @@ void MeshApp::init() {
 
     chunkManager.init(&playerPos, allocator, imageSystem);
     chunkManager.updateChunkLinks();
-    chunkManager.fillGpuBuffer();
     chunkManager.uploadChunkLinks(engine.renderer.vulkanContext);
 
     heightmapId = chunkManager.heightmapId;
@@ -109,7 +108,7 @@ void MeshApp::createHeightmap() {
     VmaAllocator allocator = vkCtx.allocator;
     QueueContext& transferQueueCtx = vkCtx.transferQueueCtx;
     QueueContext& graphicsQueueCtx = vkCtx.graphicsQueueCtx;
-    std::vector<uint16_t> mockTerrain = NoiseGenerator::generateMockHeightmaps();
+    auto mockTerrain = chunkManager.genHeightmap();
 
     VkImage heightmapImage = imageSystem.get(heightmapId).image;
 

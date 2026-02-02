@@ -53,7 +53,10 @@ namespace NoiseGenerator {
             for (int z = 0; z < TerrainConfig::RESOLUTION; z++) {
                 globalZ = z + (TerrainConfig::RESOLUTION * worldPos.y);
 
-                data[index] = noise.GetNoise(globalX, globalZ);
+                float n = noise.GetNoise(globalX, globalZ);
+                float remapped = (n + 1.0f) * 0.5f * 65535.0f;
+
+                data[index] = static_cast<uint16_t>(remapped);
                 index++;
             }
         }

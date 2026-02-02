@@ -1,18 +1,16 @@
 #include <cstdint>
 
+#include "RHI/RHIConfig.hpp"
 #include "RHI/Image/ImageSystem.hpp"
 
-ImageSystem::ImageSystem() {
-    data.clear();
-    freeIndices.clear();
-}
-
-ImageSystem::ImageSystem(VkDevice device, VmaAllocator allocator) {
+void ImageSystem::init(VkDevice device, VmaAllocator allocator) {
     this->device = device;
     this->allocator = allocator;
 
     data.clear();
+    data.reserve(RHIConfig::ImageSystemConfig::ImageReserveCapacity);
     freeIndices.clear();
+    freeIndices.reserve(RHIConfig::ImageSystemConfig::FreeIndicesReserveCapacity);
 }
 
 ImageSystem::~ImageSystem() {

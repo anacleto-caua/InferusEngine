@@ -10,15 +10,19 @@
 #include "RHI/Image/ImageCreateDescription.hpp"
 
 class ImageSystem {
+public:
 private:
     VkDevice device;
     VmaAllocator allocator;
     std::vector<Image> data;
     std::vector<uint32_t> freeIndices;
 public:
-    ImageSystem();
-    ImageSystem(VkDevice device, VmaAllocator allocator);
+    ImageSystem()= default;
     ~ImageSystem();
+    ImageSystem(const ImageSystem&) = delete;
+    ImageSystem& operator=(const ImageSystem&) = delete;
+
+    void init(VkDevice device, VmaAllocator allocator);
 
     ImageId add(ImageCreateDescription imageCreateDesc);
     Image& get(ImageId id);

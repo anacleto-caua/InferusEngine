@@ -24,14 +24,13 @@
 
 void MeshApp::init() {
     constants = {};
-    const std::string APP_NAME = "MeshApp";
     engine.init(APP_NAME, &constants.mvp);
     playerPos = {0, 0, 0};
 
     VkDevice device = engine.renderer.vulkanContext.device;
     VmaAllocator allocator = engine.renderer.vulkanContext.allocator;
 
-    imageSystem = ImageSystem(device, allocator);
+    imageSystem.init(device, allocator);
 
     chunkManager.init(&playerPos, allocator, imageSystem);
     chunkManager.updateChunkLinks();

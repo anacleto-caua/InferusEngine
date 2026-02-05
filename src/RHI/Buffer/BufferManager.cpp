@@ -1,6 +1,7 @@
 #include "RHI/Buffer/BufferManager.hpp"
 
 #include <cassert>
+#include <stdexcept>
 
 #include "RHI/RHIConfig.hpp"
 #include "RHI/Buffer/Buffer.hpp"
@@ -44,7 +45,12 @@ BufferId BufferManager::add(BufferCreateDescription createDesc) {
     allocCreateInfo.requiredFlags = options.requiredFlags;
     allocCreateInfo.flags = options.vmaFlags;
 
-    vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &buffer.buffer, &buffer.allocation, nullptr);
+    if (vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &buffer.buffer, &buffer.allocation, nullptr) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create buffer");
+    }
+
+    buffer.size = createDesc.size;
+    data[id.index] = buffer;
 
     return id;
 }

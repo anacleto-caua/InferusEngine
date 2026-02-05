@@ -14,7 +14,7 @@ private:
     std::vector<BufferId> freeIndices;
 
 public:
-    BufferManager();
+    BufferManager() = default;
     ~BufferManager();
     BufferManager(const BufferManager&) = delete;
     BufferManager& operator=(const BufferManager&) = delete;

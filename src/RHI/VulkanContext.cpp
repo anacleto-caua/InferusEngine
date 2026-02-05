@@ -15,9 +15,7 @@ void VulkanContext::init(
     const std::string &appName,
     const std::string &engineName,
     const std::vector<const char*> &instanceExtensions,
-    const std::vector<const char*> &deviceExtensions,
-    const std::vector<const char*> &validationLayers,
-    const std::vector<const char*> &validationLayersExts
+    const std::vector<const char*> &deviceExtensions
 ) {
     // Instance
     VkApplicationInfo appInfo{};
@@ -37,10 +35,10 @@ void VulkanContext::init(
     // Validation layers
     if (ENABLE_VALIDATION_LAYERS) {
         // Both parameters are not used anymore but it's recommended to set for backwards compatibility
-        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
+        instanceCreateInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 
-        allInstanceExtensions.insert(allInstanceExtensions.end(), validationLayersExts.begin(), validationLayersExts.end());
+        allInstanceExtensions.insert(allInstanceExtensions.end(), VALIDATION_LAYERS_EXTENSION.begin(), VALIDATION_LAYERS_EXTENSION.end());
     } else {
         instanceCreateInfo.enabledLayerCount = 0;
     }

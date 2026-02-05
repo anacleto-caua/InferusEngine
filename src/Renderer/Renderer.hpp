@@ -49,8 +49,6 @@ public:
         const std::string &engineName,
         const std::vector<const char*> &instanceExtensions,
         const std::vector<const char*> &deviceExtensions,
-        const std::vector<const char*> &validationLayers,
-        const std::vector<const char*> &validationLayersExts,
         // Camera
         glm::mat4* pMvp
         // Renderer

@@ -27,11 +27,13 @@ public:
 private:
     VkDebugUtilsMessengerEXT DEBUG_MESSENGER;
 
-    #ifdef NDEBUG
-        static constexpr bool ENABLE_VALIDATION_LAYERS = false;
-    #else
-        static constexpr bool ENABLE_VALIDATION_LAYERS = true;
-    #endif
+#ifdef NDEBUG
+    static constexpr bool ENABLE_VALIDATION_LAYERS = false;
+#else
+    static constexpr bool ENABLE_VALIDATION_LAYERS = true;
+    std::vector<const char*> VALIDATION_LAYERS = { "VK_LAYER_KHRONOS_validation" };
+    std::vector<const char*> VALIDATION_LAYERS_EXTENSION = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
+#endif
 
 
 public:
@@ -45,9 +47,7 @@ public:
         const std::string &appName,
         const std::string &engineName,
         const std::vector<const char*> &instanceExtensions,
-        const std::vector<const char*> &deviceExtensions,
-        const std::vector<const char*> &validationLayers,
-        const std::vector<const char*> &validationLayersExts
+        const std::vector<const char*> &deviceExtensions
     );
 
     VkCommandBuffer singleTimeCmdBegin(QueueContext ctx);

@@ -14,9 +14,6 @@ void Engine::init(const std::string &appName, glm::mat4* pMvp) {
     std::vector<const char*> INSTANCE_EXTENSIONS = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
     std::vector<const char*> DEVICE_EXTENSIONS = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
 
-    std::vector<const char*> VALIDATION_LAYERS = { "VK_LAYER_KHRONOS_validation" };
-    std::vector<const char*> VALIDATION_LAYERS_EXTENSION = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
-
     std::vector<const char*> VMA_SUGGESTED_EXTENSIONS = { VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
 
     std::string windowTitle = appName + " ~ Powered by: " + ENGINE_NAME;
@@ -31,7 +28,7 @@ void Engine::init(const std::string &appName, glm::mat4* pMvp) {
     finalDeviceExtensions.insert(finalDeviceExtensions.end(), DEVICE_EXTENSIONS.begin(), DEVICE_EXTENSIONS.end());
     finalDeviceExtensions.insert(finalDeviceExtensions.end(), VMA_SUGGESTED_EXTENSIONS.begin(), VMA_SUGGESTED_EXTENSIONS.end());
 
-    renderer.init(window, appName, ENGINE_NAME, finalInstanceExtensions, finalDeviceExtensions, VALIDATION_LAYERS, VALIDATION_LAYERS_EXTENSION, pMvp);
+    renderer.init(window, appName, ENGINE_NAME, finalInstanceExtensions, finalDeviceExtensions, pMvp);
 }
 
 Engine::~Engine() {}

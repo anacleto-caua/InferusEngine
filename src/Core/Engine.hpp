@@ -9,6 +9,8 @@ public:
     Renderer renderer;
 private:
     bool engineShouldClose = false;
+
+    std::string const ENGINE_NAME = "Inferus Engine";
 public:
     Engine() = default;
     ~Engine();

@@ -5,7 +5,7 @@
 #include "RHI/Image/Image.hpp"
 
 namespace BarrierRecipes {
-    VkImageMemoryBarrier Default(Image image);
-    VkImageMemoryBarrier TransferDest(Image image);
-    VkImageMemoryBarrier ShaderRead(Image image);
+    VkImageMemoryBarrier Default(const Image& image);
+    VkImageMemoryBarrier TransferDest(const Image& image);
+    VkImageMemoryBarrier ShaderRead(const Image& image);
 }

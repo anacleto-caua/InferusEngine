@@ -1,7 +1,7 @@
 #include "BarrierRecipes.hpp"
 
 namespace BarrierRecipes {
-    VkImageMemoryBarrier Default(Image image) {
+    VkImageMemoryBarrier Default(const Image& image) {
         VkImageMemoryBarrier barrier {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .srcAccessMask = 0,
@@ -22,7 +22,7 @@ namespace BarrierRecipes {
         return barrier;
     }
 
-    VkImageMemoryBarrier TransferDest(Image image) {
+    VkImageMemoryBarrier TransferDest(const Image& image) {
         VkImageMemoryBarrier barrier = Default(image);
         barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -32,9 +32,9 @@ namespace BarrierRecipes {
         return barrier;
     }
 
-    VkImageMemoryBarrier ShaderRead(Image image) {
+    VkImageMemoryBarrier ShaderRead(const Image& image) {
         VkImageMemoryBarrier barrier = Default(image);
-            barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;

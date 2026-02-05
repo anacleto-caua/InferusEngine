@@ -75,6 +75,7 @@ ImageId ImageSystem::add(ImageCreateDescription imageDesc) {
     image.arrayLayers = imageDesc.arrayLayers;
     image.depth = imageDesc.depth;
     image.format = imageDesc.format;
+    image.layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     data[id.index] = image;
     return id;

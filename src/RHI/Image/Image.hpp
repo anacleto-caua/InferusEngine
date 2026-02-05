@@ -14,6 +14,7 @@ struct Image {
     uint8_t mipLevels;
     uint8_t arrayLayers;
     VkFormat format;
+    VkImageLayout layout;
 };
 
 struct ImageId {

@@ -4,7 +4,7 @@
 
 #include "Swapchain.hpp"
 #include "Core/Window.hpp"
-#include "BarrierBuilder.hpp"
+#include "RHI/Recipes/BarrierRecipes.hpp"
 
 void Renderer::init(
     // Vulkan Context
@@ -156,14 +156,23 @@ VkCommandBuffer Renderer::beginFrame() {
 
     vkResetFences(vulkanContext.device, 1, &targetFrame.inFlight);
 
-    BarrierBuilder::onImage(
-        swapchain.scImages[targetImageViewIndex].image,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
-    )
-    .access(0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-    .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
-    .record(cmd);
+    VkImageMemoryBarrier barrier = BarrierRecipes::RawDefault(swapchain.scImages[targetImageViewIndex].image);
+    barrier.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
 
     colorAttachment.imageView = swapchain.scImages[targetImageViewIndex].imageView;
     vkCmdBeginRendering(cmd, &renderingInfo);
@@ -180,14 +189,24 @@ void Renderer::endFrame() {
 
     vkCmdEndRendering(cmd);
 
-    BarrierBuilder::onImage(
-        swapchain.scImages[targetImageViewIndex].image,
-        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-    )
-    .access(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0)
-    .stages(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT)
-    .record(cmd);
+    VkImageMemoryBarrier barrier = BarrierRecipes::RawDefault(swapchain.scImages[targetImageViewIndex].image);
+    barrier.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = 0;
+
+    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
 
     vkEndCommandBuffer(cmd);
 

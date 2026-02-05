@@ -12,10 +12,10 @@
 
 #include "RHI/RHITypes.hpp"
 #include "RHI/VulkanContext.hpp"
-#include "Renderer/BarrierBuilder.hpp"
 #include "Components/TerrainConfig.hpp"
 #include "Renderer/ImageCopyBuilder.hpp"
 #include "Components/HeightmapConfig.hpp"
+#include "RHI/Recipes/BarrierRecipes.hpp"
 #include "Components/ChunkIndicesGenerator.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
 #include "RHI/Pipeline/Initialization/PipelineLayoutBuilder.hpp"
@@ -116,7 +116,7 @@ void MeshApp::createHeightmap() {
     QueueContext& graphicsQueueCtx = vkCtx.graphicsQueueCtx;
     auto mockTerrain = chunkManager.genHeightmap();
 
-    VkImage heightmapImage = imageSystem.get(heightmapId).image;
+    Image heightmapImage = imageSystem.get(heightmapId);
 
     BufferCreateDescription stagingBufferCreateDesc {
         .size = HeightmapConfig::HEIGHTMAP_SIZE,
@@ -129,19 +129,23 @@ void MeshApp::createHeightmap() {
 
     VkCommandBuffer cmd = vkCtx.singleTimeCmdBegin(transferQueueCtx);
 
-    BarrierBuilder::onImage(
-        heightmapImage,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-    )
-    .layerCount(TerrainConfig::INSTANCE_COUNT)
-    .access(0, VK_ACCESS_TRANSFER_WRITE_BIT)
-    .stages(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT)
-    .record(cmd);
+    VkImageMemoryBarrier barrier1 = BarrierRecipes::TransferDest(heightmapImage);
+    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier1
+    );
 
     ImageCopyBuilder(
         bufferManager.get(stagingBufferId).buffer,
-        heightmapImage,
+        heightmapImage.image,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         {TerrainConfig::RESOLUTION, TerrainConfig::RESOLUTION, 1}
     )
@@ -149,29 +153,43 @@ void MeshApp::createHeightmap() {
     .layerCount(TerrainConfig::INSTANCE_COUNT)
     .record(cmd);
 
-    BarrierBuilder::onImage(
-        heightmapImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    )
-    .layerCount(TerrainConfig::INSTANCE_COUNT)
-    .stages(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT) .access(VK_ACCESS_TRANSFER_WRITE_BIT, 0)
-    .queues(transferQueueCtx, graphicsQueueCtx)
-    .record(cmd);
+    VkImageMemoryBarrier barrier2 = BarrierRecipes::ShaderRead(heightmapImage);
+    barrier2.srcQueueFamilyIndex = transferQueueCtx.index;
+    barrier2.dstQueueFamilyIndex = graphicsQueueCtx.index;
+    barrier2.dstAccessMask = 0;
+    srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier2
+    );
 
     vkCtx.singleTimeCmdSubmit(transferQueueCtx, cmd);
 
     cmd = vkCtx.singleTimeCmdBegin(graphicsQueueCtx);
-    BarrierBuilder::onImage(
-        heightmapImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    )
-    .layerCount(TerrainConfig::INSTANCE_COUNT)
-    .stages(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
-    .access(0, VK_ACCESS_SHADER_READ_BIT)
-    .queues(transferQueueCtx, graphicsQueueCtx)
-    .record(cmd);
+
+    VkImageMemoryBarrier barrier3 = BarrierRecipes::ShaderRead(heightmapImage);
+    barrier3.srcQueueFamilyIndex = transferQueueCtx.index;
+    barrier3.dstQueueFamilyIndex = graphicsQueueCtx.index;
+    barrier3.srcAccessMask = 0;
+    srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier3
+    );
 
     vkCtx.singleTimeCmdSubmit(graphicsQueueCtx, cmd);
 }

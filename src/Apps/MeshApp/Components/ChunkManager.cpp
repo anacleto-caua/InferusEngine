@@ -4,22 +4,37 @@
 #include <cstdint>
 #include <vector>
 
-#include "RHI/Buffer.hpp"
 #include "RHI/Image/ImageSystem.hpp"
 #include "RHI/Image/ImageCreateDescription.hpp"
 #include "Apps/MeshApp/Components/TerrainConfig.hpp"
 #include "Apps/MeshApp/Components/NoiseGenerator.hpp"
 #include "Apps/MeshApp/Components/HeightmapConfig.hpp"
 
-void ChunkManager::init(glm::vec3* pPlayerPos,  VmaAllocator allocator, ImageSystem& imageSystem) {
+void ChunkManager::init(glm::vec3* pPlayerPos,  VmaAllocator allocator, ImageSystem& imageSystem, BufferManager& bufferManager) {
    this->pPlayerPos = pPlayerPos;
 
     chunkLinks.resize(TerrainConfig::INSTANCE_COUNT);
 
-    cpuBuffer.init(allocator, chunkLinksSize, BufferType::STAGING_UPLOAD);
-    gpuBuffer.init(allocator, chunkLinksSize, BufferType::GPU_STATIC, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    BufferCreateDescription cpuBufferCreateDesc{
+        .size = chunkLinksSize,
+        .memType = BufferMemoryType::STAGING_UPLOAD,
+        .usage = BufferUsage::STAGING
+    };
+    cpuBufferId = bufferManager.add(cpuBufferCreateDesc);
 
-    heightmapStagingBuffer.init(allocator, HeightmapConfig::HEIGHTMAP_SIZE, BufferType::STAGING_UPLOAD);
+    BufferCreateDescription gpuBufferCreateDesc{
+        .size = chunkLinksSize,
+        .memType = BufferMemoryType::GPU_STATIC,
+        .usage = BufferUsage::SSBO
+    };
+    gpuBufferId = bufferManager.add(gpuBufferCreateDesc);
+
+    BufferCreateDescription heightmapStagingBufferCreateInfo{
+        .size = HeightmapConfig::HEIGHTMAP_SIZE,
+        .memType = BufferMemoryType::GPU_STATIC,
+        .usage = BufferUsage::SSBO
+    };
+    heightmapStagingBufferId = bufferManager.add(heightmapStagingBufferCreateInfo);
 
     ImageCreateDescription desc{};
     desc.arrayLayers = TerrainConfig::INSTANCE_COUNT;
@@ -31,9 +46,9 @@ void ChunkManager::init(glm::vec3* pPlayerPos,  VmaAllocator allocator, ImageSys
     heightmapId = imageSystem.add(desc);
 }
 
-void ChunkManager::uploadChunkLinks(VulkanContext& vkCtx) {
-    cpuBuffer.upload(chunkLinks.data(), chunkLinksSize);
-    gpuBuffer.immediateCopy(vkCtx, cpuBuffer, chunkLinksSize);
+void ChunkManager::uploadChunkLinks(BufferManager& bufferManager, VulkanContext& vkCtx) {
+    bufferManager.upload(cpuBufferId, chunkLinks.data());
+    bufferManager.immediateCopy(vkCtx, cpuBufferId, gpuBufferId, chunkLinksSize);
 }
 
 void ChunkManager::updateChunkLinks() {

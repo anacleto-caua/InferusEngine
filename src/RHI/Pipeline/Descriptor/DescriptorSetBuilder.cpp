@@ -1,5 +1,6 @@
 #include "DescriptorSetBuilder.hpp"
 
+#include <map>
 #include <stdexcept>
 
 void DescriptorSetBuilder::addTexture(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, VkImageView view, VkSampler sampler) {
@@ -17,7 +18,7 @@ void DescriptorSetBuilder::addTexture(uint32_t binding, VkDescriptorType type, V
     textureConfigs.push_back(config);
 }
 
-const void DescriptorSetBuilder::addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, const Buffer& buffer) {
+const void DescriptorSetBuilder::addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, const Buffer buffer) {
     addBuffer(binding, type, stage, buffer.buffer, 0, buffer.size);
 }
 

@@ -10,7 +10,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "RHI/Buffer.hpp"
 #include "RHI/RHITypes.hpp"
 #include "RHI/VulkanContext.hpp"
 #include "Renderer/BarrierBuilder.hpp"
@@ -31,10 +30,11 @@ void MeshApp::init() {
     VmaAllocator allocator = engine.renderer.vulkanContext.allocator;
 
     imageSystem.init(device, allocator);
+    bufferManager.init(allocator);
 
-    chunkManager.init(&playerPos, allocator, imageSystem);
+    chunkManager.init(&playerPos, allocator, imageSystem, bufferManager);
     chunkManager.updateChunkLinks();
-    chunkManager.uploadChunkLinks(engine.renderer.vulkanContext);
+    chunkManager.uploadChunkLinks(bufferManager, engine.renderer.vulkanContext);
 
     heightmapId = chunkManager.heightmapId;
     Image heightmap = imageSystem.get(heightmapId);
@@ -79,7 +79,7 @@ void MeshApp::init() {
         CHUNK_DATA_BINDING,
         VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
-        chunkManager.gpuBuffer
+        bufferManager.get(chunkManager.gpuBufferId)
     );
     heightmapDescriptorSet.init(device,chunkSetBuilder);
 
@@ -99,8 +99,14 @@ MeshApp::~MeshApp() {
 void MeshApp::createTerrainIndicesBuffer() {
     std::vector<uint32_t> indices = ChunkIndicesGenerator::getIndices();
     uint32_t bufferSize = indices.size() * sizeof(uint32_t);
-    terrainIndicesBuffer.init(engine.renderer.vulkanContext.allocator, bufferSize, BufferType::GPU_STATIC, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    terrainIndicesBuffer.immediateUpload(engine.renderer.vulkanContext, indices.data(), bufferSize);
+    BufferCreateDescription terrainIndicesBufferCreateDesc {
+        .size = bufferSize,
+        .memType = BufferMemoryType::GPU_STATIC,
+        .usage = BufferUsage::INDEX
+    };
+
+    terrainIndicesBufferId = bufferManager.add(terrainIndicesBufferCreateDesc);
+    bufferManager.immediateUpload(engine.renderer.vulkanContext, terrainIndicesBufferId, indices.data(), bufferSize);
 }
 
 void MeshApp::createHeightmap() {
@@ -112,9 +118,14 @@ void MeshApp::createHeightmap() {
 
     VkImage heightmapImage = imageSystem.get(heightmapId).image;
 
-    Buffer stagingBuffer;
-    stagingBuffer.init(allocator, HeightmapConfig::HEIGHTMAP_SIZE, BufferType::STAGING_UPLOAD);
-    stagingBuffer.upload(mockTerrain.data(), HeightmapConfig::HEIGHTMAP_SIZE);
+    BufferCreateDescription stagingBufferCreateDesc {
+        .size = HeightmapConfig::HEIGHTMAP_SIZE,
+        .memType = BufferMemoryType::STAGING_UPLOAD,
+        .usage = BufferUsage::STAGING
+    };
+
+    BufferId stagingBufferId = bufferManager.add(stagingBufferCreateDesc);
+    bufferManager.upload(stagingBufferId, mockTerrain.data());
 
     VkCommandBuffer cmd = vkCtx.singleTimeCmdBegin(transferQueueCtx);
 
@@ -129,7 +140,7 @@ void MeshApp::createHeightmap() {
     .record(cmd);
 
     ImageCopyBuilder(
-        stagingBuffer.buffer,
+        bufferManager.get(stagingBufferId).buffer,
         heightmapImage,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         {TerrainConfig::RESOLUTION, TerrainConfig::RESOLUTION, 1}
@@ -176,7 +187,7 @@ void MeshApp::run() {
 }
 
 void MeshApp::drawCallback(VkCommandBuffer commandBuffer) {
-    vkCmdBindIndexBuffer(commandBuffer, terrainIndicesBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer, bufferManager.get(terrainIndicesBufferId).buffer, 0, VK_INDEX_TYPE_UINT32);
 
     vkCmdPushConstants(
         commandBuffer,

@@ -3,10 +3,11 @@
 #include <cstdint>
 
 #include "AppTypes.hpp"
-#include "RHI/Buffer.hpp"
 #include "Core/Engine.hpp"
+#include "RHI/Buffer/Buffer.hpp"
 #include "RHI/Pipeline/Pipeline.hpp"
 #include "Components/ChunkManager.hpp"
+#include "RHI/Buffer/BufferManager.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSet.hpp"
 
 class MeshApp {
@@ -14,9 +15,10 @@ public:
     PushConstants constants;
 private:
     Engine engine;
-    Buffer terrainIndicesBuffer;
+    BufferId terrainIndicesBufferId;
     Pipeline pipeline;
     ImageSystem imageSystem;
+    BufferManager bufferManager;
     ImageId heightmapId;
     glm::vec3 playerPos;
     ChunkManager chunkManager;

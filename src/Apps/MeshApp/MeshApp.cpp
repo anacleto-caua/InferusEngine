@@ -13,10 +13,10 @@
 #include "RHI/RHITypes.hpp"
 #include "RHI/VulkanContext.hpp"
 #include "Components/TerrainConfig.hpp"
-#include "Renderer/ImageCopyBuilder.hpp"
 #include "Components/HeightmapConfig.hpp"
 #include "RHI/Recipes/BarrierRecipes.hpp"
 #include "Components/ChunkIndicesGenerator.hpp"
+#include "RHI/Recipes/CopyBufferToImageRecipes.hpp"
 #include "RHI/Pipeline/Descriptor/DescriptorSetBuilder.hpp"
 #include "RHI/Pipeline/Initialization/PipelineLayoutBuilder.hpp"
 #include "RHI/Pipeline/Initialization/GraphicsPipelineBuilder.hpp"
@@ -143,15 +143,17 @@ void MeshApp::createHeightmap() {
         1, &barrier1
     );
 
-    ImageCopyBuilder(
-        bufferManager.get(stagingBufferId).buffer,
+    Buffer stagingBuffer = bufferManager.get(stagingBufferId);
+    VkBufferImageCopy imageCopy = CopyBufferToImageBuilder::DefaultCopy(bufferManager.get(stagingBufferId), heightmapImage);
+
+    vkCmdCopyBufferToImage(
+        cmd,
+        stagingBuffer.buffer,
         heightmapImage.image,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        {TerrainConfig::RESOLUTION, TerrainConfig::RESOLUTION, 1}
-    )
-    .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-    .layerCount(TerrainConfig::INSTANCE_COUNT)
-    .record(cmd);
+        1,
+        &imageCopy
+    );
 
     VkImageMemoryBarrier barrier2 = BarrierRecipes::ShaderRead(heightmapImage);
     barrier2.srcQueueFamilyIndex = transferQueueCtx.index;

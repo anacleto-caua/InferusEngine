@@ -46,7 +46,7 @@ void main() {
     float localZ = v * GRID_SIZE;
 
     float height = texture(heightmapSampler, vec3(u, v, float(gl_InstanceIndex))).r;
-    vec3 finalWorldPos = vec3(localX + chunkOffsetX, height * HEIGHT_SCALE, localZ + chunkOffsetZ);
+    vec3 finalWorldPos = vec3(localZ + chunkOffsetX, height * HEIGHT_SCALE, localX + chunkOffsetZ);
 
     gl_Position = terrain_push.lookAt * vec4(finalWorldPos, 1.0);
 

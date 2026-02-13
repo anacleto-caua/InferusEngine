@@ -23,7 +23,7 @@
 
 void MeshApp::init() {
     constants = {};
-    engine.init(APP_NAME, &constants.mvp);
+    engine.init(APP_NAME.data(), &constants.mvp);
     playerPos = {0, 0, 0};
 
     VkDevice device = engine.renderer.vulkanContext.device;

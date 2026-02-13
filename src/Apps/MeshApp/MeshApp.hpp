@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 #include "AppTypes.hpp"
 #include "Core/Engine.hpp"
@@ -26,7 +27,7 @@ private:
     static constexpr uint32_t CHUNK_DATA_BINDING = 1;
     DescriptorSet heightmapDescriptorSet;
     VkSampler heightmapSampler;
-    static const constexpr std::string APP_NAME = "MeshApp";
+    static constexpr std::string_view APP_NAME = "MeshApp";
 public:
     MeshApp() = default;
     ~MeshApp();

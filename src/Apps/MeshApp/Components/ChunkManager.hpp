@@ -23,7 +23,7 @@ public:
 
     const VkDeviceSize chunkLinksSize = TerrainConfig::INSTANCE_COUNT * sizeof(ChunkLink);
 
-    std::vector<ChunkLink> chunkLinks;
+    std::array<ChunkLink, TerrainConfig::INSTANCE_COUNT> chunkLinks;
 
     BufferId cpuBufferId;
     BufferId gpuBufferId;
@@ -40,7 +40,7 @@ public:
 
     void init(glm::vec3* pPlayerPos, VmaAllocator allocator, ImageSystem& imageSystem, BufferManager& bufferManager);
     void uploadChunkLinks(BufferManager& bufferManager, VulkanContext& vkCtx);
-    void updateChunkLinks();
+    void diamondUpdateChunkLinks();
     std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> genHeightmap();
 private:
 };

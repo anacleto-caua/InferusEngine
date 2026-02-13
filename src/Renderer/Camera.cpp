@@ -9,8 +9,8 @@
 
 void Camera::init(glm::mat4* pMvp) {
     const constexpr glm::vec3 STARTING_LOOKING_AT = glm::vec3(0.0f, 0.0f, 0.0f);
-    const constexpr glm::vec3 STARTING_CAM_POS    = glm::vec3(0.0f, 15.0f, -20.0f);
-    const constexpr glm::float32_t STARTING_POV   = 60.0;
+    const constexpr glm::vec3 STARTING_CAM_POS    = glm::vec3(-15.0f, 25.0f, -15.0f);
+    const constexpr glm::float32_t STARTING_POV   = 90.0;
 
     this->pMvp = pMvp;
 

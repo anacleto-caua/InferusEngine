@@ -33,7 +33,7 @@ void MeshApp::init() {
     bufferManager.init(allocator);
 
     chunkManager.init(&playerPos, allocator, imageSystem, bufferManager);
-    chunkManager.updateChunkLinks();
+    chunkManager.diamondUpdateChunkLinks();
     chunkManager.uploadChunkLinks(bufferManager, engine.renderer.vulkanContext);
 
     heightmapId = chunkManager.heightmapId;

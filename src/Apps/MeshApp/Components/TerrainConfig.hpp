@@ -5,7 +5,13 @@
 #include <glm/glm.hpp>
 
 namespace TerrainConfig {
-    constexpr uint32_t INSTANCE_COUNT = 9;
-    constexpr uint32_t SQRT_INSTANCE_COUNT = 3;
+
+    constexpr uint32_t DIAMOND_EXPLORATION_RADIUS = 4;
+
+    constexpr uint32_t INSTANCE_COUNT = []{
+        constexpr uint32_t X = DIAMOND_EXPLORATION_RADIUS;
+        return (X * X) + ((X + 1) * (X + 1));
+    }();
+
     constexpr uint32_t RESOLUTION = 64;
 };

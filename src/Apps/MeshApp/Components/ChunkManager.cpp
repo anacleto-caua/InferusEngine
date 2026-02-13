@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <glm/fwd.hpp>
 #include <vector>
 
 #include "RHI/Image/ImageSystem.hpp"
@@ -12,8 +13,6 @@
 
 void ChunkManager::init(glm::vec3* pPlayerPos,  VmaAllocator allocator, ImageSystem& imageSystem, BufferManager& bufferManager) {
    this->pPlayerPos = pPlayerPos;
-
-    chunkLinks.resize(TerrainConfig::INSTANCE_COUNT);
 
     BufferCreateDescription cpuBufferCreateDesc{
         .size = chunkLinksSize,
@@ -51,18 +50,60 @@ void ChunkManager::uploadChunkLinks(BufferManager& bufferManager, VulkanContext&
     bufferManager.immediateCopy(vkCtx, cpuBufferId, gpuBufferId, chunkLinksSize);
 }
 
-void ChunkManager::updateChunkLinks() {
-    uint32_t currentId = 0;
+void ChunkManager::diamondUpdateChunkLinks() {
+    glm::ivec2 player_coord;
+    player_coord.x = this->pPlayerPos->x/TerrainConfig::RESOLUTION;
+    player_coord.y = this->pPlayerPos->z/TerrainConfig::RESOLUTION;
 
-    for (uint32_t x = 0; x < TerrainConfig::SQRT_INSTANCE_COUNT; ++x) {
-        for (uint32_t y = 0; y < TerrainConfig::SQRT_INSTANCE_COUNT; ++y) {
-            ChunkLink chunk;
-            chunk.worldPos = {x, y};
-            chunk.heightmapId = currentId;
-            chunk.isVisible = 1;
+    uint32_t coords_counter = TerrainConfig::INSTANCE_COUNT - 1;    // The last array position
+    // Add the player position as it's the last chunk that should be drawn
+    chunkLinks[coords_counter] = {
+        .worldPos = player_coord,
+        .heightmapId = coords_counter,
+        .isVisible = 1
+    };
+    coords_counter--;
 
-            chunkLinks[currentId] = chunk;
-            currentId++;
+    glm::ivec2 coord0, coord1, coord2, coord3;
+    for (uint32_t i = 0; i < TerrainConfig::DIAMOND_EXPLORATION_RADIUS; i++) {
+        int32_t x_pos = player_coord.x + i + 1;
+        int32_t x_neg = player_coord.x - i + 1;
+        for (uint32_t j = 0; j < (TerrainConfig::DIAMOND_EXPLORATION_RADIUS - i); j++) {
+            int32_t y_pos = player_coord.y + j;
+            int32_t y_neg = player_coord.y - j;
+
+            // Memory Layout: [Link3][Link2][Link1][Link0]
+            ChunkLink* block = &chunkLinks[coords_counter - 3];
+
+            // We write sequentially to the memory block (0, 1, 2, 3).
+            block[0] = {
+                .worldPos = { x_neg, y_pos },
+                .heightmapId = coords_counter - 3,
+                .isVisible = 1
+            };
+
+            // chunkLinks[coords_counter - 2] -> coord2 (+i+1, -j)
+            block[1] = {
+                .worldPos = { x_pos, y_neg },
+                .heightmapId = coords_counter - 2,
+                .isVisible = 1
+            };
+
+            // chunkLinks[coords_counter - 1] -> coord1 (-i+1, -j)
+            block[2] = {
+                .worldPos = { x_neg, y_neg },
+                .heightmapId = coords_counter - 1,
+                .isVisible = 1
+            };
+
+            // chunkLinks[coords_counter - 0] -> coord0 (+i+1, +j)
+            block[3] = {
+                .worldPos = { x_pos, y_pos },
+                .heightmapId = coords_counter,
+                .isVisible = 1
+            };
+
+            coords_counter -= 4;
         }
     }
 }

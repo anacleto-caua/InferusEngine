@@ -41,6 +41,12 @@ rule("copy_assets")
 
 target("InferusEngine")
     set_kind("binary")
+    set_default()
+
+    -- Generate debug files, keep symbols and disable optimazations
+    set_symbols("debug")
+    set_strip("none")
+    set_optimize("none")
 
     -- Add source files
     add_files("src/**.cpp")

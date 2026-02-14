@@ -8,9 +8,9 @@ namespace BarrierRecipes {
             .dstAccessMask = 0,
             .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             .newLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .image = image,
             .srcQueueFamilyIndex =VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image,
             .subresourceRange {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                 .baseMipLevel = 0,
@@ -29,9 +29,9 @@ namespace BarrierRecipes {
             .dstAccessMask = 0,
             .oldLayout = image.layout,
             .newLayout = image.layout,
-            .image = image.image,
             .srcQueueFamilyIndex =VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image.image,
             .subresourceRange {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                 .baseMipLevel = 0,

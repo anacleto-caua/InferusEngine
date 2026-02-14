@@ -52,9 +52,16 @@ target("InferusEngine")
     set_strip("none")
     set_optimize("none")
 
+    set_warnings("all", "extra")
+    add_cxflags("-Wpedantic")
+    add_cxflags("-Wshadow")
+
+    -- Treat third-party libs as system headers to suppress their warnings
+    add_sysincludedirs("libs/vma", "libs/glm-1.0.2", "libs/spdlog/include", "libs/fnl")
+
     -- Add source files
     add_files("src/**.cpp")
-
+    add_includedirs("src")
     -- Add shader and asset files to trigger the custom rules
     add_files("shaders/**.vert", "shaders/**.frag", "shaders/**.comp", {rule = "compile_shaders"})
     add_files("resources/**", {rule = "copy_assets"})
@@ -67,7 +74,7 @@ target("InferusEngine")
         -- VULKAN (Env Var)
         local vk_sdk = os.getenv("VULKAN_SDK")
         if vk_sdk then
-            add_includedirs(path.join(vk_sdk, "Include"))
+            add_sysincludedirs(path.join(vk_sdk, "Include"))
             add_linkdirs(path.join(vk_sdk, "Lib"))
         end
         add_syslinks("vulkan-1")

@@ -41,7 +41,7 @@ public:
     ChunkManager(const ChunkManager&) = delete;
     ChunkManager& operator=(const ChunkManager&) = delete;
 
-    void init(glm::vec3* pPlayerPos, VmaAllocator allocator, ImageSystem& imageSystem, BufferManager& bufferManager);
+    void init(glm::vec3* playerPos, ImageSystem& imageSystem, BufferManager& bufferManager);
     void uploadChunkLinks(BufferManager& bufferManager, VulkanContext& vkCtx);
     void diamondUpdateChunkLinks();
     std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> genHeightmap();

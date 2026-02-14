@@ -32,7 +32,7 @@ void MeshApp::init() {
     imageSystem.init(device, allocator);
     bufferManager.init(allocator);
 
-    chunkManager.init(&playerPos, allocator, imageSystem, bufferManager);
+    chunkManager.init(&playerPos, imageSystem, bufferManager);
     chunkManager.diamondUpdateChunkLinks();
     chunkManager.uploadChunkLinks(bufferManager, engine.renderer.vulkanContext);
 
@@ -111,7 +111,6 @@ void MeshApp::createTerrainIndicesBuffer() {
 
 void MeshApp::createHeightmap() {
     VulkanContext& vkCtx = engine.renderer.vulkanContext;
-    VmaAllocator allocator = vkCtx.allocator;
     QueueContext& transferQueueCtx = vkCtx.transferQueueCtx;
     QueueContext& graphicsQueueCtx = vkCtx.graphicsQueueCtx;
     auto mockTerrain = chunkManager.genHeightmap();

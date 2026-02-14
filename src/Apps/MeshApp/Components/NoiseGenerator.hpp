@@ -12,12 +12,14 @@ namespace NoiseGenerator {
     inline std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION> genChunk(FastNoiseLite noise, glm::ivec2 worldPos) {
         std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION> data;
 
+        int32_t TerrainRes = TerrainConfig::RESOLUTION;
+
         uint32_t index = 0;
         float globalX, globalZ;
-        for (int x = 0; x < TerrainConfig::RESOLUTION; x++) {
-            globalX = x + ((TerrainConfig::RESOLUTION-1) * worldPos.x);
-            for (int z = 0; z < TerrainConfig::RESOLUTION; z++) {
-                globalZ = z + ((TerrainConfig::RESOLUTION-1) * worldPos.y);
+        for (int32_t x = 0; x < TerrainRes; x++) {
+            globalX = x + ((TerrainRes-1) * worldPos.x);
+            for (int32_t z = 0; z < TerrainRes; z++) {
+                globalZ = z + ((TerrainRes-1) * worldPos.y);
 
                 float n = noise.GetNoise(globalX, globalZ);
                 float remapped = (n + 1.0f) * 0.5f * 65535.0f;

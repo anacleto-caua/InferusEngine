@@ -11,8 +11,8 @@
 #include "Apps/MeshApp/Components/NoiseGenerator.hpp"
 #include "Apps/MeshApp/Components/HeightmapConfig.hpp"
 
-void ChunkManager::init(glm::vec3* pPlayerPos,  VmaAllocator allocator, ImageSystem& imageSystem, BufferManager& bufferManager) {
-    this->pPlayerPos = pPlayerPos;
+void ChunkManager::init(glm::vec3* playerPos, ImageSystem& imageSystem, BufferManager& bufferManager) {
+    this->pPlayerPos = playerPos;
 
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     noise.SetFractalType(FastNoiseLite::FractalType_FBm);
@@ -69,7 +69,6 @@ void ChunkManager::diamondUpdateChunkLinks() {
     };
     coords_counter--;
 
-    glm::ivec2 coord0, coord1, coord2, coord3;
     for (uint32_t i = 0; i < TerrainConfig::DIAMOND_EXPLORATION_RADIUS; i++) {
         int32_t x_pos = player_coord.x + i + 1;
         int32_t x_neg = player_coord.x - i + 1;

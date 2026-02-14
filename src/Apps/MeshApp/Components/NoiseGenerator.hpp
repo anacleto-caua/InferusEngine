@@ -18,9 +18,9 @@ namespace NoiseGenerator {
         uint32_t index = 0;
         float globalX, globalZ;
         for (int x = 0; x < TerrainConfig::RESOLUTION; x++) {
-            globalX = x + (TerrainConfig::RESOLUTION * worldPos.x);
+            globalX = x + ((TerrainConfig::RESOLUTION-1) * worldPos.x);
             for (int z = 0; z < TerrainConfig::RESOLUTION; z++) {
-                globalZ = z + (TerrainConfig::RESOLUTION * worldPos.y);
+                globalZ = z + ((TerrainConfig::RESOLUTION-1) * worldPos.y);
 
                 float n = noise.GetNoise(globalX, globalZ);
                 float remapped = (n + 1.0f) * 0.5f * 65535.0f;

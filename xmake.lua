@@ -144,7 +144,8 @@ task("rad")
         -- Launch
         if target_file then
             local native_path = path.translate(target_file)
-            os.exec("raddbg.exe \"%s\"", native_path)
+
+            os.runv("raddbg.exe", {native_path}, {detach = true})
         else
             print("Error: Could not find a binary target.")
         end

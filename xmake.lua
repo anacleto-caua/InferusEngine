@@ -109,8 +109,37 @@ target("InferusEngine")
     -- Build Output Directory
     set_targetdir("build/$(plat)/$(mode)")
 
-    -- Call RadDebugger -- disabled until I discover a way of not launching this every single time
-    -- on_run(function (target)
-        -- import("core.base.task")
-        -- os.exec("raddbg.exe \"%s\"", target:targetfile())
-    -- end)
+target_end()
+
+-- Task to kick start rad debugger linked to project binary
+task("rad")
+    set_menu({
+        usage = "xmake rad",
+        description = "Builds the project and opens the RAD Debugger."
+    })
+
+    on_run(function ()
+        import("core.project.config")
+        import("core.project.project")
+
+        config.load()
+        os.exec("xmake")
+
+        -- Find the binary target file
+        local target_file = nil
+        for name, target in pairs(project.targets()) do
+            if target:kind() == "binary" then
+                target_file = target:targetfile()
+                break
+            end
+        end
+
+        -- Launch
+        if target_file then
+            local native_path = path.translate(target_file)
+            os.exec("raddbg.exe \"%s\"", native_path)
+        else
+            print("Error: Could not find a binary target.")
+        end
+    end)
+task_end()

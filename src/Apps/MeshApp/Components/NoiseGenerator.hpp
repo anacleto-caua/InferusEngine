@@ -13,6 +13,9 @@ namespace NoiseGenerator {
     inline std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION> genChunk(glm::ivec2 worldPos) {
         FastNoiseLite noise;
         noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+        noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+        noise.SetFractalOctaves(8);
+        noise.SetFrequency(.02);
         std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION> data;
 
         uint32_t index = 0;

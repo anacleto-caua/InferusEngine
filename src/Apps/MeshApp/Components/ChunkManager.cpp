@@ -1,6 +1,7 @@
 #include "ChunkManager.hpp"
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <glm/fwd.hpp>
 
@@ -59,11 +60,11 @@ void ChunkManager::diamondUpdateChunkLinks() {
     player_coord.x = this->pPlayerPos->x/TerrainConfig::RESOLUTION;
     player_coord.y = this->pPlayerPos->z/TerrainConfig::RESOLUTION;
 
-    uint32_t coords_counter = TerrainConfig::INSTANCE_COUNT - 1;    // The last array position
+    int32_t coords_counter = TerrainConfig::INSTANCE_COUNT - 1;    // The last array position
     // Add the player position as it's the last chunk that should be drawn
     chunkLinks[coords_counter] = {
         .worldPos = player_coord,
-        .heightmapId = coords_counter,
+        .heightmapId = (uint32_t)coords_counter,
         .isVisible = 1
     };
     coords_counter--;
@@ -82,28 +83,28 @@ void ChunkManager::diamondUpdateChunkLinks() {
             // We write sequentially to the memory block (0, 1, 2, 3).
             block[0] = {
                 .worldPos = { x_neg, y_pos },
-                .heightmapId = coords_counter - 3,
+                .heightmapId = (uint32_t)(coords_counter - 3),
                 .isVisible = 1
             };
 
             // chunkLinks[coords_counter - 2] -> coord2 (+i+1, -j)
             block[1] = {
                 .worldPos = { x_pos, y_neg },
-                .heightmapId = coords_counter - 2,
+                .heightmapId = (uint32_t)(coords_counter - 2),
                 .isVisible = 1
             };
 
             // chunkLinks[coords_counter - 1] -> coord1 (-i+1, -j)
             block[2] = {
                 .worldPos = { x_neg, y_neg },
-                .heightmapId = coords_counter - 1,
+                .heightmapId = (uint32_t)(coords_counter - 1),
                 .isVisible = 1
             };
 
             // chunkLinks[coords_counter - 0] -> coord0 (+i+1, +j)
             block[3] = {
                 .worldPos = { x_pos, y_pos },
-                .heightmapId = coords_counter,
+                .heightmapId = (uint32_t)(coords_counter),
                 .isVisible = 1
             };
 

@@ -1,12 +1,14 @@
 #include "ChunkIndicesGenerator.hpp"
+#include "Apps/MeshApp/Components/TerrainConfig.hpp"
 
 namespace ChunkIndicesGenerator {
         std::vector<uint32_t> getIndices() {
         std::vector<uint32_t> indices;
         indices.reserve(INDEX_COUNT);
 
-        for (int z = 0; z < TerrainConfig::RESOLUTION - 1; z++) {
-            for (int x = 0; x < TerrainConfig::RESOLUTION - 1; x++) {
+        int32_t TerrainRes = TerrainConfig::RESOLUTION;
+        for (int z = 0; z < TerrainRes - 1; z++) {
+            for (int x = 0; x < TerrainRes - 1; x++) {
                 // Calculate the index of the current vertex and neighbors
                 uint32_t topLeft = (z * TerrainConfig::RESOLUTION) + x;
                 uint32_t topRight = topLeft + 1;

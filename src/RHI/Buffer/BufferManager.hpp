@@ -19,19 +19,19 @@ public:
     BufferManager(const BufferManager&) = delete;
     BufferManager& operator=(const BufferManager&) = delete;
 
-    void init(VmaAllocator allocator);
+    void init(VmaAllocator vma_allocator);
     BufferId add(BufferCreateDescription createDesc);
     Buffer& get(BufferId id);
 
     void copy(BufferId srcId, BufferId dstId, const size_t size);
     void copy(VkCommandBuffer &cmd, BufferId srcId, BufferId dstId, const size_t size);
 
-    void upload(BufferId dstId, void* data);
-    void upload(BufferId dstId, const void* data, const size_t size);
-    void upload(VkCommandBuffer &cmd, BufferId stagingId, BufferId dstId, const void* data, const size_t size);
+    void upload(BufferId dstId, void* upload_data);
+    void upload(BufferId dstId, const void* upload_data, const size_t size);
+    void upload(VkCommandBuffer &cmd, BufferId stagingId, BufferId dstId, const void* upload_data, const size_t size);
 
     void immediateCopy(VulkanContext &ctx, BufferId srcId, BufferId dstId, const size_t size);
-    void immediateUpload(VulkanContext &ctx, BufferId dstId, const void* data, const size_t size);
+    void immediateUpload(VulkanContext &ctx, BufferId dstId, const void* upload_data, const size_t size);
 
     void del(BufferId id);
 private:

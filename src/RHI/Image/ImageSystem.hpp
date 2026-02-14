@@ -22,7 +22,7 @@ public:
     ImageSystem(const ImageSystem&) = delete;
     ImageSystem& operator=(const ImageSystem&) = delete;
 
-    void init(VkDevice device, VmaAllocator allocator);
+    void init(VkDevice vk_device, VmaAllocator vma_allocator);
 
     ImageId add(ImageCreateDescription imageCreateDesc);
     Image& get(ImageId id);

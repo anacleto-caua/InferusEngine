@@ -85,9 +85,9 @@ public:
         return *this;
     }
 
-    QueueSelector& requireSurfaceSupport(const VkPhysicalDevice &device, const VkSurfaceKHR &surface) {
-        this->device = device;
-        this->surface = surface;
+    QueueSelector& requireSurfaceSupport(const VkPhysicalDevice &physical_device, const VkSurfaceKHR &vk_surface) {
+        this->device = physical_device;
+        this->surface = vk_surface;
         requiresSurfaceSupport = true;
         return  *this;
     }
@@ -128,7 +128,7 @@ private:
         for (QueueContext* queueCtx : uniqueAgainst) {
             if (
                 (queueCtx->index != index) &&
-                (queueCtx->index != -1)
+                (queueCtx->index != (uint32_t)-1)
             ) {
                 score += 10;
             }

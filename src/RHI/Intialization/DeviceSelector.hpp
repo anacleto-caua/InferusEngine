@@ -65,7 +65,7 @@ private:
         bool extensionFound;
         for (const char* extension : requiredExtensions) {
             extensionFound = false;
-            for (const VkExtensionProperties extensionProperties : availableExtensions) {
+            for (const VkExtensionProperties &extensionProperties : availableExtensions) {
                 if(std::strcmp(extension, extensionProperties.extensionName) == 0) {
                     extensionFound = true;
                     break;

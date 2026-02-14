@@ -14,5 +14,5 @@ private:
 public:
     DescriptorSet() = default;
     ~DescriptorSet();
-    void init(VkDevice device, DescriptorSetBuilder &builder);
+    void init(VkDevice vk_device, DescriptorSetBuilder &builder);
 };

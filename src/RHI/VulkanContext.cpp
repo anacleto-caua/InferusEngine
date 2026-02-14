@@ -275,8 +275,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
     void *pUserData
 ) {
+    (void)pUserData; // Mocking use to silence the compiler warning
 
-    std::string msg = fmt::format("Validation Layer: {}", pCallbackData->pMessage);
+    // Result: [Validation] ID: 0x12345 | Message: ...
+    std::string msg = fmt::format("[{}] ID: {} | {}",
+        VkMessageType{ messageType },
+        pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "None",
+        pCallbackData->pMessage);
 
     switch (messageSeverity) {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:

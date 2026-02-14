@@ -21,7 +21,7 @@ public:
     Pipeline(const Pipeline&) = delete;
     Pipeline& operator=(const Pipeline&) = delete;
 
-    void init(VkDevice device, PipelineLayoutBuilder& layoutBuilder, ShaderStagesBuilder& shaderBuilder, GraphicsPipelineBuilder& gPipelineBuilder);
+    void init(VkDevice vk_device, PipelineLayoutBuilder& layoutBuilder, ShaderStagesBuilder& shaderBuilder, GraphicsPipelineBuilder& gPipelineBuilder);
 
 private:
 };

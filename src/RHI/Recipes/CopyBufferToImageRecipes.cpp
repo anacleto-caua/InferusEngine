@@ -1,7 +1,7 @@
 #include "RHI/Recipes/CopyBufferToImageRecipes.hpp"
 
 namespace CopyBufferToImageBuilder {
-   VkBufferImageCopy DefaultCopy(Buffer& buffer, Image& image) {
+   VkBufferImageCopy DefaultCopy(Image& image) {
         VkBufferImageCopy imageCopy {
             .bufferOffset = 0,
             .bufferRowLength = 0,

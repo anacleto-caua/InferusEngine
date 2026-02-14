@@ -87,8 +87,8 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::depthFormat(VkFormat depthForm
     return *this;
 }
 
-void GraphicsPipelineBuilder::build(VkDevice device, VkPipelineLayout pipelineLayout, ShaderStagesBuilder& shaderBuilder, VkPipeline &pipeline) {
-    this->device = device;
+void GraphicsPipelineBuilder::build(VkDevice vk_device, VkPipelineLayout pipelineLayout, ShaderStagesBuilder& shaderBuilder, VkPipeline &pipeline) {
+    this->device = vk_device;
     shaderBuilder.build(device, shaderStages);
 
     VkPipelineViewportStateCreateInfo viewportState{};
@@ -145,6 +145,7 @@ void GraphicsPipelineBuilder::build(VkDevice device, VkPipelineLayout pipelineLa
     // Assign all pointers fresh
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
+    (void)colorBlendAttachment; // To silence compiler warnings
 
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
         throw std::runtime_error("graphics pipeline creation failed");

@@ -8,7 +8,7 @@
 
 #include "RHI/Intialization/SwapchainSelector.hpp"
 
-void Swapchain::init(const VulkanContext &vulkanContext, Window &window) {
+void Swapchain::init(const VulkanContext &vulkanContext) {
     physicalDevice = vulkanContext.physicalDevice;
     surface = vulkanContext.surface;
     device = vulkanContext.device;

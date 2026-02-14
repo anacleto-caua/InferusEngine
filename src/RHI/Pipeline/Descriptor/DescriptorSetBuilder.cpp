@@ -18,7 +18,7 @@ void DescriptorSetBuilder::addTexture(uint32_t binding, VkDescriptorType type, V
     textureConfigs.push_back(config);
 }
 
-const void DescriptorSetBuilder::addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, const Buffer buffer) {
+void DescriptorSetBuilder::addBuffer(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, const Buffer buffer) {
     addBuffer(binding, type, stage, buffer.buffer, 0, buffer.size);
 }
 
@@ -56,8 +56,6 @@ void DescriptorSetBuilder::bind(BindConfig config) {
 }
 
 void DescriptorSetBuilder::build(VkDevice device, VkDescriptorSet& set, VkDescriptorPool& pool, VkDescriptorSetLayout& layout) {
-    size_t setCount = bufferConfigs.size() + textureConfigs.size();
-
     for (const TextureConfig &config : textureConfigs) {
         bind(config.bind);
         writes.back().pImageInfo = &config.imageInfo;

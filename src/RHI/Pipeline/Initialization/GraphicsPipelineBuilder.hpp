@@ -37,6 +37,6 @@ public:
 
     GraphicsPipelineBuilder& depthFormat(VkFormat depthFormat);
 
-    void build(VkDevice device, VkPipelineLayout pipelineLayout, ShaderStagesBuilder& shaderBuilder, VkPipeline &pipeline);
+    void build(VkDevice vk_device, VkPipelineLayout pipelineLayout, ShaderStagesBuilder& shaderBuilder, VkPipeline &pipeline);
 private:
 };

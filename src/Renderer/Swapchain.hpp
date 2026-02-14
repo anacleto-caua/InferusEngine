@@ -4,7 +4,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Core/Window.hpp"
 #include "RHI/VulkanContext.hpp"
 
 struct SCImage {
@@ -36,7 +35,7 @@ public:
     Swapchain(const Swapchain&) = delete;
     Swapchain& operator=(const Swapchain&) = delete;
 
-    void init(const VulkanContext &vulkanContext, Window &window);
+    void init(const VulkanContext &vulkanContext);
 
     void recreateSwapchain();
 

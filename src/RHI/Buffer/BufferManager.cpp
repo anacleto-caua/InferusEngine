@@ -8,8 +8,8 @@
 #include "RHI/VulkanContext.hpp"
 #include "RHI/Buffer/BufferCreateOptions.hpp"
 
-void BufferManager::init(VmaAllocator allocator) {
-    this->allocator = allocator;
+void BufferManager::init(VmaAllocator vma_allocator) {
+    this->allocator = vma_allocator;
 
     data.reserve(RHIConfig::BufferManagerConfig::BufferReserveCapacity);
     freeIndices.reserve(RHIConfig::BufferManagerConfig::FreeIndicesReserveCapacity);
@@ -83,21 +83,21 @@ void BufferManager::copy(BufferId srcId, BufferId dstId, const size_t size) {
     vmaCopyMemoryToAllocation(allocator, map(get(srcId).allocation), get(dstId).allocation, 0, size);
 }
 
-void BufferManager::upload(BufferId dstId, void* data) {
-    upload(dstId, data, get(dstId).size);
+void BufferManager::upload(BufferId dstId, void* upload_data) {
+    upload(dstId, upload_data, get(dstId).size);
 }
 
-void BufferManager::upload(VkCommandBuffer &cmd, BufferId stagingId, BufferId dstId, const void* data, const size_t size) {
+void BufferManager::upload(VkCommandBuffer &cmd, BufferId stagingId, BufferId dstId, const void* upload_data, const size_t size) {
         //throw std::runtime_error("tried to upload data to a cpu-visible buffer using a command buffer for staging");
-    upload(stagingId, data, size);
+    upload(stagingId, upload_data, size);
     copy(cmd, stagingId, dstId, size);
     return;
 }
 
-void BufferManager::upload(BufferId dstId, const void* data, const size_t size) {
+void BufferManager::upload(BufferId dstId, const void* upload_data, const size_t size) {
         //throw std::runtime_error("tried to upload data to a gpu-only buffer without a command buffer");
     VmaAllocation alloc = get(dstId).allocation;
-    memcpy(map(alloc), data, size);
+    memcpy(map(alloc), upload_data, size);
     unmap(alloc);
 }
 
@@ -107,7 +107,7 @@ void BufferManager::immediateCopy(VulkanContext &ctx, BufferId srcId, BufferId d
     ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
 }
 
-void BufferManager::immediateUpload(VulkanContext &ctx, BufferId dstId, const void* data, const size_t size) {
+void BufferManager::immediateUpload(VulkanContext &ctx, BufferId dstId, const void* upload_data, const size_t size) {
     VkCommandBuffer cmd = ctx.singleTimeCmdBegin(ctx.transferQueueCtx);
     BufferCreateDescription stagingBufferDesc {
         .size = size,
@@ -116,7 +116,7 @@ void BufferManager::immediateUpload(VulkanContext &ctx, BufferId dstId, const vo
     };
 
     BufferId stagingId = add(stagingBufferDesc);
-    upload(cmd, stagingId, dstId, data, size);
+    upload(cmd, stagingId, dstId, upload_data, size);
     ctx.singleTimeCmdSubmit(ctx.transferQueueCtx, cmd);
 }
 

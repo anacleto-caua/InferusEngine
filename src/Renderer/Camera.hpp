@@ -21,7 +21,7 @@ public:
     Camera(const Camera&) = delete;
     Camera& operator=(const Camera&) = delete;
 
-    void init(glm::mat4* pMvp);
+    void init(glm::mat4* model_view_perspective);
     void setAspect(float aspect);
     void refreshMvp();
 private:

@@ -143,7 +143,7 @@ void MeshApp::createHeightmap() {
     );
 
     Buffer stagingBuffer = bufferManager.get(stagingBufferId);
-    VkBufferImageCopy imageCopy = CopyBufferToImageBuilder::DefaultCopy(bufferManager.get(stagingBufferId), heightmapImage);
+    VkBufferImageCopy imageCopy = CopyBufferToImageBuilder::DefaultCopy(heightmapImage);
 
     vkCmdCopyBufferToImage(
         cmd,

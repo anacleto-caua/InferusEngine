@@ -7,12 +7,12 @@
 
 #include "Default.hpp"
 
-void Camera::init(glm::mat4* pMvp) {
+void Camera::init(glm::mat4* model_view_perspective) {
     const constexpr glm::vec3 STARTING_LOOKING_AT = glm::vec3(0.0f, 0.0f, 0.0f);
     const constexpr glm::vec3 STARTING_CAM_POS    = glm::vec3(-15.0f, 25.0f, -15.0f);
     const constexpr glm::float32_t STARTING_POV   = 90.0;
 
-    this->pMvp = pMvp;
+    this->pMvp = model_view_perspective;
 
     pov     = STARTING_POV;
     camPos  = STARTING_CAM_POS;
@@ -29,9 +29,9 @@ void Camera::init(glm::mat4* pMvp) {
     model = glm::mat4(1.0f);
 }
 
-void Camera::setAspect(float aspect) {
-    this->aspect = aspect;
-    projection[0][0] = focalLength / aspect;
+void Camera::setAspect(float newAspect) {
+    this->aspect = newAspect;
+    projection[0][0] = focalLength / newAspect;
     refreshMvp();
 }
 

@@ -3,9 +3,9 @@
 #include "RHI/RHIConfig.hpp"
 #include "RHI/Image/ImageSystem.hpp"
 
-void ImageSystem::init(VkDevice device, VmaAllocator allocator) {
-    this->device = device;
-    this->allocator = allocator;
+void ImageSystem::init(VkDevice vk_device, VmaAllocator vma_allocator) {
+    this->device = vk_device;
+    this->allocator = vma_allocator;
 
     data.clear();
     data.reserve(RHIConfig::ImageSystemConfig::ImageReserveCapacity);
@@ -90,8 +90,11 @@ void ImageSystem::del(ImageId id) {
     freeIndices.push_back(id.index);
 }
 
-void ImageSystem::upload(ImageId id, void *data, size_t size) {
-    //...
+void ImageSystem::upload(ImageId id, void *upload_data, size_t size) {
+    // Mock usage to avoid compiler warnings
+    (void)id;
+    (void)upload_data;
+    (void)size;
 }
 
 void ImageSystem::destroy(Image image) {

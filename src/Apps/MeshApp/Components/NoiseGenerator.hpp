@@ -1,10 +1,9 @@
 #pragma once
 
 #include <array>
-#include <glm/fwd.hpp>
-#include <vector>
 #include <cstdint>
 
+#include <glm/fwd.hpp>
 #include <FastNoiseLite.hpp>
 
 #include "TerrainConfig.hpp"

@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 #include <glm/fwd.hpp>
-#include <vector>
 
 #include "RHI/Image/ImageSystem.hpp"
 #include "RHI/Image/ImageCreateDescription.hpp"

@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 #include <vma/vk_mem_alloc.h>
+#include <FastNoiseLite.hpp>
 
 #include "RHI/Image/Image.hpp"
 #include "RHI/VulkanContext.hpp"
@@ -20,6 +21,8 @@ public:
     };
 
     glm::vec3* pPlayerPos;
+
+    FastNoiseLite noise;
 
     const VkDeviceSize chunkLinksSize = TerrainConfig::INSTANCE_COUNT * sizeof(ChunkLink);
 

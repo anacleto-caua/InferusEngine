@@ -12,7 +12,12 @@
 #include "Apps/MeshApp/Components/HeightmapConfig.hpp"
 
 void ChunkManager::init(glm::vec3* pPlayerPos,  VmaAllocator allocator, ImageSystem& imageSystem, BufferManager& bufferManager) {
-   this->pPlayerPos = pPlayerPos;
+    this->pPlayerPos = pPlayerPos;
+
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFractalOctaves(8);
+    noise.SetFrequency(.02);
 
     BufferCreateDescription cpuBufferCreateDesc{
         .size = chunkLinksSize,
@@ -111,7 +116,7 @@ void ChunkManager::diamondUpdateChunkLinks() {
 std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> ChunkManager::genHeightmap() {
     std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> chunkData;
     for (ChunkLink chunk: chunkLinks) {
-        chunkData[chunk.heightmapId] = NoiseGenerator::genChunk(chunk.worldPos);
+        chunkData[chunk.heightmapId] = NoiseGenerator::genChunk(noise, chunk.worldPos);
     }
     return chunkData;
 }

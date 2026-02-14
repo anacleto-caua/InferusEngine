@@ -1,9 +1,10 @@
 #include "Engine.hpp"
 
-#include <glm/fwd.hpp>
 #include <string>
 #include <vector>
 #include <cstdint>
+
+#include <glm/fwd.hpp>
 
 void Engine::init(const std::string &appName, glm::mat4* pMvp) {
     uint32_t const WIDTH = 1200;

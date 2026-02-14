@@ -8,5 +8,5 @@
 
 namespace HeightmapConfig {
     constexpr VkFormat IMAGE_FORMAT = VK_FORMAT_R16_UNORM;
-    constexpr VkDeviceSize HEIGHTMAP_SIZE = TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION * sizeof(uint16_t) * TerrainConfig::INSTANCE_COUNT;
+    constexpr size_t HEIGHTMAP_SIZE = TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION * sizeof(uint16_t) * TerrainConfig::INSTANCE_COUNT;
 };

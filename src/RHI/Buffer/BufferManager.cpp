@@ -37,7 +37,7 @@ BufferId BufferManager::add(BufferCreateDescription createDesc) {
 
     VkBufferCreateInfo bufferCreateInfo{};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferCreateInfo.size = createDesc.size;
+    bufferCreateInfo.size = static_cast<VkDeviceSize>(createDesc.size);
     bufferCreateInfo.usage = options.vkUsage;
 
     VmaAllocationCreateInfo allocCreateInfo{};

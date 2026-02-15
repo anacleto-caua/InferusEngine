@@ -3,12 +3,12 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+
 #include <glm/fwd.hpp>
 
 #include "RHI/Image/ImageSystem.hpp"
 #include "RHI/Image/ImageCreateDescription.hpp"
 #include "Apps/MeshApp/Components/TerrainConfig.hpp"
-#include "Apps/MeshApp/Components/NoiseGenerator.hpp"
 #include "Apps/MeshApp/Components/HeightmapConfig.hpp"
 
 void ChunkManager::init(glm::vec3* playerPos, ImageSystem& imageSystem, BufferManager& bufferManager) {
@@ -114,8 +114,23 @@ void ChunkManager::diamondUpdateChunkLinks() {
 
 std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> ChunkManager::genHeightmap() {
     std::array<std::array<uint16_t, TerrainConfig::RESOLUTION * TerrainConfig::RESOLUTION>, TerrainConfig::INSTANCE_COUNT> chunkData;
+    int32_t TerrainRes = TerrainConfig::RESOLUTION;
+
     for (ChunkLink chunk: chunkLinks) {
-        chunkData[chunk.heightmapId] = NoiseGenerator::genChunk(noise, chunk.worldPos);
+        uint32_t index = 0;
+        float globalX, globalZ;
+        for (int32_t x = 0; x < TerrainRes; x++) {
+            globalX = x + ((TerrainRes-1) * chunk.worldPos.x);
+            for (int32_t z = 0; z < TerrainRes; z++) {
+                globalZ = z + ((TerrainRes-1) * chunk.worldPos.y);
+
+                float n = noise.GetNoise(globalX, globalZ);
+                float remapped = (n + 1.0f) * 0.5f * 65535.0f;
+
+                chunkData[chunk.heightmapId][index] = static_cast<uint16_t>(remapped);
+                index++;
+            }
+        }
     }
     return chunkData;
 }

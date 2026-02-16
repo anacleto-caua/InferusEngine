@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Engine/InferusEngine.hpp"
+#include "Apps/MeshApp/MeshApp.hpp"
 
 int main() {
     // [Time] [Log Level] Message
@@ -13,10 +13,11 @@ int main() {
         spdlog::set_level(spdlog::level::debug);
     #endif
 
-    InferusEngine Engine = InferusEngine();
+    MeshApp app = MeshApp();
+    app.init();
 
     try {
-        Engine.Run();
+        app.run();
     } catch (const std::exception &e) {
         spdlog::critical("runtime exception - ", e.what());
         return -1;

@@ -2,16 +2,16 @@
 
 #include <GLFW/glfw3.h>
 
-Window::Window(uint32_t width, uint32_t height, const std::string &title, ResizeCallback callback) {
+Window::Window(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback Callback) {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    glfwWindow = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+    glfwWindow = glfwCreateWindow(Width, Height, Title.c_str(), nullptr, nullptr);
     glfwSetWindowUserPointer(glfwWindow, this);
 
-    userResizeCallback = callback;
+    userResizeCallback = Callback;
     glfwSetFramebufferSizeCallback(glfwWindow, StaticFramebufferResizeCallback);
 }
 
@@ -44,11 +44,11 @@ void Window::Update() {
     glfwPollEvents();
 }
 
-void Window::GetFramebufferSize(uint32_t &width, uint32_t &height) {
+void Window::GetFramebufferSize(uint32_t &Width, uint32_t &Height) {
     int c_width = 0, c_height = 0;
     glfwGetFramebufferSize(glfwWindow, &c_width, &c_height);
-    width = static_cast<uint32_t>(c_width);
-    height = static_cast<uint32_t>(c_height);
+    Width = static_cast<uint32_t>(c_width);
+    Height = static_cast<uint32_t>(c_height);
 }
 
 void Window::StaticFramebufferResizeCallback(GLFWwindow* window, int width, int height) {

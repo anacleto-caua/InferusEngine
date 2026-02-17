@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include "Engine/Renderer/Renderer.hpp"
 #include "Engine/Components/Window.hpp"
 
 class InferusEngine {
@@ -13,6 +14,7 @@ public:
     bool ShouldClose = false;
 
     Window Window;
+    Renderer Renderer;
 private:
 public:
     InferusEngine();
@@ -22,5 +24,5 @@ public:
 
     void Run();
 private:
-    static void Resize(uint32_t Width, uint32_t Height);
+    void Resize(uint32_t Width, uint32_t Height);
 };

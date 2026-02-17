@@ -8,7 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
-using ResizeCallback = std::function<void(uint32_t width, uint32_t height)>;
+using ResizeCallback = std::function<void(uint32_t Width, uint32_t Height)>;
 
 class Window {
 public:

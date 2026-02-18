@@ -1,11 +1,12 @@
 #include "Renderer.hpp"
 
-#include <algorithm>
 #include <cstdint>
 #include <stdexcept>
+#include <algorithm>
 
 #include <spdlog/spdlog.h>
 
+#include "Engine/Renderer/ShaderStageBuilder.hpp"
 #include "Recipes.hpp"
 #include "vulkan/vulkan_core.h"
 
@@ -399,6 +400,13 @@ Renderer::Renderer(Window& Window) {
     Window.GetFramebufferSize(Extent.width, Extent.height);
     RecreateSwapchain(VK_NULL_HANDLE);
 
+    PresentInfo = {};
+    PresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    PresentInfo.swapchainCount = 1;
+    PresentInfo.pSwapchains = &Swapchain;
+    PresentInfo.waitSemaphoreCount = 1;
+    PresentInfo.pImageIndices = &TargetImageViewIndex;
+
     // Create per frame info
     VkSemaphoreCreateInfo SemaphoreCreateInfo {};
     SemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -427,10 +435,163 @@ Renderer::Renderer(Window& Window) {
         vkAllocateCommandBuffers(Device, &AllocInfo, &Frame.CmdBuffer);
     }
 
-    // Create rendering pipeline
+    // Fill general rendering information
+    Scissor = {
+        .offset = { 0, 0 },
+        .extent = Extent
+    };
+
+    Viewport = {
+        .x = 0,
+        .y = 0,
+        .width = static_cast<float>(Extent.width),
+        .height = static_cast<float>(Extent.height),
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+
+    ColorAttachment = Recipes::ColorAttachment::Terrain();
+
+    RenderingInfo = {};
+    RenderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    RenderingInfo.layerCount = 1;
+    RenderingInfo.colorAttachmentCount = 1;
+    RenderingInfo.pColorAttachments = &ColorAttachment;
+
+    PipelineCmdBeginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        .pInheritanceInfo = nullptr
+    };
+
+    PipelineCmdSubmitInfo = {};
+    PipelineCmdSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    PipelineCmdSubmitInfo.waitSemaphoreCount = 1;
+    PipelineCmdSubmitInfo.pWaitDstStageMask = G_PIPELINE_WAIT_STAGES;
+    PipelineCmdSubmitInfo.commandBufferCount = 1;
+    PipelineCmdSubmitInfo.signalSemaphoreCount = 1;
+
+    // Create Terrain Pipeline specific
+
+    /* TODO: Fill in the descriptors stuff
+        std::vector<VkWriteDescriptorSet> writes;
+        std::vector<VkDescriptorSetLayoutBinding> bindings;
+        std::vector<TerrainDescriptorSet> TerrainDescriptorSets {};
+        VkPushConstantRange pushConstantRange{};
+        VkPipelineLayoutCreateInfo layoutCreateInfo{};
+        std::vector<VkDescriptorSetLayout> setLayouts;
+    */
+    TerrainPipelineLayout = {};
+    VkPushConstantRange TerrainPushConstantRange = {
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
+        .offset = 0,
+        .size = static_cast<uint32_t>(sizeof(TerrainPushConstants))
+    };
+
+    VkPipelineLayoutCreateInfo TerrainPipelineLayoutCreateInfo = {};
+    TerrainPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    TerrainPipelineLayoutCreateInfo.setLayoutCount = 0;
+    TerrainPipelineLayoutCreateInfo.pSetLayouts = nullptr;
+    TerrainPipelineLayoutCreateInfo.pPushConstantRanges = &TerrainPushConstantRange;
+    if (vkCreatePipelineLayout(Device, &TerrainPipelineLayoutCreateInfo, nullptr, &TerrainPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Terrain pipeline layout creation failed");
+    }
+
+    // Finally creating the terrain VkPipeline itself
+    // TODO: Check if it's needed since we're already using dynamic rendering
+    std::vector<VkDynamicState> DynamicStates{};
+    DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkPipelineDynamicStateCreateInfo DynamicState{};
+    DynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    DynamicState.dynamicStateCount = static_cast<uint32_t>(DynamicStates.size());
+    DynamicState.pDynamicStates = DynamicStates.data();
+
+    // TODO: Do I need a depth attachment?
+    // Can I use this instead of picking chunks in order? Compare performance
+    VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+    std::array<VkFormat, 1> ColorAttachmentFormats = { SurfaceFormat.format };
+    auto TerrainColorBlendState = Recipes::Pipeline::Parts::ColorBlendAttachmentState::Default();
+    std::vector<VkPipelineColorBlendAttachmentState> TerrainBlendAttachments(ColorAttachmentFormats.size(), TerrainColorBlendState);
+    VkPipelineRenderingCreateInfo RenderingCreateInfo{};
+    RenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    RenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(ColorAttachmentFormats.size());
+    RenderingCreateInfo.pColorAttachmentFormats = ColorAttachmentFormats.data();
+    RenderingCreateInfo.depthAttachmentFormat = DepthAttachmentFormat;
+    RenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+    auto VertexInput = Recipes::Pipeline::Parts::VertexInput::Default();
+    auto InputAssembly = Recipes::Pipeline::Parts::InputAssembly::Default();
+    auto ViewportState = Recipes::Pipeline::Parts::ViewportState::Default();
+    auto Rasterization = Recipes::Pipeline::Parts::Rasterization::Default();
+    auto Multisample = Recipes::Pipeline::Parts::Multisample::Default();
+    auto DepthStencil = Recipes::Pipeline::Parts::DepthStencil::Default();
+    auto ColorBlendState = Recipes::Pipeline::Parts::ColorBlendState::Default(TerrainBlendAttachments);
+
+    VkGraphicsPipelineCreateInfo TerrainPipelineCreateInfo{};
+    TerrainPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    TerrainPipelineCreateInfo.pVertexInputState = &VertexInput;
+    TerrainPipelineCreateInfo.pInputAssemblyState = &InputAssembly;
+    TerrainPipelineCreateInfo.pViewportState = &ViewportState;
+    TerrainPipelineCreateInfo.pRasterizationState = &Rasterization;
+    TerrainPipelineCreateInfo.pMultisampleState = &Multisample;
+    TerrainPipelineCreateInfo.pDepthStencilState = &DepthStencil;
+    TerrainPipelineCreateInfo.pColorBlendState = &ColorBlendState;
+    TerrainPipelineCreateInfo.pDynamicState = &DynamicState;
+    TerrainPipelineCreateInfo.layout = TerrainPipelineLayout;
+    TerrainPipelineCreateInfo.basePipelineIndex = -1;
+    TerrainPipelineCreateInfo.pNext = &RenderingCreateInfo;
+
+    // Add shaders
+    std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
+    std::vector<char> ShaderBuffer;
+    ShaderBuffer.reserve(4096);
+
+    ShaderStages.push_back(
+        ShaderBuilder::CreateShaderStage(
+            VK_SHADER_STAGE_VERTEX_BIT,
+            "shaders/base.vert.spv",
+            ShaderBuffer,
+            Device
+        )
+    );
+    ShaderStages.push_back(
+        ShaderBuilder::CreateShaderStage(
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            "shaders/base.frag.spv",
+            ShaderBuffer,
+            Device
+        )
+    );
+
+    TerrainPipelineCreateInfo.stageCount = static_cast<uint32_t>(ShaderStages.size());
+    TerrainPipelineCreateInfo.pStages = ShaderStages.data();
+
+    if (
+        vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &TerrainPipelineCreateInfo, nullptr, &TerrainPipeline) != VK_SUCCESS
+        ) {
+        throw std::runtime_error("Terrain Pipeline creation failed.");
+    }
+
+    // As of now just destroy the shader modules
+    for (auto ShaderStage : ShaderStages) {
+        if (ShaderStage.module) { vkDestroyShaderModule(Device, ShaderStage.module, nullptr); }
+    }
+
+    // Zeroing terrain push constants
+    TerrainPushConstants = {
+        .CameraMVP = glm::mat4(0),
+        .PlayerPosition = glm::vec3(0),
+        .padding = 0
+    };
 }
 
 Renderer::~Renderer() {
+
+    if (TerrainPipeline) { vkDestroyPipeline(Device, TerrainPipeline, nullptr); }
+    if (TerrainPipelineLayout) { vkDestroyPipelineLayout(Device, TerrainPipelineLayout, nullptr); }
+
     for (FrameData &Frame : Frames) {
         if (Frame.ImageAvailable) { vkDestroySemaphore(Device, Frame.ImageAvailable, nullptr); }
         if (Frame.InFlight) { vkDestroyFence(Device, Frame.InFlight, nullptr); }
@@ -456,54 +617,8 @@ Renderer::~Renderer() {
     if (Instance) { vkDestroyInstance(Instance, nullptr); }
 }
 
-void Renderer::Resize(uint32_t Width, uint32_t Height) {
-    if (Width == 0 || Height == 0) return;
-    vkDeviceWaitIdle(Device);
-    QuerySurfaceCapabilities();
-    VkExtent2D MinExtent = SurfaceCapabilities.minImageExtent;
-    VkExtent2D MaxExtent = SurfaceCapabilities.maxImageExtent;
-    Extent.width = std::clamp(Width, MinExtent.width, MaxExtent.width);
-    Extent.height = std::clamp(Height, MinExtent.height, MaxExtent.height);
-    RecreateSwapchain(Swapchain);
-}
-
-VkCommandBuffer Renderer::SingleTimeCmdBegin(QueueContext& ctx) {
-    VkCommandBufferAllocateInfo AllocInfo{};
-    AllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    AllocInfo.commandPool = ctx.MainCmdPool;
-    AllocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer cmd;
-    vkAllocateCommandBuffers(Device, &AllocInfo, &cmd);
-
-    VkCommandBufferBeginInfo BeginInfo{};
-    BeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cmd, &BeginInfo);
-
-    return cmd;
-}
-
-void Renderer::SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd) {
-    vkEndCommandBuffer(cmd);
-
-    VkSubmitInfo SubmitInfo{};
-    SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    SubmitInfo.commandBufferCount = 1;
-    SubmitInfo.pCommandBuffers = &cmd;
-    vkQueueSubmit(ctx.Queue, 1, &SubmitInfo, VK_NULL_HANDLE);
-
-    vkQueueWaitIdle(ctx.Queue);
-
-    vkFreeCommandBuffers(Device, ctx.MainCmdPool, 1, &cmd);
-}
-
 void Renderer::RecreateSwapchain(VkSwapchainKHR OldSwapchain) {
     vkDeviceWaitIdle(Device);
-    // TODO: Test if it's actually needed
-    // QuerySurfaceCapabilities();
-    // sanitExtent();
     SwapchainCreateInfo.imageExtent = Extent;
     SwapchainCreateInfo.oldSwapchain = OldSwapchain;
     SwapchainCreateInfo.preTransform = SurfaceCapabilities.currentTransform;
@@ -545,15 +660,58 @@ void Renderer::CleanupSwapchainImages() {
     }
 }
 
+void Renderer::Resize(uint32_t Width, uint32_t Height) {
+    if (Width == 0 || Height == 0) return;
+    vkDeviceWaitIdle(Device);
+    QuerySurfaceCapabilities();
+    VkExtent2D MinExtent = SurfaceCapabilities.minImageExtent;
+    VkExtent2D MaxExtent = SurfaceCapabilities.maxImageExtent;
+    Extent.width = std::clamp(Width, MinExtent.width, MaxExtent.width);
+    Extent.height = std::clamp(Height, MinExtent.height, MaxExtent.height);
+    Scissor.extent = Extent;
+    Viewport.width = static_cast<float>(Extent.width);
+    Viewport.height = static_cast<float>(Extent.height);
+    RecreateSwapchain(Swapchain);
+}
+
 void Renderer::QuerySurfaceCapabilities() {
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, Surface, &SurfaceCapabilities);
 }
 
-void Renderer::CreateStaticPipelineData() { }
-
-void Renderer::BindPipeline() { }
 
 void Renderer::Render() { }
+
+VkCommandBuffer Renderer::SingleTimeCmdBegin(QueueContext& ctx) {
+    VkCommandBufferAllocateInfo AllocInfo{};
+    AllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    AllocInfo.commandPool = ctx.MainCmdPool;
+    AllocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer cmd;
+    vkAllocateCommandBuffers(Device, &AllocInfo, &cmd);
+
+    VkCommandBufferBeginInfo BeginInfo{};
+    BeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &BeginInfo);
+
+    return cmd;
+}
+
+void Renderer::SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd) {
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo SubmitInfo{};
+    SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    SubmitInfo.commandBufferCount = 1;
+    SubmitInfo.pCommandBuffers = &cmd;
+    vkQueueSubmit(ctx.Queue, 1, &SubmitInfo, VK_NULL_HANDLE);
+
+    vkQueueWaitIdle(ctx.Queue);
+
+    vkFreeCommandBuffers(Device, ctx.MainCmdPool, 1, &cmd);
+}
 
 #ifndef NDEBUG
 VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::_DebugMessageCallback(

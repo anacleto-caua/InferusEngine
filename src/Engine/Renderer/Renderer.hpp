@@ -3,6 +3,8 @@
 #include <array>
 #include <cstdint>
 
+#include <glm/fwd.hpp>
+#include <glm/ext.hpp>
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
@@ -28,6 +30,18 @@ struct SwapchainImage {
     VkSemaphore RenderFinished = VK_NULL_HANDLE;
 };
 
+struct TerrainDescriptorSet {
+    VkDescriptorSet set = VK_NULL_HANDLE;
+    VkDescriptorPool pool = VK_NULL_HANDLE;
+    VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+};
+
+struct TerrainPushConstants {
+    glm::mat4 CameraMVP;
+    glm::vec3 PlayerPosition;
+    float padding;
+};
+
 class Renderer {
 public:
     // Vulkan Context
@@ -42,7 +56,6 @@ public:
     VkInstance Instance;
     VkPhysicalDevice PhysicalDevice;
     VkDevice Device;
-    VkSurfaceKHR Surface;
     VmaAllocator VmaAllocator;
 
     QueueContext Graphics;
@@ -50,15 +63,11 @@ public:
     QueueContext Transfer;
     QueueContext Compute;
 
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-    std::array<FrameData, MAX_FRAMES_IN_FLIGHT> Frames;
-    uint32_t TargetFrameIndex = 0;
-    uint32_t TargetImageViewIndex = 0;
-
     // Swapchain
-    VkPresentModeKHR PresentMode;
-    VkSurfaceCapabilitiesKHR SurfaceCapabilities;
-    VkSwapchainCreateInfoKHR SwapchainCreateInfo;
+    VkSurfaceKHR Surface;
+    VkPresentModeKHR PresentMode {};
+    VkSurfaceCapabilitiesKHR SurfaceCapabilities {};
+    VkSwapchainCreateInfoKHR SwapchainCreateInfo {};
 
     VkExtent2D Extent;
     VkSurfaceFormatKHR SurfaceFormat;
@@ -67,6 +76,12 @@ public:
     uint32_t SwapchainImageCount = 0;
     VkPresentInfoKHR PresentInfo {};
     std::vector<SwapchainImage> SwapchainImages;
+
+    // Per frame data
+    static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+    std::array<FrameData, MAX_FRAMES_IN_FLIGHT> Frames;
+    uint32_t TargetFrameIndex = 0;
+    uint32_t TargetImageViewIndex = 0;
 
     // Drawing
     static constexpr VkPipelineStageFlags G_PIPELINE_WAIT_STAGES[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -78,6 +93,12 @@ public:
 
     VkCommandBufferBeginInfo PipelineCmdBeginInfo {};
     VkSubmitInfo PipelineCmdSubmitInfo {};
+
+    // Terrain pipeline
+    VkPipeline TerrainPipeline {};
+    VkPipelineLayout TerrainPipelineLayout {};
+    std::vector<TerrainDescriptorSet> TerrainDescriptorSets {};
+    TerrainPushConstants TerrainPushConstants {};
 
 public:
     Renderer(Window& Window);
@@ -92,10 +113,6 @@ public:
 private:
     VkCommandBuffer SingleTimeCmdBegin(QueueContext& ctx);
     void SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd);
-
-    void CreateStaticPipelineData();
-
-    void BindPipeline();
 
     void RefreshExtent();
 

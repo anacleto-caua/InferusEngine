@@ -1,11 +1,11 @@
 #version 450
-
+/*
 layout( push_constant ) uniform constants
 {
-    vec4 data;
     mat4 renderMatrix;
+    vec3 data;
 } PushConstants;
-
+*/
 layout(location = 0) out vec3 fragColor;
 
 
@@ -23,7 +23,8 @@ void main()
         vec3(0.0, 0.0, 1.0)
     );
 
-    gl_Position = PushConstants.renderMatrix * vec4(positions[gl_VertexIndex], 1.0);
+    gl_Position = vec4(positions[gl_VertexIndex], 1.0);
+    //gl_Position = PushConstants.renderMatrix * vec4(positions[gl_VertexIndex], 1.0);
 
     fragColor = colors[gl_VertexIndex];
 }

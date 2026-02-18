@@ -6,9 +6,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Engine/Renderer/Recipes.hpp"
 #include "Engine/Renderer/ShaderStageBuilder.hpp"
-#include "Recipes.hpp"
-#include "vulkan/vulkan_core.h"
 
 Renderer::Renderer(Window& Window) {
     // Instance
@@ -305,6 +304,10 @@ Renderer::Renderer(Window& Window) {
     AllocatorCreateInfo.instance = Instance;
 
     vmaCreateAllocator(&AllocatorCreateInfo, &VmaAllocator);
+
+    // Memory resources management systems
+    BufferSystem.init(VmaAllocator);
+    ImageSystem.init(Device, VmaAllocator);
 
     // Create the rest of queue context
     VkCommandPoolCreateInfo PoolCreateInfo{};

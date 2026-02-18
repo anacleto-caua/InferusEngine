@@ -9,6 +9,8 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "Engine/Components/Window.hpp"
+#include "Engine/Renderer/Image/ImageSystem.hpp"
+#include "Engine/Renderer/Buffer/BufferSystem.hpp"
 
 struct QueueContext {
     uint32_t Index;
@@ -63,6 +65,9 @@ public:
     QueueContext Transfer;
     QueueContext Compute;
 
+    BufferSystem BufferSystem;
+    ImageSystem ImageSystem;
+
     // Swapchain
     VkSurfaceKHR Surface;
     VkPresentModeKHR PresentMode {};
@@ -106,14 +111,14 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void Resize(uint32_t Width, uint32_t Height);
-
     void Render();
 
-private:
+    void Resize(uint32_t Width, uint32_t Height);
+
     VkCommandBuffer SingleTimeCmdBegin(QueueContext& ctx);
     void SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd);
 
+private:
     void RefreshExtent();
 
     void DestroySwapchain(VkSwapchainKHR OldSwapchain);

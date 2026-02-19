@@ -7,7 +7,7 @@
 
 class InferusEngine {
 public:
-    static constexpr std::string_view ENGINE_NAME = "InferusEngine";
+    static constexpr std::string_view ENGINE_NAME = "Inferus Engine";
     static constexpr uint32_t WIDTH = 1280;
     static constexpr uint32_t HEIGHT = 720;
 

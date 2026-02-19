@@ -3,7 +3,7 @@
 #include <cstdint>
 
 InferusEngine::InferusEngine()
-    : Window(WIDTH, HEIGHT, "Inferus Engine", [this](uint32_t w, uint32_t h){this->Resize(w, h);}),
+    : Window(WIDTH, HEIGHT, ENGINE_NAME.data(), [this](uint32_t w, uint32_t h){this->Resize(w, h);}),
     InferusRenderer(Window){
 }
 

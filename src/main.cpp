@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Engine/Types.hpp"
 #include "Engine/InferusEngine.hpp"
 
 int main() {
@@ -14,7 +15,11 @@ int main() {
     #endif
 
     InferusEngine Engine = InferusEngine();
-    Engine.Init();
+
+    if ( Engine.Init() != InferusResult::SUCCESS ) {
+        spdlog::critical("Couldn't open engine.");
+        return -1;
+    }
 
     try {
         Engine.Run();

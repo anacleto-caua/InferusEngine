@@ -460,6 +460,10 @@ InferusResult InferusRenderer::Init(Window& Window) {
     ColorAttachment = Recipes::ColorAttachment::Terrain();
 
     RenderingInfo = {};
+    RenderingInfo.renderArea = {
+        .offset = { 0, 0},
+        .extent = Extent
+    };
     RenderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     RenderingInfo.layerCount = 1;
     RenderingInfo.colorAttachmentCount = 1;
@@ -599,6 +603,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
 }
 
 InferusRenderer::~InferusRenderer() {
+    vkDeviceWaitIdle(Device);
 
     if (TerrainPipeline) { vkDestroyPipeline(Device, TerrainPipeline, nullptr); }
     if (TerrainPipelineLayout) { vkDestroyPipelineLayout(Device, TerrainPipelineLayout, nullptr); }
@@ -682,6 +687,10 @@ void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
     Scissor.extent = Extent;
     Viewport.width = static_cast<float>(Extent.width);
     Viewport.height = static_cast<float>(Extent.height);
+    RenderingInfo.renderArea = {
+        .offset = { 0, 0},
+        .extent = Extent
+    };
     RecreateSwapchain(Swapchain);
 }
 
@@ -689,8 +698,86 @@ void InferusRenderer::QuerySurfaceCapabilities() {
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, Surface, &SurfaceCapabilities);
 }
 
+void InferusRenderer::Render() {
+    FrameData& TargetFrame = Frames[TargetFrameIndex];
+    VkCommandBuffer& cmd = TargetFrame.CmdBuffer;
 
-void InferusRenderer::Render() { }
+    vkWaitForFences(Device, 1, &TargetFrame.InFlight, VK_TRUE, UINT64_MAX);
+
+    VkResult result = vkAcquireNextImageKHR(
+        Device,
+        Swapchain,
+        UINT64_MAX,
+        TargetFrame.ImageAvailable,
+        VK_NULL_HANDLE,
+        &TargetImageViewIndex
+    );
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        return;
+    }
+
+    vkResetCommandBuffer(cmd, 0);
+    vkBeginCommandBuffer(cmd, &PipelineCmdBeginInfo);
+
+    vkResetFences(Device, 1, &TargetFrame.InFlight);
+
+    VkImageMemoryBarrier RenderingBarrier =
+        Recipes::ImageMemoryBarrier::Rendering::EnableRendering(SwapchainImages[TargetImageViewIndex].Image);
+    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &RenderingBarrier
+    );
+
+    ColorAttachment.imageView = SwapchainImages[TargetImageViewIndex].ImageView;
+    vkCmdBeginRendering(cmd, &RenderingInfo);
+    vkCmdSetViewport(cmd, 0, 1, &Viewport);
+    vkCmdSetScissor(cmd, 0, 1, &Scissor);
+
+    // TODO: Actual frame begins
+
+    // TODO: Actual frame ends
+
+    vkCmdEndRendering(cmd);
+
+    VkImageMemoryBarrier PresentingBarrier =
+        Recipes::ImageMemoryBarrier::Rendering::EnablePresenting(SwapchainImages[TargetImageViewIndex].Image);
+    VkPipelineStageFlags srcStage2 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkPipelineStageFlags dstStage2 = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage2,
+        dstStage2,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &PresentingBarrier
+    );
+
+    vkEndCommandBuffer(cmd);
+
+    VkSemaphore RenderWaitSemaphores[] = { TargetFrame.ImageAvailable };
+    VkSemaphore RenderSignalSemaphores[] = { SwapchainImages[TargetImageViewIndex].RenderFinished };
+
+    PipelineCmdSubmitInfo.pCommandBuffers = &cmd;
+    PipelineCmdSubmitInfo.pWaitSemaphores = RenderWaitSemaphores;
+    PipelineCmdSubmitInfo.pSignalSemaphores = RenderSignalSemaphores;
+
+    PresentInfo.pWaitSemaphores = RenderSignalSemaphores;
+
+    vkQueueSubmit(Graphics.Queue, 1, &PipelineCmdSubmitInfo, TargetFrame.InFlight);
+    vkQueuePresentKHR(Present.Queue, &PresentInfo);
+
+    TargetFrameIndex = (TargetFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+}
 
 VkCommandBuffer InferusRenderer::SingleTimeCmdBegin(QueueContext& ctx) {
     VkCommandBufferAllocateInfo AllocInfo{};

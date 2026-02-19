@@ -1,7 +1,6 @@
 #include "InferusRenderer.hpp"
 
 #include <cstdint>
-#include <stdexcept>
 #include <algorithm>
 
 #include <spdlog/spdlog.h>
@@ -9,7 +8,7 @@
 #include "Engine/InferusRenderer/Recipes.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 
-InferusRenderer::InferusRenderer(Window& Window) {
+InferusResult InferusRenderer::Init(Window& Window) {
     // Instance
     VkApplicationInfo AppInfo {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -50,7 +49,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
 
     // Create Vulkan instance
     if (vkCreateInstance(&InstanceCreateInfo, nullptr, &Instance) != VK_SUCCESS) {
-        throw std::runtime_error("Instance creation failed.");
+        spdlog::error("Instance creation failed.");
+        return InferusResult::FAIL;
     }
 
 #ifndef NDEBUG
@@ -114,7 +114,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
     }
 
     if(KingOfTheHillScore < 0) {
-        throw std::runtime_error("No valid Physical Device was found");
+        spdlog::error("No valid Physical Device was found");
+        return InferusResult::FAIL;
     }
 
     // Selecting physical device
@@ -229,7 +230,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
 
     for (QueueRequest Req : QueueRequests) {
         if (Req.LatestScore < 0) {
-            throw std::runtime_error("One or more queues couldn't meet their minimum criteria");
+            spdlog::error("One or more queues couldn't meet their minimum criteria");
+            return InferusResult::FAIL;
         }
     }
 
@@ -294,7 +296,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
     DeviceCreateInfo.pNext = &DeviceFeatures2;
 
     if (vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &Device) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create VkDevice");
+        spdlog::error("Failed to create VkDevice");
+        return InferusResult::FAIL;
     }
 
     // Vma Allocator
@@ -317,7 +320,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
         vkGetDeviceQueue(Device, Queue->Index, 0, &Queue->Queue);
         PoolCreateInfo.queueFamilyIndex = Queue->Index;
         if (vkCreateCommandPool(Device, &PoolCreateInfo, nullptr, &Queue->MainCmdPool) != VK_SUCCESS) {
-            throw std::runtime_error("main command pool creation failed");
+            spdlog::error("main command pool creation failed");
+            return InferusResult::FAIL;
         }
     }
 
@@ -498,7 +502,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
     TerrainPipelineLayoutCreateInfo.pSetLayouts = nullptr;
     TerrainPipelineLayoutCreateInfo.pPushConstantRanges = &TerrainPushConstantRange;
     if (vkCreatePipelineLayout(Device, &TerrainPipelineLayoutCreateInfo, nullptr, &TerrainPipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Terrain pipeline layout creation failed");
+        spdlog::error("Terrain pipeline layout creation failed");
+        return InferusResult::FAIL;
     }
 
     // Finally creating the terrain VkPipeline itself
@@ -574,7 +579,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
     if (
         vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &TerrainPipelineCreateInfo, nullptr, &TerrainPipeline) != VK_SUCCESS
         ) {
-        throw std::runtime_error("Terrain Pipeline creation failed.");
+        spdlog::error("Terrain Pipeline creation failed.");
+        return InferusResult::FAIL;
     }
 
     // As of now just destroy the shader modules
@@ -588,6 +594,8 @@ InferusRenderer::InferusRenderer(Window& Window) {
         .PlayerPosition = glm::vec3(0),
         .padding = 0
     };
+
+    return InferusResult::SUCCESS;
 }
 
 InferusRenderer::~InferusRenderer() {

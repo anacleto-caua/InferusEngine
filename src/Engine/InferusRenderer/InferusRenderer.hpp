@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
+#include "Engine/Types.hpp"
 #include "Engine/Components/Window.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
@@ -106,10 +107,12 @@ public:
     TerrainPushConstants TerrainPushConstants {};
 
 public:
-    InferusRenderer(Window& Window);
+    InferusRenderer() = default;
     ~InferusRenderer();
     InferusRenderer(const InferusRenderer&) = delete;
     InferusRenderer& operator=(const InferusRenderer&) = delete;
+
+    InferusResult Init(Window& Window);
 
     void Render();
 

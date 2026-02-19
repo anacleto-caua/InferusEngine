@@ -14,6 +14,7 @@ int main() {
     #endif
 
     InferusEngine Engine = InferusEngine();
+    Engine.Init();
 
     try {
         Engine.Run();

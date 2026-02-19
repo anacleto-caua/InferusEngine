@@ -6,7 +6,7 @@ set_project("Inferus Engine - The terrain thing.")
 set_version("0.0.1")
 
 -- Defaults to using clang and debug build
-set_languages("c++26")
+set_languages("c++23")
 set_defaultmode("debug")
 
 set_toolchains("clang")
@@ -25,6 +25,14 @@ rule("compile_shaders")
 
         if glslc and os.isfile(glslc) then
             depend.on_changed(function ()
+                local outdir = path.directory(output_file)
+                if not os.exists(outdir) then
+                    os.mkdir(outdir)
+                end
+                if not os.exists(output_file) then
+                    os.touch(output_file)
+                end
+
                 os.vrunv(glslc, {sourcefile, "-o", output_file})
                 print("Compiling: " .. shader_name .. " -> " .. output_file)
             end, {files = sourcefile})
@@ -62,9 +70,6 @@ target("InferusEngine")
     -- Add source files
     add_files("src/**.cpp")
     add_includedirs("src")
-    -- Add shader and asset files to trigger the custom rules
-    add_files("shaders/**.vert", "shaders/**.frag", "shaders/**.comp", {rule = "compile_shaders"})
-    add_files("resources/**", {rule = "copy_assets"})
 
     -- Include directories and set defines
     add_includedirs("src", "libs/vma", "libs/glm-1.0.2", "libs/spdlog/include", "libs/fnl")
@@ -115,6 +120,11 @@ target("InferusEngine")
 
     -- Build Output Directory
     set_targetdir("build/$(plat)/$(mode)")
+
+    -- Add shader and asset files to trigger the custom rules
+    -- At the end, to avoid glslc's "No such file or directory"
+    add_files("shaders/**.vert", "shaders/**.frag", "shaders/**.comp", {rule = "compile_shaders"})
+    add_files("resources/**", {rule = "copy_assets"})
 
 target_end()
 

@@ -8,6 +8,8 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#include "Engine/Types.hpp"
+
 using ResizeCallback = std::function<void(uint32_t Width, uint32_t Height)>;
 
 class Window {
@@ -18,10 +20,12 @@ private:
     ResizeCallback userResizeCallback = nullptr;
 
 public:
-    Window(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback OwnerCallback);
+    Window() = default;
     ~Window();
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
+
+    InferusResult Init(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback OwnerCallback);
 
     std::vector<const char*> GetRequiredExtensions();
     VkResult CreateSurface(VkInstance instance, VkSurfaceKHR &surface);

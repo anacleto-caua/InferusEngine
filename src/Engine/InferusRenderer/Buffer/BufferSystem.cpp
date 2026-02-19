@@ -1,7 +1,8 @@
 #include "BufferSystem.hpp"
 
 #include <cassert>
-#include <stdexcept>
+
+#include <spdlog/spdlog.h>
 
 #include "Engine/InferusRenderer/Buffer/Buffer.hpp"
 #include "Engine/InferusRenderer/RendererConfig.hpp"
@@ -47,7 +48,7 @@ BufferId BufferSystem::add(BufferCreateDescription createDesc) {
     allocCreateInfo.flags = options.vmaFlags;
 
     if (vmaCreateBuffer(Allocator, &bufferCreateInfo, &allocCreateInfo, &buffer.buffer, &buffer.allocation, nullptr) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create buffer");
+        spdlog::error("Buffer creation failed");
     }
 
     buffer.size = createDesc.size;

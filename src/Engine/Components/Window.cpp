@@ -1,18 +1,21 @@
 #include "Window.hpp"
 
-#include <GLFW/glfw3.h>
-
-Window::Window(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback Callback) {
+InferusResult Window::Init(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback Callback) {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     glfwWindow = glfwCreateWindow(Width, Height, Title.c_str(), nullptr, nullptr);
+    if (!glfwWindow) {
+        return InferusResult::FAIL;
+    }
     glfwSetWindowUserPointer(glfwWindow, this);
 
     userResizeCallback = Callback;
     glfwSetFramebufferSizeCallback(glfwWindow, StaticFramebufferResizeCallback);
+
+    return InferusResult::SUCCESS;
 }
 
 Window::~Window() {

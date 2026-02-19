@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include "Engine/Types.hpp"
 #include "Engine/Components/Window.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
 
@@ -17,10 +18,12 @@ public:
     InferusRenderer InferusRenderer;
 private:
 public:
-    InferusEngine();
+    InferusEngine() = default;
     ~InferusEngine();
     InferusEngine(const InferusEngine&) = delete;
     InferusEngine& operator=(const InferusEngine&) = delete;
+
+    InferusResult Init();
 
     void Run();
 private:

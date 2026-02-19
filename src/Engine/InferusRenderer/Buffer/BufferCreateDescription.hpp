@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/Renderer/Buffer/Buffer.hpp"
+#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
 
 struct BufferCreateDescription {
     size_t size = 0;

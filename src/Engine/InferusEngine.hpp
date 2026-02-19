@@ -2,8 +2,8 @@
 
 #include <string_view>
 
-#include "Engine/Renderer/Renderer.hpp"
 #include "Engine/Components/Window.hpp"
+#include "Engine/InferusRenderer/InferusRenderer.hpp"
 
 class InferusEngine {
 public:
@@ -14,7 +14,7 @@ public:
     bool ShouldClose = false;
 
     Window Window;
-    Renderer Renderer;
+    InferusRenderer InferusRenderer;
 private:
 public:
     InferusEngine();

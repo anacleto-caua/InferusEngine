@@ -9,8 +9,8 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "Engine/Components/Window.hpp"
-#include "Engine/Renderer/Image/ImageSystem.hpp"
-#include "Engine/Renderer/Buffer/BufferSystem.hpp"
+#include "Engine/InferusRenderer/Image/ImageSystem.hpp"
+#include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
 struct QueueContext {
     uint32_t Index;
@@ -44,7 +44,7 @@ struct TerrainPushConstants {
     float padding;
 };
 
-class Renderer {
+class InferusRenderer {
 public:
     // Vulkan Context
     static constexpr std::array<const char*, 5> DEVICE_EXTENSIONS = {
@@ -106,10 +106,10 @@ public:
     TerrainPushConstants TerrainPushConstants {};
 
 public:
-    Renderer(Window& Window);
-    ~Renderer();
-    Renderer(const Renderer&) = delete;
-    Renderer& operator=(const Renderer&) = delete;
+    InferusRenderer(Window& Window);
+    ~InferusRenderer();
+    InferusRenderer(const InferusRenderer&) = delete;
+    InferusRenderer& operator=(const InferusRenderer&) = delete;
 
     void Render();
 

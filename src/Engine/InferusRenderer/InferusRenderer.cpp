@@ -1,4 +1,4 @@
-#include "Renderer.hpp"
+#include "InferusRenderer.hpp"
 
 #include <cstdint>
 #include <stdexcept>
@@ -6,10 +6,10 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Engine/Renderer/Recipes.hpp"
-#include "Engine/Renderer/ShaderStageBuilder.hpp"
+#include "Engine/InferusRenderer/Recipes.hpp"
+#include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 
-Renderer::Renderer(Window& Window) {
+InferusRenderer::InferusRenderer(Window& Window) {
     // Instance
     VkApplicationInfo AppInfo {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -122,7 +122,7 @@ Renderer::Renderer(Window& Window) {
 
     VkPhysicalDeviceProperties DeviceProperties;
     vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
-    spdlog::info("Renderer's chosen device: {}", DeviceProperties.deviceName);
+    spdlog::info("InferusRenderer's chosen device: {}", DeviceProperties.deviceName);
 
     // Surface creation
     Window.CreateSurface(Instance, Surface);
@@ -590,7 +590,7 @@ Renderer::Renderer(Window& Window) {
     };
 }
 
-Renderer::~Renderer() {
+InferusRenderer::~InferusRenderer() {
 
     if (TerrainPipeline) { vkDestroyPipeline(Device, TerrainPipeline, nullptr); }
     if (TerrainPipelineLayout) { vkDestroyPipelineLayout(Device, TerrainPipelineLayout, nullptr); }
@@ -620,7 +620,7 @@ Renderer::~Renderer() {
     if (Instance) { vkDestroyInstance(Instance, nullptr); }
 }
 
-void Renderer::RecreateSwapchain(VkSwapchainKHR OldSwapchain) {
+void InferusRenderer::RecreateSwapchain(VkSwapchainKHR OldSwapchain) {
     vkDeviceWaitIdle(Device);
     SwapchainCreateInfo.imageExtent = Extent;
     SwapchainCreateInfo.oldSwapchain = OldSwapchain;
@@ -652,18 +652,18 @@ void Renderer::RecreateSwapchain(VkSwapchainKHR OldSwapchain) {
     DestroySwapchain(OldSwapchain);
 }
 
-void Renderer::DestroySwapchain(VkSwapchainKHR OldSwapchain) {
+void InferusRenderer::DestroySwapchain(VkSwapchainKHR OldSwapchain) {
     if (Swapchain) { vkDestroySwapchainKHR(Device, OldSwapchain, nullptr); }
 }
 
-void Renderer::CleanupSwapchainImages() {
+void InferusRenderer::CleanupSwapchainImages() {
     for (SwapchainImage& SwpchImage : SwapchainImages) {
         if (SwpchImage.ImageView) { vkDestroyImageView(Device, SwpchImage.ImageView, nullptr); }
         if (SwpchImage.RenderFinished) { vkDestroySemaphore(Device, SwpchImage.RenderFinished, nullptr); }
     }
 }
 
-void Renderer::Resize(uint32_t Width, uint32_t Height) {
+void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
     if (Width == 0 || Height == 0) return;
     vkDeviceWaitIdle(Device);
     QuerySurfaceCapabilities();
@@ -677,14 +677,14 @@ void Renderer::Resize(uint32_t Width, uint32_t Height) {
     RecreateSwapchain(Swapchain);
 }
 
-void Renderer::QuerySurfaceCapabilities() {
+void InferusRenderer::QuerySurfaceCapabilities() {
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, Surface, &SurfaceCapabilities);
 }
 
 
-void Renderer::Render() { }
+void InferusRenderer::Render() { }
 
-VkCommandBuffer Renderer::SingleTimeCmdBegin(QueueContext& ctx) {
+VkCommandBuffer InferusRenderer::SingleTimeCmdBegin(QueueContext& ctx) {
     VkCommandBufferAllocateInfo AllocInfo{};
     AllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -702,7 +702,7 @@ VkCommandBuffer Renderer::SingleTimeCmdBegin(QueueContext& ctx) {
     return cmd;
 }
 
-void Renderer::SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd) {
+void InferusRenderer::SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd) {
     vkEndCommandBuffer(cmd);
 
     VkSubmitInfo SubmitInfo{};
@@ -717,7 +717,7 @@ void Renderer::SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd) {
 }
 
 #ifndef NDEBUG
-VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::_DebugMessageCallback(
+VKAPI_ATTR VkBool32 VKAPI_CALL InferusRenderer::_DebugMessageCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
@@ -754,7 +754,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::_DebugMessageCallback(
     return VK_FALSE;
 }
 
-void Renderer::_SetupDebugMessenger() {
+void InferusRenderer::_SetupDebugMessenger() {
     VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
     CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     CreateInfo.messageSeverity =
@@ -779,7 +779,7 @@ void Renderer::_SetupDebugMessenger() {
 
 }
 
-void Renderer::_DestroyDebugUtilsMessengerEXT() {
+void InferusRenderer::_DestroyDebugUtilsMessengerEXT() {
     PFN_vkDestroyDebugUtilsMessengerEXT Func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT");
     if (Func != nullptr) {
         Func(Instance, _DebugMessenger, nullptr);

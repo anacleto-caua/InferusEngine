@@ -1,9 +1,10 @@
 #include "InferusEngine.hpp"
+
 #include <cstdint>
 
 InferusEngine::InferusEngine()
     : Window(WIDTH, HEIGHT, "Inferus Engine", [this](uint32_t w, uint32_t h){this->Resize(w, h);}),
-    Renderer(Window){
+    InferusRenderer(Window){
 }
 
 InferusEngine::~InferusEngine() {
@@ -13,12 +14,12 @@ InferusEngine::~InferusEngine() {
 void InferusEngine::Run() {
     while (!ShouldClose && !Window.ShouldClose()) {
         Window.Update();
-        Renderer.Render();
+    InferusRenderer.Render();
         // ...
     }
     Window.WaitEvents();
 }
 
 void InferusEngine::Resize(uint32_t Width, uint32_t Height) {
-    Renderer.Resize(Width, Height);
+    InferusRenderer.Resize(Width, Height);
 }

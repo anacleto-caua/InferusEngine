@@ -5,8 +5,8 @@
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
-#include "Engine/Renderer/Image/Image.hpp"
-#include "Engine/Renderer/Image/ImageCreateDescription.hpp"
+#include "Engine/InferusRenderer/Image/Image.hpp"
+#include "Engine/InferusRenderer/Image/ImageCreateDescription.hpp"
 
 class ImageSystem {
 public:

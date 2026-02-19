@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "Engine/Renderer/Buffer/Buffer.hpp"
+#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
 
 namespace BufferCreateOptions {
     struct BufferOptions {

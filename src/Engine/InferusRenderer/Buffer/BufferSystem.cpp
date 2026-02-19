@@ -3,9 +3,9 @@
 #include <cassert>
 #include <stdexcept>
 
-#include "Engine/Renderer/Buffer/Buffer.hpp"
-#include "Engine/Renderer/RendererConfig.hpp"
-#include "Engine/Renderer/Buffer/BufferCreateOptions.hpp"
+#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
+#include "Engine/InferusRenderer/RendererConfig.hpp"
+#include "Engine/InferusRenderer/Buffer/BufferCreateOptions.hpp"
 
 void BufferSystem::init(VmaAllocator VmaAllocator) {
     this->Allocator = VmaAllocator;

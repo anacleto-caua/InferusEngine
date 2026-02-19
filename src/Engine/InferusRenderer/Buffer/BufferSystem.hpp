@@ -2,10 +2,8 @@
 
 #include <vector>
 
-#include "Engine/Renderer/Buffer/Buffer.hpp"
-#include "Engine/Renderer/Buffer/BufferCreateDescription.hpp"
-
-class Renderer; // Fix circular dependency
+#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
+#include "Engine/InferusRenderer/Buffer/BufferCreateDescription.hpp"
 
 class BufferSystem {
 public:

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "Engine/Renderer/RendererConfig.hpp"
+#include "Engine/InferusRenderer/RendererConfig.hpp"
 
 void ImageSystem::init(VkDevice VkDevice, VmaAllocator VmaAllocator) {
     this->Device = VkDevice;

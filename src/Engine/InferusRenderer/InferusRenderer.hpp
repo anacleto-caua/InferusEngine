@@ -8,8 +8,10 @@
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
+#include "Engine/Components/Terrain/TerrainConfig.hpp"
 #include "Engine/Types.hpp"
 #include "Engine/Components/Window.hpp"
+#include "Engine/Components/Terrain/TerrainTypes.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
@@ -104,10 +106,19 @@ public:
     // Terrain pipeline
     VkPipeline TerrainPipeline {};
     VkPipelineLayout TerrainPipelineLayout {};
-    // TODO: Unfinished btw
-    VkDescriptorSetLayout layout {};
-    VkDescriptorSet set {};
-    VkDescriptorPool pool {};
+
+    // Heightmap
+    ImageId HeightmapImageId;
+    VkSampler HeightmapTextureSampler;
+
+    // Chunk to Heightmap linking
+    ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeighmatLinking::INSTANCE_COUNT];
+    BufferId ChunkHeightmapLinks_CPU;
+    BufferId ChunkHeightmapLinks_GPU;
+
+    // Terrain descriptor sets
+    TerrainDescriptorSet TerrainDescriptorSet {};
+
     TerrainPushConstants TerrainPushConstants {};
 
     BufferId Terrain_PlaneMeshIndexBufferId;

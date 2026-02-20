@@ -1,5 +1,6 @@
 #include "InferusRenderer.hpp"
 
+#include <array>
 #include <cstdint>
 #include <algorithm>
 
@@ -462,19 +463,17 @@ InferusResult InferusRenderer::Init(Window& Window) {
     };
 
     Viewport = {
-        .x = 0,
-        .y = 0,
+        .x = 0, .y = 0,
         .width = static_cast<float>(Extent.width),
         .height = static_cast<float>(Extent.height),
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f
+        .minDepth = 0.0f, .maxDepth = 1.0f
     };
 
     ColorAttachment = Recipes::ColorAttachment::Terrain();
 
     RenderingInfo = {};
     RenderingInfo.renderArea = {
-        .offset = { 0, 0},
+        .offset = { 0, 0 },
         .extent = Extent
     };
     RenderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -500,14 +499,155 @@ InferusResult InferusRenderer::Init(Window& Window) {
     {
         VkShaderStageFlags AllStages = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
-        /* TODO: Fill in the descriptors stuff
-            std::vector<VkWriteDescriptorSet> writes;
-            std::vector<VkDescriptorSetLayoutBinding> bindings;
-            std::vector<TerrainDescriptorSet> TerrainDescriptorSets {};
-            std::vector<VkDescriptorSetLayout> setLayouts;
-        */
+        // Terrain heightmap
+        {
+            ImageCreateDescription HeightmapImageCreateDesc;
+            HeightmapImageCreateDesc.width = TerrainConfig::Chunk::RESOLUTION;
+            HeightmapImageCreateDesc.height = TerrainConfig::Chunk::RESOLUTION;
+            HeightmapImageCreateDesc.arrayLayers = TerrainConfig::ChunkToHeighmatLinking::INSTANCE_COUNT;
+            HeightmapImageCreateDesc.format = TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_FORMAT;
+            HeightmapImageCreateDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
+            HeightmapImageId = ImageSystem.add(HeightmapImageCreateDesc);
 
+            auto HeightmapSamplerInfo = Recipes::SamplerCreateInfo::HeightmapSampler();
+            vkCreateSampler(Device, &HeightmapSamplerInfo, nullptr, &HeightmapTextureSampler);
+        }
+
+        // Chunk to Heightmap linking
+        {
+            BufferCreateDescription ChunkHeightmapLinksCPU_CreateDesc = {
+                .size = TerrainConfig::ChunkToHeighmatLinking::LINKING_BUFFER_SIZE,
+                .memType = BufferMemoryType::STAGING_UPLOAD,
+                .usage = BufferUsage::STAGING
+            };
+            BufferCreateDescription ChunkHeightmapLinksGPU_CreateDesc = {
+                .size = TerrainConfig::ChunkToHeighmatLinking::LINKING_BUFFER_SIZE,
+                .memType = BufferMemoryType::GPU_STATIC,
+                .usage = BufferUsage::SSBO
+            };
+
+            ChunkHeightmapLinks_CPU = BufferSystem.add(ChunkHeightmapLinksCPU_CreateDesc);
+            ChunkHeightmapLinks_GPU = BufferSystem.add(ChunkHeightmapLinksGPU_CreateDesc);
+        }
+
+        // Terrain System Descriptors
+        {
+            // Heightmap Texture Sampler descriptor
+            auto HeightmapImage = ImageSystem.get(HeightmapImageId);
+            VkDescriptorImageInfo HeightmapTextureDescriptorImageInfo {};
+            HeightmapTextureDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            HeightmapTextureDescriptorImageInfo.imageView = HeightmapImage.imageView;
+            HeightmapTextureDescriptorImageInfo.sampler = HeightmapTextureSampler;
+
+            VkDescriptorSetLayoutBinding HeightmapSetLayoutBinding {};
+            HeightmapSetLayoutBinding.binding = 0;
+            HeightmapSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            HeightmapSetLayoutBinding.descriptorCount = 1;
+            HeightmapSetLayoutBinding.stageFlags = AllStages;
+            HeightmapSetLayoutBinding.pImmutableSamplers = nullptr;
+
+            VkWriteDescriptorSet HeightmapSamplerWrite {};
+            HeightmapSamplerWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            HeightmapSamplerWrite.dstBinding = 0;
+            HeightmapSamplerWrite.dstArrayElement = 0;
+            HeightmapSamplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            HeightmapSamplerWrite.descriptorCount = 1;
+            HeightmapSamplerWrite.pImageInfo = &HeightmapTextureDescriptorImageInfo;
+
+            // Chunk to Heightmap descriptor
+            // TODO: The fact I'm not carrying offsets arround is most definitvelly a bad signal
+            auto ChunkLinkBuffer = BufferSystem.get(ChunkHeightmapLinks_GPU);
+            VkDescriptorBufferInfo ChunkToHeightmapDescriptorBufferInfo {};
+            ChunkToHeightmapDescriptorBufferInfo.buffer = ChunkLinkBuffer.buffer;
+            ChunkToHeightmapDescriptorBufferInfo.offset = 0;
+            ChunkToHeightmapDescriptorBufferInfo.range = ChunkLinkBuffer.size;
+
+            VkDescriptorSetLayoutBinding ChunkLinkBinding {};
+            ChunkLinkBinding.binding = 1;
+            ChunkLinkBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            ChunkLinkBinding.descriptorCount = 1;
+            ChunkLinkBinding.stageFlags = AllStages;
+            ChunkLinkBinding.pImmutableSamplers = nullptr;
+
+            VkWriteDescriptorSet ChunkLinkSSBOWrite {};
+            ChunkLinkSSBOWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            ChunkLinkSSBOWrite.dstBinding = 1;
+            ChunkLinkSSBOWrite.dstArrayElement = 0;
+            ChunkLinkSSBOWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            ChunkLinkSSBOWrite.descriptorCount = 1;
+            ChunkLinkSSBOWrite.pBufferInfo = &ChunkToHeightmapDescriptorBufferInfo;
+
+            // Descriptor layout
+            std::array<VkDescriptorSetLayoutBinding, 2> LayoutBindings = {
+                HeightmapSetLayoutBinding,
+                ChunkLinkBinding
+            };
+            VkDescriptorSetLayoutCreateInfo TerrainDescriptorSetLayoutCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .bindingCount = static_cast<uint32_t>(LayoutBindings.size()),
+                .pBindings = LayoutBindings.data()
+            };
+            if (
+                vkCreateDescriptorSetLayout(
+                    Device,
+                    &TerrainDescriptorSetLayoutCreateInfo,
+                    nullptr,
+                    &TerrainDescriptorSet.layout
+                ) != VK_SUCCESS
+                )
+            {
+                spdlog::error("Terrain descriptor set layout creation failed");
+                return InferusResult::FAIL;
+            }
+
+            // Descriptor pool
+            VkDescriptorPoolSize SamplerHeightmapPoolSize = {
+                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 1
+            };
+            VkDescriptorPoolSize SSBOHeightmapPoolSize = {
+                .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .descriptorCount = 1
+            };
+            std::array<VkDescriptorPoolSize, 2> PoolSize = {
+                SamplerHeightmapPoolSize,
+                SSBOHeightmapPoolSize
+            };
+
+            VkDescriptorPoolCreateInfo PoolInfo{};
+            PoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            PoolInfo.poolSizeCount = static_cast<uint32_t>(PoolSize.size());
+            PoolInfo.pPoolSizes = PoolSize.data();
+            PoolInfo.maxSets = 1;
+
+            if (vkCreateDescriptorPool(Device, &PoolInfo, nullptr, &TerrainDescriptorSet.pool) != VK_SUCCESS) {
+                spdlog::error("Descriptor pool creation failed");
+                return InferusResult::FAIL;
+            }
+
+            VkDescriptorSetAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            allocInfo.descriptorPool = TerrainDescriptorSet.pool;
+            allocInfo.descriptorSetCount = 1;
+            allocInfo.pSetLayouts = &TerrainDescriptorSet.layout;
+
+            if (vkAllocateDescriptorSets(Device, &allocInfo, &TerrainDescriptorSet.set) != VK_SUCCESS) {
+                spdlog::error("Descriptor set allocation failed");
+                return InferusResult::FAIL;
+            }
+
+            std::array<VkWriteDescriptorSet, 2> TerrainWrites = {
+                HeightmapSamplerWrite, ChunkLinkSSBOWrite
+            };
+            for (VkWriteDescriptorSet& write : TerrainWrites) {
+                write.dstSet = TerrainDescriptorSet.set;
+            }
+
+            vkUpdateDescriptorSets(Device, static_cast<uint32_t>(TerrainWrites.size()), TerrainWrites.data(), 0, nullptr);
+        }
 
         TerrainPipelineLayout = {};
         VkPushConstantRange TerrainPushConstantRange = {
@@ -614,17 +754,17 @@ InferusResult InferusRenderer::Init(Window& Window) {
     VkCommandBuffer CreationWiseTransferCmdBuffer = SingleTimeCmdBegin(Transfer);
 
     // Terrain plane mesh indices buffer
-    std::array<uint32_t, TerrainConfig::INDICES_COUNT> TerrainPlaneMeshIndices;
+    std::array<uint32_t, TerrainConfig::Chunk::INDICES_COUNT> TerrainPlaneMeshIndices;
     PlaneMeshIndicesGenerator::GetIndices(TerrainPlaneMeshIndices.data());
 
     BufferCreateDescription Terrain_PlaneMeshIndexBufferCreateDescription = {
-        .size = TerrainConfig::INDICES_BUFFER_SIZE,
+        .size = TerrainConfig::Chunk::INDICES_BUFFER_SIZE,
         .memType = BufferMemoryType::GPU_STATIC,
         .usage = BufferUsage::INDEX,
     };
     Terrain_PlaneMeshIndexBufferId = BufferSystem.add(Terrain_PlaneMeshIndexBufferCreateDescription);
 
-    BufferSystem.upload(CreationWiseTransferCmdBuffer, CreationWiseStagingBuffer, Terrain_PlaneMeshIndexBufferId, TerrainPlaneMeshIndices.data(), TerrainConfig::INDICES_BUFFER_SIZE);
+    BufferSystem.upload(CreationWiseTransferCmdBuffer, CreationWiseStagingBuffer, Terrain_PlaneMeshIndexBufferId, TerrainPlaneMeshIndices.data(), TerrainConfig::Chunk::INDICES_BUFFER_SIZE);
 
     // --- Creation wise command buffer ends
     SingleTimeCmdSubmit(Transfer, CreationWiseTransferCmdBuffer);
@@ -646,6 +786,11 @@ InferusRenderer::~InferusRenderer() {
     BufferSystem.del(Terrain_PlaneMeshIndexBufferId);
     BufferSystem.destroy();
     ImageSystem.destroy();
+
+    if (HeightmapTextureSampler) { vkDestroySampler(Device, HeightmapTextureSampler, nullptr); }
+
+    if (TerrainDescriptorSet.pool) { vkDestroyDescriptorPool(Device, TerrainDescriptorSet.pool, nullptr); }
+    if (TerrainDescriptorSet.layout) { vkDestroyDescriptorSetLayout(Device, TerrainDescriptorSet.layout, nullptr); }
 
     if (TerrainPipeline) { vkDestroyPipeline(Device, TerrainPipeline, nullptr); }
     if (TerrainPipelineLayout) { vkDestroyPipelineLayout(Device, TerrainPipelineLayout, nullptr); }

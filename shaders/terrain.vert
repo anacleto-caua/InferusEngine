@@ -1,6 +1,6 @@
 #version 450
 
-struct ChunkData {
+struct ChunkHeightmapLink {
     ivec2 worldPos;
     uint instanceId;
     uint isVisible;
@@ -9,8 +9,8 @@ struct ChunkData {
 layout(set = 0, binding = 0) uniform sampler2DArray heightmapSampler;
 
 layout(std430, set = 0, binding = 1) readonly buffer ChunkBuffer {
-    ChunkData chunks[];
-} chunkDataBuffer;
+    ChunkHeightmapLink chunks[];
+} chunkLinkDataBuffer;
 
 layout(location = 0) out vec2 texCoord;
 layout(location = 1) out vec3 debugColor;
@@ -25,7 +25,7 @@ const float GRID_SIZE = 20.0;
 const float HEIGHT_SCALE = 5.0;
 
 void main() {
-    ChunkData currentChunk = chunkDataBuffer.chunks[gl_InstanceIndex];
+    ChunkHeightmapLink currentChunk = chunkLinkDataBuffer.chunks[gl_InstanceIndex];
 
     if (currentChunk.isVisible == 0) {
         gl_Position = vec4(0.0/0.0);

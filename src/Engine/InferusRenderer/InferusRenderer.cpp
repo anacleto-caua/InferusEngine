@@ -6,7 +6,9 @@
 #include <spdlog/spdlog.h>
 
 #include "Engine/InferusRenderer/Recipes.hpp"
+#include "Engine/Components/Terrain/TerrainConfig.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
+#include "Engine/Components/Terrain/PlaneMeshIndicesGenerator.hpp"
 
 InferusResult InferusRenderer::Init(Window& Window) {
     // Instance
@@ -309,8 +311,17 @@ InferusResult InferusRenderer::Init(Window& Window) {
     vmaCreateAllocator(&AllocatorCreateInfo, &VmaAllocator);
 
     // Memory resources management systems
-    BufferSystem.init(VmaAllocator);
-    ImageSystem.init(Device, VmaAllocator);
+    BufferSystem.create(VmaAllocator);
+    BufferId CreationWiseStagingBuffer;
+    {
+        BufferCreateDescription CreationWiseStagingBufferCreateDesc = {
+            .size = CREATION_WISE_STAGING_BUFFER_SIZE,
+            .memType = BufferMemoryType::STAGING_UPLOAD,
+            .usage = BufferUsage::STAGING
+        };
+        CreationWiseStagingBuffer = BufferSystem.add(CreationWiseStagingBufferCreateDesc);
+    }
+    ImageSystem.create(Device, VmaAllocator);
 
     // Create the rest of queue context
     VkCommandPoolCreateInfo PoolCreateInfo{};
@@ -415,31 +426,33 @@ InferusResult InferusRenderer::Init(Window& Window) {
     PresentInfo.pImageIndices = &TargetImageViewIndex;
 
     // Create per frame info
-    VkSemaphoreCreateInfo SemaphoreCreateInfo {};
-    SemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    {
+        VkSemaphoreCreateInfo SemaphoreCreateInfo {};
+        SemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VkFenceCreateInfo FenceCreateInfo {};
-    FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    FenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFenceCreateInfo FenceCreateInfo {};
+        FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        FenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    VkCommandPoolCreateInfo CommandPoolCreateInfo {};
-    CommandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    CommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    CommandPoolCreateInfo.queueFamilyIndex = Graphics.Index;
+        VkCommandPoolCreateInfo CommandPoolCreateInfo {};
+        CommandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        CommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        CommandPoolCreateInfo.queueFamilyIndex = Graphics.Index;
 
-    VkCommandBufferAllocateInfo AllocInfo {};
-    AllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    AllocInfo.commandPool = VK_NULL_HANDLE;
-    AllocInfo.commandBufferCount = 1;
+        VkCommandBufferAllocateInfo AllocInfo {};
+        AllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        AllocInfo.commandPool = VK_NULL_HANDLE;
+        AllocInfo.commandBufferCount = 1;
 
-    for (FrameData &Frame : Frames) {
-        vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &Frame.ImageAvailable);
-        vkCreateFence(Device, &FenceCreateInfo, nullptr, &Frame.InFlight);
+        for (FrameData &Frame : Frames) {
+            vkCreateSemaphore(Device, &SemaphoreCreateInfo, nullptr, &Frame.ImageAvailable);
+            vkCreateFence(Device, &FenceCreateInfo, nullptr, &Frame.InFlight);
 
-        vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &Frame.CmdPool);
-        AllocInfo.commandPool = Frame.CmdPool;
-        vkAllocateCommandBuffers(Device, &AllocInfo, &Frame.CmdBuffer);
+            vkCreateCommandPool(Device, &CommandPoolCreateInfo, nullptr, &Frame.CmdPool);
+            AllocInfo.commandPool = Frame.CmdPool;
+            vkAllocateCommandBuffers(Device, &AllocInfo, &Frame.CmdBuffer);
+        }
     }
 
     // Fill general rendering information
@@ -484,113 +497,137 @@ InferusResult InferusRenderer::Init(Window& Window) {
     PipelineCmdSubmitInfo.signalSemaphoreCount = 1;
 
     // Create Terrain Pipeline specific
+    {
+        VkShaderStageFlags AllStages = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
-    /* TODO: Fill in the descriptors stuff
-        std::vector<VkWriteDescriptorSet> writes;
-        std::vector<VkDescriptorSetLayoutBinding> bindings;
-        std::vector<TerrainDescriptorSet> TerrainDescriptorSets {};
-        VkPushConstantRange pushConstantRange{};
-        VkPipelineLayoutCreateInfo layoutCreateInfo{};
-        std::vector<VkDescriptorSetLayout> setLayouts;
-    */
-    TerrainPipelineLayout = {};
-    VkPushConstantRange TerrainPushConstantRange = {
-        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
-        .offset = 0,
-        .size = static_cast<uint32_t>(sizeof(TerrainPushConstants))
+        /* TODO: Fill in the descriptors stuff
+            std::vector<VkWriteDescriptorSet> writes;
+            std::vector<VkDescriptorSetLayoutBinding> bindings;
+            std::vector<TerrainDescriptorSet> TerrainDescriptorSets {};
+            std::vector<VkDescriptorSetLayout> setLayouts;
+        */
+
+
+
+        TerrainPipelineLayout = {};
+        VkPushConstantRange TerrainPushConstantRange = {
+            .stageFlags = AllStages,
+            .offset = 0,
+            .size = static_cast<uint32_t>(sizeof(TerrainPushConstants))
+        };
+
+        VkPipelineLayoutCreateInfo TerrainPipelineLayoutCreateInfo {};
+        TerrainPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        TerrainPipelineLayoutCreateInfo.setLayoutCount = 0;
+        TerrainPipelineLayoutCreateInfo.pSetLayouts = nullptr;
+        TerrainPipelineLayoutCreateInfo.pPushConstantRanges = &TerrainPushConstantRange;
+        if (vkCreatePipelineLayout(Device, &TerrainPipelineLayoutCreateInfo, nullptr, &TerrainPipelineLayout) != VK_SUCCESS) {
+            spdlog::error("Terrain pipeline layout creation failed");
+            return InferusResult::FAIL;
+        }
+
+        // Finally creating the terrain VkPipeline itself
+        // TODO: Check if it's needed since we're already using dynamic rendering
+        std::vector<VkDynamicState> DynamicStates {};
+        DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+        VkPipelineDynamicStateCreateInfo DynamicState {};
+        DynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        DynamicState.dynamicStateCount = static_cast<uint32_t>(DynamicStates.size());
+        DynamicState.pDynamicStates = DynamicStates.data();
+
+        // TODO: Do I need a depth attachment?
+        // Can I use this instead of picking chunks in order? Compare performance
+        VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+        std::array<VkFormat, 1> ColorAttachmentFormats = { SurfaceFormat.format };
+        auto TerrainColorBlendState = Recipes::Pipeline::Parts::ColorBlendAttachmentState::Default();
+        std::vector<VkPipelineColorBlendAttachmentState> TerrainBlendAttachments(ColorAttachmentFormats.size(), TerrainColorBlendState);
+        VkPipelineRenderingCreateInfo RenderingCreateInfo{};
+        RenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+        RenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(ColorAttachmentFormats.size());
+        RenderingCreateInfo.pColorAttachmentFormats = ColorAttachmentFormats.data();
+        RenderingCreateInfo.depthAttachmentFormat = DepthAttachmentFormat;
+        RenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+        auto VertexInput = Recipes::Pipeline::Parts::VertexInput::Default();
+        auto InputAssembly = Recipes::Pipeline::Parts::InputAssembly::Default();
+        auto ViewportState = Recipes::Pipeline::Parts::ViewportState::Default();
+        auto Rasterization = Recipes::Pipeline::Parts::Rasterization::Default();
+        auto Multisample = Recipes::Pipeline::Parts::Multisample::Default();
+        auto DepthStencil = Recipes::Pipeline::Parts::DepthStencil::Default();
+        auto ColorBlendState = Recipes::Pipeline::Parts::ColorBlendState::Default(TerrainBlendAttachments);
+
+        VkGraphicsPipelineCreateInfo TerrainPipelineCreateInfo {};
+        TerrainPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        TerrainPipelineCreateInfo.pVertexInputState = &VertexInput;
+        TerrainPipelineCreateInfo.pInputAssemblyState = &InputAssembly;
+        TerrainPipelineCreateInfo.pViewportState = &ViewportState;
+        TerrainPipelineCreateInfo.pRasterizationState = &Rasterization;
+        TerrainPipelineCreateInfo.pMultisampleState = &Multisample;
+        TerrainPipelineCreateInfo.pDepthStencilState = &DepthStencil;
+        TerrainPipelineCreateInfo.pColorBlendState = &ColorBlendState;
+        TerrainPipelineCreateInfo.pDynamicState = &DynamicState;
+        TerrainPipelineCreateInfo.layout = TerrainPipelineLayout;
+        TerrainPipelineCreateInfo.basePipelineIndex = -1;
+        TerrainPipelineCreateInfo.pNext = &RenderingCreateInfo;
+
+        // Add shaders
+        std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
+        std::vector<char> ShaderBuffer;
+        ShaderBuffer.reserve(4096);
+
+        ShaderStages.push_back(
+            ShaderBuilder::CreateShaderStage(
+                VK_SHADER_STAGE_VERTEX_BIT,
+                "shaders/base.vert.spv",
+                ShaderBuffer,
+                Device
+            )
+        );
+        ShaderStages.push_back(
+            ShaderBuilder::CreateShaderStage(
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                "shaders/base.frag.spv",
+                ShaderBuffer,
+                Device
+            )
+        );
+
+        TerrainPipelineCreateInfo.stageCount = static_cast<uint32_t>(ShaderStages.size());
+        TerrainPipelineCreateInfo.pStages = ShaderStages.data();
+
+        if (
+            vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &TerrainPipelineCreateInfo, nullptr, &TerrainPipeline) != VK_SUCCESS
+            ) {
+            spdlog::error("Terrain Pipeline creation failed.");
+            return InferusResult::FAIL;
+        }
+
+        // TODO: Add caching
+        // As of now just destroy the shader modules
+        for (auto ShaderStage : ShaderStages) {
+            if (ShaderStage.module) { vkDestroyShaderModule(Device, ShaderStage.module, nullptr); }
+        }
+    }
+
+    // --- Creation wise command buffer begins
+    VkCommandBuffer CreationWiseTransferCmdBuffer = SingleTimeCmdBegin(Transfer);
+
+    // Terrain plane mesh indices buffer
+    std::array<uint32_t, TerrainConfig::INDICES_COUNT> TerrainPlaneMeshIndices;
+    PlaneMeshIndicesGenerator::GetIndices(TerrainPlaneMeshIndices.data());
+
+    BufferCreateDescription Terrain_PlaneMeshIndexBufferCreateDescription = {
+        .size = TerrainConfig::INDICES_BUFFER_SIZE,
+        .memType = BufferMemoryType::GPU_STATIC,
+        .usage = BufferUsage::INDEX,
     };
+    Terrain_PlaneMeshIndexBufferId = BufferSystem.add(Terrain_PlaneMeshIndexBufferCreateDescription);
 
-    VkPipelineLayoutCreateInfo TerrainPipelineLayoutCreateInfo = {};
-    TerrainPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    TerrainPipelineLayoutCreateInfo.setLayoutCount = 0;
-    TerrainPipelineLayoutCreateInfo.pSetLayouts = nullptr;
-    TerrainPipelineLayoutCreateInfo.pPushConstantRanges = &TerrainPushConstantRange;
-    if (vkCreatePipelineLayout(Device, &TerrainPipelineLayoutCreateInfo, nullptr, &TerrainPipelineLayout) != VK_SUCCESS) {
-        spdlog::error("Terrain pipeline layout creation failed");
-        return InferusResult::FAIL;
-    }
+    BufferSystem.upload(CreationWiseTransferCmdBuffer, CreationWiseStagingBuffer, Terrain_PlaneMeshIndexBufferId, TerrainPlaneMeshIndices.data(), TerrainConfig::INDICES_BUFFER_SIZE);
 
-    // Finally creating the terrain VkPipeline itself
-    // TODO: Check if it's needed since we're already using dynamic rendering
-    std::vector<VkDynamicState> DynamicStates{};
-    DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-    VkPipelineDynamicStateCreateInfo DynamicState{};
-    DynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    DynamicState.dynamicStateCount = static_cast<uint32_t>(DynamicStates.size());
-    DynamicState.pDynamicStates = DynamicStates.data();
-
-    // TODO: Do I need a depth attachment?
-    // Can I use this instead of picking chunks in order? Compare performance
-    VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
-
-    std::array<VkFormat, 1> ColorAttachmentFormats = { SurfaceFormat.format };
-    auto TerrainColorBlendState = Recipes::Pipeline::Parts::ColorBlendAttachmentState::Default();
-    std::vector<VkPipelineColorBlendAttachmentState> TerrainBlendAttachments(ColorAttachmentFormats.size(), TerrainColorBlendState);
-    VkPipelineRenderingCreateInfo RenderingCreateInfo{};
-    RenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    RenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(ColorAttachmentFormats.size());
-    RenderingCreateInfo.pColorAttachmentFormats = ColorAttachmentFormats.data();
-    RenderingCreateInfo.depthAttachmentFormat = DepthAttachmentFormat;
-    RenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-
-    auto VertexInput = Recipes::Pipeline::Parts::VertexInput::Default();
-    auto InputAssembly = Recipes::Pipeline::Parts::InputAssembly::Default();
-    auto ViewportState = Recipes::Pipeline::Parts::ViewportState::Default();
-    auto Rasterization = Recipes::Pipeline::Parts::Rasterization::Default();
-    auto Multisample = Recipes::Pipeline::Parts::Multisample::Default();
-    auto DepthStencil = Recipes::Pipeline::Parts::DepthStencil::Default();
-    auto ColorBlendState = Recipes::Pipeline::Parts::ColorBlendState::Default(TerrainBlendAttachments);
-
-    VkGraphicsPipelineCreateInfo TerrainPipelineCreateInfo{};
-    TerrainPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    TerrainPipelineCreateInfo.pVertexInputState = &VertexInput;
-    TerrainPipelineCreateInfo.pInputAssemblyState = &InputAssembly;
-    TerrainPipelineCreateInfo.pViewportState = &ViewportState;
-    TerrainPipelineCreateInfo.pRasterizationState = &Rasterization;
-    TerrainPipelineCreateInfo.pMultisampleState = &Multisample;
-    TerrainPipelineCreateInfo.pDepthStencilState = &DepthStencil;
-    TerrainPipelineCreateInfo.pColorBlendState = &ColorBlendState;
-    TerrainPipelineCreateInfo.pDynamicState = &DynamicState;
-    TerrainPipelineCreateInfo.layout = TerrainPipelineLayout;
-    TerrainPipelineCreateInfo.basePipelineIndex = -1;
-    TerrainPipelineCreateInfo.pNext = &RenderingCreateInfo;
-
-    // Add shaders
-    std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
-    std::vector<char> ShaderBuffer;
-    ShaderBuffer.reserve(4096);
-
-    ShaderStages.push_back(
-        ShaderBuilder::CreateShaderStage(
-            VK_SHADER_STAGE_VERTEX_BIT,
-            "shaders/base.vert.spv",
-            ShaderBuffer,
-            Device
-        )
-    );
-    ShaderStages.push_back(
-        ShaderBuilder::CreateShaderStage(
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "shaders/base.frag.spv",
-            ShaderBuffer,
-            Device
-        )
-    );
-
-    TerrainPipelineCreateInfo.stageCount = static_cast<uint32_t>(ShaderStages.size());
-    TerrainPipelineCreateInfo.pStages = ShaderStages.data();
-
-    if (
-        vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &TerrainPipelineCreateInfo, nullptr, &TerrainPipeline) != VK_SUCCESS
-        ) {
-        spdlog::error("Terrain Pipeline creation failed.");
-        return InferusResult::FAIL;
-    }
-
-    // As of now just destroy the shader modules
-    for (auto ShaderStage : ShaderStages) {
-        if (ShaderStage.module) { vkDestroyShaderModule(Device, ShaderStage.module, nullptr); }
-    }
+    // --- Creation wise command buffer ends
+    SingleTimeCmdSubmit(Transfer, CreationWiseTransferCmdBuffer);
 
     // Zeroing terrain push constants
     TerrainPushConstants = {
@@ -599,11 +636,16 @@ InferusResult InferusRenderer::Init(Window& Window) {
         .padding = 0
     };
 
+    BufferSystem.del(CreationWiseStagingBuffer);
     return InferusResult::SUCCESS;
 }
 
 InferusRenderer::~InferusRenderer() {
     vkDeviceWaitIdle(Device);
+
+    BufferSystem.del(Terrain_PlaneMeshIndexBufferId);
+    BufferSystem.destroy();
+    ImageSystem.destroy();
 
     if (TerrainPipeline) { vkDestroyPipeline(Device, TerrainPipeline, nullptr); }
     if (TerrainPipelineLayout) { vkDestroyPipelineLayout(Device, TerrainPipelineLayout, nullptr); }
@@ -633,6 +675,7 @@ InferusRenderer::~InferusRenderer() {
     if (Instance) { vkDestroyInstance(Instance, nullptr); }
 }
 
+// TODO: Make this async
 void InferusRenderer::RecreateSwapchain(VkSwapchainKHR OldSwapchain) {
     vkDeviceWaitIdle(Device);
     SwapchainCreateInfo.imageExtent = Extent;
@@ -688,7 +731,7 @@ void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
     Viewport.width = static_cast<float>(Extent.width);
     Viewport.height = static_cast<float>(Extent.height);
     RenderingInfo.renderArea = {
-        .offset = { 0, 0},
+        .offset = { 0, 0 },
         .extent = Extent
     };
     RecreateSwapchain(Swapchain);

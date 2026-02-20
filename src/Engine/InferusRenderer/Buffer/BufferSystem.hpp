@@ -14,11 +14,13 @@ private:
 
 public:
     BufferSystem() = default;
-    ~BufferSystem();
+    ~BufferSystem() = default;
     BufferSystem(const BufferSystem&) = delete;
     BufferSystem& operator=(const BufferSystem&) = delete;
 
-    void init(VmaAllocator VmaAllocator);
+    void create(VmaAllocator VmaAllocator);
+    void destroy();
+
     BufferId add(BufferCreateDescription createDesc);
     Buffer& get(BufferId id);
 
@@ -31,7 +33,8 @@ public:
 
     void del(BufferId id);
 private:
-    void destroy(Buffer buffer);
+    void destroy(Buffer& buffer);
+
     void* map(const VmaAllocation alloc);
     void unmap(const VmaAllocation alloc);
 };

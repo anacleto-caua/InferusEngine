@@ -34,9 +34,9 @@ struct SwapchainImage {
 };
 
 struct TerrainDescriptorSet {
+    VkDescriptorSetLayout layout = VK_NULL_HANDLE;
     VkDescriptorSet set = VK_NULL_HANDLE;
     VkDescriptorPool pool = VK_NULL_HANDLE;
-    VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 };
 
 struct TerrainPushConstants {
@@ -67,6 +67,7 @@ public:
     QueueContext Compute;
 
     BufferSystem BufferSystem;
+    static constexpr size_t CREATION_WISE_STAGING_BUFFER_SIZE = 1 * 1024 * 1024;
     ImageSystem ImageSystem;
 
     // Swapchain
@@ -103,8 +104,13 @@ public:
     // Terrain pipeline
     VkPipeline TerrainPipeline {};
     VkPipelineLayout TerrainPipelineLayout {};
-    std::vector<TerrainDescriptorSet> TerrainDescriptorSets {};
+    // TODO: Unfinished btw
+    VkDescriptorSetLayout layout {};
+    VkDescriptorSet set {};
+    VkDescriptorPool pool {};
     TerrainPushConstants TerrainPushConstants {};
+
+    BufferId Terrain_PlaneMeshIndexBufferId;
 
 public:
     InferusRenderer() = default;

@@ -15,11 +15,7 @@ InferusResult InferusEngine::Init(){
         spdlog::error("Window creation failed.");
         return InferusResult::FAIL;
     }
-/*
-    uint32_t w, h;
-    Window.GetFramebufferSize(w, h);
-    InferusRenderer.Resize(w, h);
-*/
+
     return InferusResult::SUCCESS;
 }
 

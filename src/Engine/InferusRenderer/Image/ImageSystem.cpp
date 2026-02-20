@@ -4,7 +4,7 @@
 
 #include "Engine/InferusRenderer/RendererConfig.hpp"
 
-void ImageSystem::init(VkDevice VkDevice, VmaAllocator VmaAllocator) {
+void ImageSystem::create(VkDevice VkDevice, VmaAllocator VmaAllocator) {
     this->Device = VkDevice;
     this->Allocator = VmaAllocator;
 
@@ -14,7 +14,7 @@ void ImageSystem::init(VkDevice VkDevice, VmaAllocator VmaAllocator) {
     FreeIndices.reserve(RendererConfig::ImageSystem::FREE_INDICES_RESERVE_CAPACITY);
 }
 
-ImageSystem::~ImageSystem() {
+void ImageSystem::destroy() {
     for (auto image: Data) {
         destroy(image);
     }
@@ -98,7 +98,9 @@ void ImageSystem::upload(ImageId id, void *upload_data, size_t size) {
     (void)size;
 }
 
-void ImageSystem::destroy(Image image) {
+void ImageSystem::destroy(Image& image) {
     vkDestroyImageView(Device, image.imageView, nullptr);
     vmaDestroyImage(Allocator, image.image, image.allocation);
+    image.image = VK_NULL_HANDLE;
+    image.imageView = VK_NULL_HANDLE;
 }

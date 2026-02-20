@@ -4,11 +4,11 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
 #include "Engine/InferusRenderer/RendererConfig.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferCreateOptions.hpp"
+#include "vulkan/vulkan_core.h"
 
-void BufferSystem::init(VmaAllocator VmaAllocator) {
+void BufferSystem::create(VmaAllocator VmaAllocator) {
     this->Allocator = VmaAllocator;
 
     Data.clear();
@@ -17,8 +17,8 @@ void BufferSystem::init(VmaAllocator VmaAllocator) {
     FreeIndices.reserve(RendererConfig::BufferSystem::FREE_INDICES_RESERVE_CAPACITY);
 }
 
-BufferSystem::~BufferSystem() {
-    for (Buffer buffer : Data) {
+void BufferSystem::destroy() {
+    for (Buffer& buffer : Data) {
         destroy(buffer);
     }
 }
@@ -68,7 +68,9 @@ Buffer& BufferSystem::get(BufferId id) {
 }
 
 void BufferSystem::del(BufferId id) {
-    destroy(get(id));
+    Buffer& buffer = get(id);
+    destroy(buffer);
+    FreeIndices.push_back(id);
 }
 
 void BufferSystem::copy(VkCommandBuffer &cmd, BufferId srcId, BufferId dstId, const size_t size) {
@@ -109,6 +111,8 @@ void BufferSystem::unmap(const VmaAllocation alloc) {
     vmaUnmapMemory(Allocator, alloc);
 }
 
-void BufferSystem::destroy(Buffer buffer) {
+void BufferSystem::destroy(Buffer& buffer) {
     if (buffer.buffer) { vmaDestroyBuffer(Allocator, buffer.buffer, buffer.allocation); }
+    buffer.buffer = VK_NULL_HANDLE;
+    buffer.allocation = VK_NULL_HANDLE;
 }

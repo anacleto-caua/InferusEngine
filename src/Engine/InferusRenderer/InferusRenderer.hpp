@@ -43,8 +43,7 @@ struct TerrainDescriptorSet {
 
 struct TerrainPushConstants {
     glm::mat4 CameraMVP;
-    glm::vec3 PlayerPosition;
-    float padding;
+    glm::vec4 PlayerPosition;
 };
 
 class InferusRenderer {
@@ -103,6 +102,9 @@ public:
     VkCommandBufferBeginInfo PipelineCmdBeginInfo {};
     VkSubmitInfo PipelineCmdSubmitInfo {};
 
+    // Terrain plane mesh
+    BufferId Terrain_PlaneMeshIndexBufferId;
+
     // Terrain pipeline
     VkPipeline TerrainPipeline {};
     VkPipelineLayout TerrainPipelineLayout {};
@@ -110,6 +112,7 @@ public:
     // Heightmap
     ImageId HeightmapImageId;
     VkSampler HeightmapTextureSampler;
+    BufferId HeightmapStagingBufferId;
 
     // Chunk to Heightmap linking
     ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT];
@@ -119,9 +122,8 @@ public:
     // Terrain descriptor sets
     TerrainDescriptorSet TerrainDescriptorSet {};
 
+    // Push constants
     TerrainPushConstants TerrainPushConstants {};
-
-    BufferId Terrain_PlaneMeshIndexBufferId;
 
 public:
     InferusRenderer() = default;
@@ -132,6 +134,10 @@ public:
     InferusResult Init(Window& Window);
 
     void Render();
+
+    // TODO:
+    // That's kinda hacky, find a better way, separate the Renderer Data management from the renderer itself
+    void FullFeedTerrainData(ChunkHeightmapLink* ChunkLinkSrc, uint16_t* HeightmapSrc);
 
     void Resize(uint32_t Width, uint32_t Height);
 

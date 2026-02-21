@@ -499,6 +499,8 @@ InferusResult InferusRenderer::Init(Window& Window) {
     {
         VkShaderStageFlags AllStages = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
+        // TODO: I'm mostly def handling staging buffer in a very very dumb way
+
         // Terrain heightmap
         {
             ImageCreateDescription HeightmapImageCreateDesc;
@@ -512,6 +514,13 @@ InferusResult InferusRenderer::Init(Window& Window) {
 
             auto HeightmapSamplerInfo = Recipes::SamplerCreateInfo::HeightmapSampler();
             vkCreateSampler(Device, &HeightmapSamplerInfo, nullptr, &HeightmapTextureSampler);
+
+            BufferCreateDescription HeightmapStagingBufferId_CreateInfo = {
+                .size = TerrainConfig::Heightmap::HEIGHTMAP_ALL_IMAGES_SIZE,
+                .memType = BufferMemoryType::STAGING_UPLOAD,
+                .usage = BufferUsage::STAGING
+            };
+            HeightmapStagingBufferId = BufferSystem.add(HeightmapStagingBufferId_CreateInfo);
         }
 
         // Chunk to Heightmap linking
@@ -658,9 +667,10 @@ InferusResult InferusRenderer::Init(Window& Window) {
 
         VkPipelineLayoutCreateInfo TerrainPipelineLayoutCreateInfo {};
         TerrainPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        TerrainPipelineLayoutCreateInfo.setLayoutCount = 0;
-        TerrainPipelineLayoutCreateInfo.pSetLayouts = nullptr;
+        TerrainPipelineLayoutCreateInfo.setLayoutCount = 1;
+        TerrainPipelineLayoutCreateInfo.pSetLayouts = &TerrainDescriptorSet.layout;
         TerrainPipelineLayoutCreateInfo.pPushConstantRanges = &TerrainPushConstantRange;
+        TerrainPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
         if (vkCreatePipelineLayout(Device, &TerrainPipelineLayoutCreateInfo, nullptr, &TerrainPipelineLayout) != VK_SUCCESS) {
             spdlog::error("Terrain pipeline layout creation failed");
             return InferusResult::FAIL;
@@ -719,7 +729,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
         ShaderStages.push_back(
             ShaderBuilder::CreateShaderStage(
                 VK_SHADER_STAGE_VERTEX_BIT,
-                "shaders/base.vert.spv",
+                "shaders/terrain.vert.spv",
                 ShaderBuffer,
                 Device
             )
@@ -727,7 +737,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
         ShaderStages.push_back(
             ShaderBuilder::CreateShaderStage(
                 VK_SHADER_STAGE_FRAGMENT_BIT,
-                "shaders/base.frag.spv",
+                "shaders/terrain.frag.spv",
                 ShaderBuffer,
                 Device
             )
@@ -772,8 +782,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
     // Zeroing terrain push constants
     TerrainPushConstants = {
         .CameraMVP = glm::mat4(0),
-        .PlayerPosition = glm::vec3(0),
-        .padding = 0
+        .PlayerPosition = glm::vec4(0)
     };
 
     BufferSystem.del(CreationWiseStagingBuffer);
@@ -864,6 +873,10 @@ void InferusRenderer::CleanupSwapchainImages() {
     }
 }
 
+void InferusRenderer::QuerySurfaceCapabilities() {
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, Surface, &SurfaceCapabilities);
+}
+
 void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
     if (Width == 0 || Height == 0) return;
     vkDeviceWaitIdle(Device);
@@ -882,8 +895,80 @@ void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
     RecreateSwapchain(Swapchain);
 }
 
-void InferusRenderer::QuerySurfaceCapabilities() {
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, Surface, &SurfaceCapabilities);
+void InferusRenderer::FullFeedTerrainData(ChunkHeightmapLink* ChunkLinkSrc, uint16_t* HeightmapSrc) {
+    VkCommandBuffer cmd = SingleTimeCmdBegin(Transfer);
+
+    // Copy chunk link buffer
+    BufferSystem.upload(cmd, ChunkHeightmapLinks_CPU, ChunkHeightmapLinks_GPU, ChunkLinkSrc, TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE);
+
+    // Upload heightmap to staging buffer
+    BufferSystem.upload(HeightmapStagingBufferId, HeightmapSrc, TerrainConfig::Heightmap::HEIGHTMAP_ALL_IMAGES_SIZE);
+    Buffer HeightmapStagingBuffer = BufferSystem.get(HeightmapStagingBufferId);
+    Image HeightmapImage = ImageSystem.get(HeightmapImageId);
+
+    // Transfer data to heightmap image
+    VkImageMemoryBarrier barrier1 = Recipes::ImageMemoryBarrier::TransferDest(HeightmapImage);
+    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier1
+    );
+
+    VkBufferImageCopy HeightmapCopy = Recipes::BufferImageCopy::Default(HeightmapImage);
+    vkCmdCopyBufferToImage(
+        cmd,
+        HeightmapStagingBuffer.buffer,
+        HeightmapImage.image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &HeightmapCopy
+    );
+
+    VkImageMemoryBarrier barrier2 = Recipes::ImageMemoryBarrier::ShaderRead(HeightmapImage);
+    barrier2.srcQueueFamilyIndex = Transfer.Index;
+    barrier2.dstQueueFamilyIndex = Graphics.Index;
+    barrier2.dstAccessMask = 0;
+    srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier2
+    );
+
+    SingleTimeCmdSubmit(Transfer, cmd);
+
+    cmd = SingleTimeCmdBegin(Graphics);
+
+    VkImageMemoryBarrier barrier3 = Recipes::ImageMemoryBarrier::ShaderRead(HeightmapImage);
+    barrier3.srcQueueFamilyIndex = Transfer.Index;
+    barrier3.dstQueueFamilyIndex = Graphics.Index;
+    barrier3.srcAccessMask = 0;
+    srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier3
+    );
+
+    SingleTimeCmdSubmit(Graphics, cmd);
 }
 
 void InferusRenderer::Render() {
@@ -929,9 +1014,34 @@ void InferusRenderer::Render() {
     vkCmdSetViewport(cmd, 0, 1, &Viewport);
     vkCmdSetScissor(cmd, 0, 1, &Scissor);
 
-    // TODO: Actual frame begins
+    // Actual frame begins
 
-    // TODO: Actual frame ends
+    vkCmdBindIndexBuffer(cmd, BufferSystem.get(Terrain_PlaneMeshIndexBufferId).buffer, 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdPushConstants(
+        cmd,
+        TerrainPipelineLayout,
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        0,
+        sizeof(TerrainPushConstants),
+        &TerrainPushConstants
+    );
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, TerrainPipeline);
+    vkCmdBindDescriptorSets(
+        cmd,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        TerrainPipelineLayout,
+        0, // Probably a bad idea the way I carry this binding value lol TEXTURE_SAMPLER_BINDING,
+        1,
+        &TerrainDescriptorSet.set,
+        0,
+        nullptr
+    );
+
+    vkCmdDrawIndexed(cmd, TerrainConfig::Chunk::INDICES_COUNT, TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT, 0, 0, 0);
+
+    // Actual frame ends
 
     vkCmdEndRendering(cmd);
 

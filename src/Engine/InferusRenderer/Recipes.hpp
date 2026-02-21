@@ -194,6 +194,24 @@ namespace Recipes {
             return samplerInfo;
         };
     };
+    namespace BufferImageCopy {
+       RECIPE VkBufferImageCopy Default(Image& image) {
+            VkBufferImageCopy imageCopy {
+                .bufferOffset = 0,
+                .bufferRowLength = 0,
+                .bufferImageHeight = 0,
+                .imageSubresource = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .mipLevel = 0,
+                    .baseArrayLayer = 0,
+                    .layerCount = image.arrayLayers
+                },
+                .imageOffset = {0, 0, 0},
+                .imageExtent = {image.width, image.height, 1}
+            };
+            return imageCopy;
+       }
+    };
     namespace ImageMemoryBarrier {
         RECIPE VkImageMemoryBarrier RawDefault(VkImage image) {
             VkImageMemoryBarrier Barrier {

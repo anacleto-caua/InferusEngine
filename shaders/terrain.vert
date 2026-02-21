@@ -17,7 +17,8 @@ layout(location = 1) out vec3 debugColor;
 
 layout(push_constant) uniform PushConstants {
     mat4 lookAt;
-    vec4 data;
+    vec3 playerPos;
+    float padding;
 } terrain_push;
 
 const int RESOLUTION = 64;

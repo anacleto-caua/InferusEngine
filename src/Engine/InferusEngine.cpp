@@ -19,6 +19,7 @@ InferusResult InferusEngine::Init(){
     }
 
     TerrainSystem.Init(&PlayerPos);
+    InferusRenderer.FullFeedTerrainData(TerrainSystem.ChunkLinksBuffer.data(), TerrainSystem.HeightmapsBuffer.data());
 
     return InferusResult::SUCCESS;
 }

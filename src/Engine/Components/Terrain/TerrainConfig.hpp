@@ -34,5 +34,7 @@ namespace TerrainConfig {
         constexpr size_t HEIGHTMAP_ALL_IMAGES_PIXEL_COUNT = HEIGHTMAP_IMAGE_PIXEL_COUNT * TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT;
 
         constexpr size_t HEIGHTMAP_IMAGE_SIZE =  HEIGHTMAP_IMAGE_PIXEL_COUNT * sizeof(uint16_t);
+
+        constexpr size_t HEIGHTMAP_ALL_IMAGES_SIZE =  HEIGHTMAP_ALL_IMAGES_PIXEL_COUNT * sizeof(uint16_t);
     };
 };

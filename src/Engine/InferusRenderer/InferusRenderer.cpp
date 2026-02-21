@@ -504,7 +504,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
             ImageCreateDescription HeightmapImageCreateDesc;
             HeightmapImageCreateDesc.width = TerrainConfig::Chunk::RESOLUTION;
             HeightmapImageCreateDesc.height = TerrainConfig::Chunk::RESOLUTION;
-            HeightmapImageCreateDesc.arrayLayers = TerrainConfig::ChunkToHeighmatLinking::INSTANCE_COUNT;
+            HeightmapImageCreateDesc.arrayLayers = TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT;
             HeightmapImageCreateDesc.format = TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_FORMAT;
             HeightmapImageCreateDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -517,12 +517,12 @@ InferusResult InferusRenderer::Init(Window& Window) {
         // Chunk to Heightmap linking
         {
             BufferCreateDescription ChunkHeightmapLinksCPU_CreateDesc = {
-                .size = TerrainConfig::ChunkToHeighmatLinking::LINKING_BUFFER_SIZE,
+                .size = TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE,
                 .memType = BufferMemoryType::STAGING_UPLOAD,
                 .usage = BufferUsage::STAGING
             };
             BufferCreateDescription ChunkHeightmapLinksGPU_CreateDesc = {
-                .size = TerrainConfig::ChunkToHeighmatLinking::LINKING_BUFFER_SIZE,
+                .size = TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE,
                 .memType = BufferMemoryType::GPU_STATIC,
                 .usage = BufferUsage::SSBO
             };

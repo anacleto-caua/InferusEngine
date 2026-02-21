@@ -112,7 +112,7 @@ public:
     VkSampler HeightmapTextureSampler;
 
     // Chunk to Heightmap linking
-    ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeighmatLinking::INSTANCE_COUNT];
+    ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT];
     BufferId ChunkHeightmapLinks_CPU;
     BufferId ChunkHeightmapLinks_GPU;
 

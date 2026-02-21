@@ -5,6 +5,7 @@
 #include "Engine/Types.hpp"
 #include "Engine/Components/Window.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
+#include "Engine/Components/Terrain/TerrainSystem.hpp"
 
 class InferusEngine {
 public:
@@ -16,7 +17,9 @@ public:
 
     Window Window;
     InferusRenderer InferusRenderer;
+    TerrainSystem TerrainSystem;
 private:
+    glm::ivec3 PlayerPos;
 public:
     InferusEngine() = default;
     ~InferusEngine();

@@ -15,7 +15,7 @@ namespace TerrainConfig {
         constexpr uint32_t INDICES_BUFFER_SIZE = INDICES_COUNT * sizeof(uint32_t);
     };
 
-    namespace ChunkToHeighmatLinking {
+    namespace ChunkToHeightmapLinking {
         constexpr uint32_t DIAMOND_EXPLORATION_RADIUS = 4;
 
         constexpr uint32_t INSTANCE_COUNT = []{
@@ -29,6 +29,10 @@ namespace TerrainConfig {
     namespace Heightmap {
         constexpr VkFormat HEIGHTMAP_IMAGE_FORMAT = VK_FORMAT_R16_UNORM;
 
-        constexpr size_t HEIGHTMAP_IMAGE_SIZE = TerrainConfig::Chunk::RESOLUTION * TerrainConfig::Chunk::RESOLUTION * sizeof(uint16_t) * TerrainConfig::ChunkToHeighmatLinking::INSTANCE_COUNT;
+        constexpr size_t HEIGHTMAP_IMAGE_PIXEL_COUNT = TerrainConfig::Chunk::RESOLUTION * TerrainConfig::Chunk::RESOLUTION;
+
+        constexpr size_t HEIGHTMAP_ALL_IMAGES_PIXEL_COUNT = HEIGHTMAP_IMAGE_PIXEL_COUNT * TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT;
+
+        constexpr size_t HEIGHTMAP_IMAGE_SIZE =  HEIGHTMAP_IMAGE_PIXEL_COUNT * sizeof(uint16_t);
     };
 };

@@ -20,6 +20,7 @@ InferusResult InferusEngine::Init(){
 
     TerrainSystem.Init(&PlayerPos);
     InferusRenderer.FullFeedTerrainData(TerrainSystem.ChunkLinksBuffer.data(), TerrainSystem.HeightmapsBuffer.data());
+    Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainPushConstants.CameraMVP);
 
     return InferusResult::SUCCESS;
 }
@@ -40,4 +41,5 @@ void InferusEngine::Run() {
 
 void InferusEngine::Resize(uint32_t Width, uint32_t Height) {
     InferusRenderer.Resize(Width, Height);
+    Camera.Resize(float(Width)/float(Height));
 }

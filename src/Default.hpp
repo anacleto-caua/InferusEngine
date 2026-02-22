@@ -3,7 +3,7 @@
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 
-namespace vector {
+namespace Vector3 {
     static constexpr glm::vec3 ONE     = glm::vec3(1,1,1);
     static constexpr glm::vec3 ZERO    = glm::vec3(0,0,0);
 

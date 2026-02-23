@@ -8,10 +8,10 @@
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
 #include "Engine/Types.hpp"
 #include "Engine/Components/Window.hpp"
 #include "Engine/Components/Terrain/TerrainTypes.hpp"
+#include "Engine/Components/Terrain/TerrainConfig.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
@@ -49,14 +49,6 @@ struct TerrainPushConstants {
 class InferusRenderer {
 public:
     // Vulkan Context
-    static constexpr std::array<const char*, 5> DEVICE_EXTENSIONS = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-        // VMA extensions
-        VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME
-    };
-
-    static constexpr std::array<const char*, 1> INSTANCE_EXTENSIONS = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
-
     VkInstance Instance;
     VkPhysicalDevice PhysicalDevice;
     VkDevice Device;

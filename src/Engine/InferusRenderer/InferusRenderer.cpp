@@ -7,52 +7,15 @@
 #include <spdlog/spdlog.h>
 
 #include "Engine/InferusRenderer/Recipes.hpp"
+#include "Engine/InferusRenderer/InitSkinner.hpp"
 #include "Engine/Components/Terrain/TerrainConfig.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 #include "Engine/Components/Terrain/PlaneMeshIndicesGenerator.hpp"
 
 InferusResult InferusRenderer::Init(Window& Window) {
     // Instance
-    VkApplicationInfo AppInfo {
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pNext = nullptr,
-        .pApplicationName = "Inferus Renderer",
-        .applicationVersion = VK_MAKE_VERSION(0, 0, 1),
-        .pEngineName = "Inferus Engine",
-        .engineVersion = VK_MAKE_VERSION(0, 0, 1),
-        .apiVersion = VK_API_VERSION_1_4
-    };
-
-    std::vector<const char*> AllInstanceExtensions;
-    AllInstanceExtensions.insert(AllInstanceExtensions.end(), INSTANCE_EXTENSIONS.begin(), INSTANCE_EXTENSIONS.end());
-
-    std::vector<const char*> WindowExts = Window.GetRequiredExtensions();
-    AllInstanceExtensions.insert(AllInstanceExtensions.end(), WindowExts.begin(), WindowExts.end());
-
-    VkInstanceCreateInfo InstanceCreateInfo {
-        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .pApplicationInfo = &AppInfo,
-        .enabledLayerCount = 0,
-        .ppEnabledLayerNames = nullptr,
-        .enabledExtensionCount = static_cast<uint32_t>(AllInstanceExtensions.size()),
-        .ppEnabledExtensionNames = AllInstanceExtensions.data()
-    };
-
-    // Validation layers
-#ifndef NDEBUG
-        AllInstanceExtensions.insert(AllInstanceExtensions.end(), VALIDATION_LAYERS_EXTENSION.begin(), VALIDATION_LAYERS_EXTENSION.end());
-        InstanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-        InstanceCreateInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
-#endif
-
-    InstanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(AllInstanceExtensions.size());
-    InstanceCreateInfo.ppEnabledExtensionNames = AllInstanceExtensions.data();
-
-    // Create Vulkan instance
-    if (vkCreateInstance(&InstanceCreateInfo, nullptr, &Instance) != VK_SUCCESS) {
-        spdlog::error("Instance creation failed.");
+    if ( InitSkinner::Instance::CreateInstance(Window, Instance) != InferusResult::SUCCESS ) {
+        spdlog::error("Instance creation failed");
         return InferusResult::FAIL;
     }
 
@@ -61,68 +24,10 @@ InferusResult InferusRenderer::Init(Window& Window) {
 #endif
 
     // Physical device
-    uint32_t PhysicalDevicesCount;
-    vkEnumeratePhysicalDevices(Instance, &PhysicalDevicesCount, nullptr);
-    std::vector<VkPhysicalDevice> PhysicalDevices(PhysicalDevicesCount);
-    vkEnumeratePhysicalDevices(Instance, &PhysicalDevicesCount, PhysicalDevices.data());
-
-    VkPhysicalDevice KingOfTheHillDevice;
-    int32_t KingOfTheHillScore = -1;
-    for (VkPhysicalDevice CurrentPhysicalDevice : PhysicalDevices) {
-        int32_t Score = 0;
-
-        // Are required extensions supported
-        uint32_t ExtensionCount;
-        vkEnumerateDeviceExtensionProperties(CurrentPhysicalDevice, nullptr, &ExtensionCount, nullptr);
-        std::vector<VkExtensionProperties> AvailableExtensions(ExtensionCount);
-        vkEnumerateDeviceExtensionProperties(CurrentPhysicalDevice, nullptr, &ExtensionCount, AvailableExtensions.data());
-
-        // Are needed features available
-        VkPhysicalDeviceFeatures DeviceFeatures;
-        vkGetPhysicalDeviceFeatures(CurrentPhysicalDevice, &DeviceFeatures);
-
-        // Apply preference for GPUs and higher resolution
-        VkPhysicalDeviceProperties DeviceProperties;
-        vkGetPhysicalDeviceProperties(CurrentPhysicalDevice, &DeviceProperties);
-
-        if (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            Score += 1000;
-        } else if (DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-            Score += 100;
-        }
-
-        Score += DeviceProperties.limits.maxImageDimension2D;
-
-        bool ExtensionFound;
-        for (const char* Extension : DEVICE_EXTENSIONS) {
-            ExtensionFound = false;
-            for (const VkExtensionProperties &ExtensionProperties : AvailableExtensions) {
-                if(std::strcmp(Extension, ExtensionProperties.extensionName) == 0) {
-                    ExtensionFound = true;
-                    break;
-                }
-            }
-
-            if(!ExtensionFound) {
-                Score = -1;
-                break;
-            }
-        }
-
-        // Fight for Koth
-        if (Score > KingOfTheHillScore) {
-            KingOfTheHillScore = Score;
-            KingOfTheHillDevice = CurrentPhysicalDevice;
-        }
-    }
-
-    if(KingOfTheHillScore < 0) {
+    if ( InitSkinner::PhysicalDevice::PickPhysicalDevice(Instance, PhysicalDevice) != InferusResult::SUCCESS ) {
         spdlog::error("No valid Physical Device was found");
         return InferusResult::FAIL;
     }
-
-    // Selecting physical device
-    PhysicalDevice = KingOfTheHillDevice;
 
     VkPhysicalDeviceProperties DeviceProperties;
     vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
@@ -138,104 +43,9 @@ InferusResult InferusRenderer::Init(Window& Window) {
     // NVDIA:   https://developer.nvidia.com/blog/advanced-api-performance-async-compute-and-overlap/
 
     // Select queues
-    std::array AllQueues = { &Graphics, &Present, &Transfer, &Compute };
-
-    struct QueueRequest {
-        QueueContext *QueueCtx;
-        int32_t LatestScore;
-        VkQueueFlags RequiredFlags;
-        VkQueueFlags AvoidedFlags;
-        bool NeedsPresent;
-        bool ScoreUniqueness;
-    };
-
-    std::array<QueueRequest, 4> QueueRequests;
-    QueueRequests[0] = {
-        .QueueCtx = &Graphics,
-        .LatestScore = -1,
-        .RequiredFlags = VK_QUEUE_GRAPHICS_BIT,
-        .AvoidedFlags = 0,
-        .NeedsPresent = false,
-        .ScoreUniqueness = true
-    };
-    QueueRequests[1] = {
-        .QueueCtx = &Present,
-        .LatestScore = -1,
-        .RequiredFlags = 0,
-        .AvoidedFlags = VK_QUEUE_COMPUTE_BIT,       // Avoid since I don't explicitly support graphics->compute->present yet
-        .NeedsPresent = true,
-        .ScoreUniqueness = false
-    };
-    QueueRequests[2] = {
-        .QueueCtx = &Transfer,
-        .LatestScore = -1,
-        .RequiredFlags = VK_QUEUE_TRANSFER_BIT,
-        .AvoidedFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT,
-        .NeedsPresent = false,
-        .ScoreUniqueness = true
-    };
-    QueueRequests[3] = {
-        .QueueCtx = &Compute,
-        .LatestScore = -1,
-        .RequiredFlags = VK_QUEUE_COMPUTE_BIT,
-        .AvoidedFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT,
-        .NeedsPresent = false,
-        .ScoreUniqueness = true
-    };
-
-    uint32_t QueueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &QueueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> AllQueueFamiliesProperties(QueueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &QueueFamilyCount, AllQueueFamiliesProperties.data());
-
-    for (QueueRequest& Req : QueueRequests) {
-        constexpr uint32_t SCORE_PER_UNIQUENESS = 1000;
-        constexpr uint32_t SCORE_FOR_DESIRED_SUPPORT = 1000;
-        constexpr uint32_t SCORE_PER_AVOIDED_FLAG = 100;
-
-        for (uint32_t QueueFamilyIdx = 0; QueueFamilyIdx < QueueFamilyCount; QueueFamilyIdx++) {
-            VkQueueFamilyProperties QueueProperties = AllQueueFamiliesProperties[QueueFamilyIdx];
-
-            int32_t Score = 0;
-            if (Req.NeedsPresent) {
-                VkBool32 PresentSupport;
-                vkGetPhysicalDeviceSurfaceSupportKHR(PhysicalDevice, QueueFamilyIdx, Surface, &PresentSupport);
-                if (!PresentSupport) {
-                    continue;
-                }
-                Score += SCORE_FOR_DESIRED_SUPPORT;
-            }
-
-            if ((QueueProperties.queueFlags & Req.RequiredFlags) != Req.RequiredFlags) {
-                Score = -1;
-                continue;
-            }
-
-            if ((QueueProperties.queueFlags & Req.AvoidedFlags) == 0) {
-                Score += SCORE_PER_AVOIDED_FLAG;
-            }
-
-            if (Req.ScoreUniqueness) {
-                for (QueueRequest &Req2 : QueueRequests) {
-                    if (Req2.LatestScore < 0) { break; }    // Do not compare to not yet picked queues
-                    if (QueueFamilyIdx != Req2.QueueCtx->Index) {
-                        Score += SCORE_PER_UNIQUENESS;
-                    }
-                }
-            }
-
-            if (Score > Req.LatestScore) {
-                Req.QueueCtx->Index = QueueFamilyIdx;
-                Req.LatestScore = Score;
-            }
-        }
-    }
-
-    for (QueueRequest Req : QueueRequests) {
-        if (Req.LatestScore < 0) {
-            spdlog::error("One or more queues couldn't meet their minimum criteria");
-            return InferusResult::FAIL;
-        }
+    if ( InitSkinner::Queues::PickQueues(PhysicalDevice, Surface, Graphics, Present, Transfer, Compute) != InferusResult::SUCCESS ) {
+        spdlog::error("One or more queue families couldn't meet their minimum criteria");
+        return InferusResult::FAIL;
     }
 
     spdlog::info("Picked queues:");
@@ -245,60 +55,9 @@ InferusResult InferusRenderer::Init(Window& Window) {
     spdlog::info(" - Compute: {}", Compute.Index);
 
     // Creating queue families
-    float QueuePriority = 1.0f;
-    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos = {};
-    for (QueueContext* Queue : AllQueues) {
-        bool IsUnique = true;
-        for (auto CreateInfo : QueueCreateInfos) {
-            if (Queue->Index == CreateInfo.queueFamilyIndex) {
-                IsUnique = false;
-                break;
-            }
-        }
-        if (IsUnique) {
-            VkDeviceQueueCreateInfo QueueCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .queueFamilyIndex = Queue->Index,
-                .queueCount = 1,
-                .pQueuePriorities = &QueuePriority
-            };
-            QueueCreateInfos.push_back(QueueCreateInfo);
-        }
-    }
-
+    std::vector AllQueues = { &Graphics, &Present, &Transfer, &Compute };
     // Logical device
-    VkPhysicalDeviceFeatures DeviceFeatures{};
-    DeviceFeatures.samplerAnisotropy = VK_TRUE;
-    DeviceFeatures.sampleRateShading = VK_TRUE;
-
-    VkPhysicalDeviceFeatures2 DeviceFeatures2{};
-    DeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    DeviceFeatures2.features = DeviceFeatures;
-
-    VkPhysicalDeviceSynchronization2Features Sync2Features{};
-    Sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
-    Sync2Features.synchronization2 = VK_TRUE;
-
-    VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures{};
-    DynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
-    DynamicRenderingFeatures.dynamicRendering = VK_TRUE;
-
-    DeviceFeatures2.pNext= &Sync2Features;
-    Sync2Features.pNext = &DynamicRenderingFeatures;
-    DynamicRenderingFeatures.pNext = nullptr;
-
-    VkDeviceCreateInfo DeviceCreateInfo{};
-    DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    DeviceCreateInfo.pEnabledFeatures = VK_NULL_HANDLE;
-    DeviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(QueueCreateInfos.size());
-    DeviceCreateInfo.pQueueCreateInfos = QueueCreateInfos.data();
-    DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size());
-    DeviceCreateInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
-    DeviceCreateInfo.pNext = &DeviceFeatures2;
-
-    if (vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &Device) != VK_SUCCESS) {
+    if ( InitSkinner::LogicalDevice::CreateLogicalDevice(PhysicalDevice, AllQueues, Device) != InferusResult::SUCCESS ) {
         spdlog::error("Failed to create VkDevice");
         return InferusResult::FAIL;
     }
@@ -308,8 +67,10 @@ InferusResult InferusRenderer::Init(Window& Window) {
     AllocatorCreateInfo.physicalDevice = PhysicalDevice;
     AllocatorCreateInfo.device = Device;
     AllocatorCreateInfo.instance = Instance;
-
-    vmaCreateAllocator(&AllocatorCreateInfo, &VmaAllocator);
+    if ( vmaCreateAllocator(&AllocatorCreateInfo, &VmaAllocator) != VK_SUCCESS ) {
+        spdlog::error("Failed to create VmaAllocator");
+        return InferusResult::FAIL;
+    }
 
     // Memory resources management systems
     BufferSystem.create(VmaAllocator);
@@ -337,54 +98,22 @@ InferusResult InferusRenderer::Init(Window& Window) {
         }
     }
 
-    // Pick Swapchain format
-    bool DesirableSurfacePicked = false;
+    // Pick Swapchain surface format
     VkSurfaceFormatKHR DesirableSurfaceFormat = {
         .format = VK_FORMAT_B8G8R8A8_SRGB,
         .colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR
     };
 
-    uint32_t SurfaceFormatCount;
-    std::vector<VkSurfaceFormatKHR> SurfaceFormats;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatCount, nullptr);
-    SurfaceFormats.resize(SurfaceFormatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatCount, SurfaceFormats.data());
-    for (VkSurfaceFormatKHR CurrSurfaceFormat : SurfaceFormats) {
-        if ((CurrSurfaceFormat.format == DesirableSurfaceFormat.format) &&
-            (CurrSurfaceFormat.colorSpace == DesirableSurfaceFormat.colorSpace)) {
-            SurfaceFormat = CurrSurfaceFormat;
-            DesirableSurfacePicked = true;
-            break;
-        }
-    }
-    if (!DesirableSurfacePicked) {
-        SurfaceFormat = SurfaceFormats[0];
-        spdlog::warn("Non desirable surface format picked, image may be damaged");
+    if ( !InitSkinner::SurfaceOptions::PickSurfaceFormat(PhysicalDevice, Surface, DesirableSurfaceFormat, SurfaceFormat) ) {
+        spdlog::warn("Non desirable surface format picked");
     }
 
     // Pick present mode
     std::vector<VkPresentModeKHR> PresentModesTierList = {
         VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR
     };
-    uint32_t PresentModesCount;
-    std::vector<VkPresentModeKHR> PresentModes;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, nullptr);
-    PresentModes.resize(PresentModesCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, PresentModes.data());
-    bool IsPresentModePicked = false;
-    for (VkPresentModeKHR ComparingPresentMode : PresentModesTierList ) {
-        for (VkPresentModeKHR CurrPresentMode : PresentModes) {
-            if (ComparingPresentMode == CurrPresentMode) {
-                PresentMode = CurrPresentMode;
-                IsPresentModePicked = true;
-                break;
-            }
-        }
-        if (IsPresentModePicked) { break; }
-    }
-    if (!IsPresentModePicked) {
-        PresentMode = PresentModes[0];
-        spdlog::warn("Non desirable Present Mode picked.");
+    if ( !InitSkinner::SurfaceOptions::PickPresentMode(PhysicalDevice, Surface, PresentModesTierList, PresentMode) ) {
+        spdlog::warn("Non desirable present mode picked");
     }
 
     QuerySurfaceCapabilities();

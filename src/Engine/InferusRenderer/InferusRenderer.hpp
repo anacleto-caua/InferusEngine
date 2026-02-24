@@ -10,10 +10,9 @@
 
 #include "Engine/Types.hpp"
 #include "Engine/Components/Window.hpp"
-#include "Engine/Components/Terrain/TerrainTypes.hpp"
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
+#include "Engine/InferusRenderer/Passes/TerrainRenderer.hpp"
 
 struct QueueContext {
     uint32_t Index;
@@ -33,17 +32,6 @@ struct SwapchainImage {
     VkImage Image = VK_NULL_HANDLE;
     VkImageView ImageView = VK_NULL_HANDLE;
     VkSemaphore RenderFinished = VK_NULL_HANDLE;
-};
-
-struct TerrainDescriptorSet {
-    VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-    VkDescriptorSet set = VK_NULL_HANDLE;
-    VkDescriptorPool pool = VK_NULL_HANDLE;
-};
-
-struct TerrainPushConstants {
-    glm::mat4 CameraMVP;
-    glm::vec4 PlayerPosition;
 };
 
 class InferusRenderer {
@@ -83,7 +71,7 @@ public:
     uint32_t TargetFrameIndex = 0;
     uint32_t TargetImageViewIndex = 0;
 
-    // Drawing
+    // Drawing -- I imagine this may be shared between all the other pipelines
     static constexpr VkPipelineStageFlags G_PIPELINE_WAIT_STAGES[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
     VkRect2D Scissor {};
@@ -94,28 +82,7 @@ public:
     VkCommandBufferBeginInfo PipelineCmdBeginInfo {};
     VkSubmitInfo PipelineCmdSubmitInfo {};
 
-    // Terrain plane mesh
-    BufferId Terrain_PlaneMeshIndexBufferId;
-
-    // Terrain pipeline
-    VkPipeline TerrainPipeline {};
-    VkPipelineLayout TerrainPipelineLayout {};
-
-    // Heightmap
-    ImageId HeightmapImageId;
-    VkSampler HeightmapTextureSampler;
-    BufferId HeightmapStagingBufferId;
-
-    // Chunk to Heightmap linking
-    ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT];
-    BufferId ChunkHeightmapLinks_CPU;
-    BufferId ChunkHeightmapLinks_GPU;
-
-    // Terrain descriptor sets
-    TerrainDescriptorSet TerrainDescriptorSet {};
-
-    // Push constants
-    TerrainPushConstants TerrainPushConstants {};
+    TerrainRenderer TerrainRenderer;
 
 public:
     InferusRenderer() = default;
@@ -126,10 +93,6 @@ public:
     InferusResult Init(Window& Window);
 
     void Render();
-
-    // TODO:
-    // That's kinda hacky, find a better way, separate the Renderer Data management from the renderer itself
-    void FullFeedTerrainData(ChunkHeightmapLink* ChunkLinkSrc, uint16_t* HeightmapSrc);
 
     void Resize(uint32_t Width, uint32_t Height);
 

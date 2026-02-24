@@ -19,8 +19,14 @@ InferusResult InferusEngine::Init(){
     }
 
     TerrainSystem.Init(&PlayerPos);
-    InferusRenderer.FullFeedTerrainData(TerrainSystem.ChunkLinksBuffer.data(), TerrainSystem.HeightmapsBuffer.data());
-    Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainPushConstants.CameraMVP);
+    InferusRenderer
+        .TerrainRenderer.
+        FullFeedTerrainData(
+                InferusRenderer,
+                TerrainSystem.ChunkLinksBuffer.data(),
+                TerrainSystem.HeightmapsBuffer.data()
+                );
+    Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
 
     return InferusResult::SUCCESS;
 }

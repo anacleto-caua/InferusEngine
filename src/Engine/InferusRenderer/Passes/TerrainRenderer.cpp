@@ -4,11 +4,11 @@
 
 #include "Engine/InferusRenderer/Recipes.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
+#include "Engine/Systems/Terrain/TerrainConfig.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
-#include "Engine/Components/Terrain/PlaneMeshIndicesGenerator.hpp"
+#include "Engine/Systems/Terrain/PlaneMeshIndicesGenerator.hpp"
 #include "Engine/InferusRenderer/Image/ImageCreateDescription.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferCreateDescription.hpp"
 
@@ -281,7 +281,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
     }
 
     // --- Creation wise command buffer begins
-    VkCommandBuffer CreationWiseTransferCmdBuffer = InferusRenderer.SingleTimeCmdBegin(InferusRenderer.Transfer);
+    VkCommandBuffer TransferCmd = InferusRenderer.SingleTimeCmdBegin(InferusRenderer.Transfer);
 
     // Terrain plane mesh indices buffer
     std::array<uint32_t, TerrainConfig::Chunk::INDICES_COUNT> TerrainPlaneMeshIndices;
@@ -295,10 +295,16 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
     PlaneMeshIndexBufferId = BufferSystem.add(PlaneMeshIndexBufferCreateDescription);
     PlaneMeshIndexVkBuffer = BufferSystem.get(PlaneMeshIndexBufferId).buffer;
 
-    BufferSystem.upload(CreationWiseTransferCmdBuffer, CreationWiseStagingBuffer, PlaneMeshIndexBufferId, TerrainPlaneMeshIndices.data(), TerrainConfig::Chunk::INDICES_BUFFER_SIZE);
+    BufferSystem.upload(
+        TransferCmd,
+        CreationWiseStagingBuffer,
+        PlaneMeshIndexBufferId,
+        TerrainPlaneMeshIndices.data(),
+        TerrainConfig::Chunk::INDICES_BUFFER_SIZE
+        );
 
     // --- Creation wise command buffer ends
-    InferusRenderer.SingleTimeCmdSubmit(InferusRenderer.Transfer, CreationWiseTransferCmdBuffer);
+    InferusRenderer.SingleTimeCmdSubmit(InferusRenderer.Transfer, TransferCmd);
 
     // Zeroing terrain push constants
     TerrainPushConstants = {

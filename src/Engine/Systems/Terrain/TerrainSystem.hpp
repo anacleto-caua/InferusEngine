@@ -6,8 +6,8 @@
 #include "FastNoiseLite.hpp"
 #include "glm/ext/vector_int3.hpp"
 
-#include "Engine/Components/Terrain/TerrainTypes.hpp"
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
+#include "Engine/Systems/Terrain/TerrainTypes.hpp"
+#include "Engine/Systems/Terrain/TerrainConfig.hpp"
 
 class TerrainSystem {
 public:

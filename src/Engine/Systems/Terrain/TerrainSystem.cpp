@@ -1,6 +1,6 @@
 #include "TerrainSystem.hpp"
 
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
+#include "Engine/Systems/Terrain/TerrainConfig.hpp"
 
 void TerrainSystem::Init(glm::ivec3* pPlayerPos) {
     PlayerPos = pPlayerPos;

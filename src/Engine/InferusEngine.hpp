@@ -6,7 +6,7 @@
 #include "Engine/Components/Window.hpp"
 #include "Engine/Components/Camera3D.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
-#include "Engine/Components/Terrain/TerrainSystem.hpp"
+#include "Engine/Systems/Terrain/TerrainSystem.hpp"
 
 class InferusEngine {
 public:

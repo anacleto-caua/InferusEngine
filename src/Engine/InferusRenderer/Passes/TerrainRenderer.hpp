@@ -9,7 +9,7 @@ class InferusRenderer; // Circular dependency
 #include "Engine/Types.hpp"
 #include "Engine/InferusRenderer/Image/Image.hpp"
 #include "Engine/InferusRenderer/Buffer/Buffer.hpp"
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
+#include "Engine/Systems/Terrain/TerrainConfig.hpp"
 
 struct TerrainDescriptorSet {
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;

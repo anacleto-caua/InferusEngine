@@ -17,7 +17,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Engine/Types.hpp"
-#include "Engine/Components/Window.hpp"
+#include "Engine/Core/Window.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
 
 namespace InitSkinner {

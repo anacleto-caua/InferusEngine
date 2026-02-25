@@ -3,8 +3,8 @@
 #include <spdlog/spdlog.h>
 
 #include "Engine/InferusRenderer/Recipes.hpp"
-#include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
+#include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"

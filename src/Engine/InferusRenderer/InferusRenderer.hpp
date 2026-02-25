@@ -9,7 +9,7 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "Engine/Types.hpp"
-#include "Engine/Components/Window.hpp"
+#include "Engine/Core/Window.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 #include "Engine/InferusRenderer/Passes/TerrainRenderer.hpp"

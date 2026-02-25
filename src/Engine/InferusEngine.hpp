@@ -3,8 +3,8 @@
 #include <string_view>
 
 #include "Engine/Types.hpp"
-#include "Engine/Components/Window.hpp"
-#include "Engine/Components/Camera3D.hpp"
+#include "Engine/Core/Window.hpp"
+#include "Engine/Core/Camera3D.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/Systems/Terrain/TerrainSystem.hpp"
 

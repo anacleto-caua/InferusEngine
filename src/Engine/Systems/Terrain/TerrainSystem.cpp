@@ -9,8 +9,6 @@ void TerrainSystem::Init(glm::ivec3* pPlayerPos) {
     BaseNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
     BaseNoise.SetFractalOctaves(8);
     BaseNoise.SetFrequency(.02);
-
-    FullWriteChunkData();
 }
 
 TerrainSystem::~TerrainSystem() {

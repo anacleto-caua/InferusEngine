@@ -36,12 +36,10 @@ InferusEngine::~InferusEngine() {
 
 void InferusEngine::Run() {
     while (!ShouldClose && !Window.ShouldClose()) {
-        Window.Update();
         InferusRenderer.EarlyRender();
-        // ImGui stuff must be here
-        InferusRenderer.LateRender();
+        Window.Update();
         TerrainSystem.Update();
-        // ...
+        InferusRenderer.LateRender();
     }
     Window.WaitEvents();
 }

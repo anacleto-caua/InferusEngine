@@ -1,5 +1,7 @@
 #include "TerrainSystem.hpp"
 
+#include <imgui.h>
+
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
 
 void TerrainSystem::Init(glm::ivec3* pPlayerPos) {
@@ -24,6 +26,29 @@ void TerrainSystem::Update() {
     // allocations we could just update the other ones and provide a glInstanceIndex offset
     // on the push constants? Maybe have double or triple buffering on Heightmap and
     // ChunkLink information? I think the last option seems better.
+    // -- Turns out all that stuff has already been figured out, so I may just pick one or
+    // a combination of them and rock with it. One could also consider do a performance
+    // comparisson and etc.
+
+    ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Terrain System");
+
+    ImGui::TextDisabled("Current player chunk:");
+    ImGui::Indent();
+    ImGui::Text("X: %03d Y: %03d", this->PlayerPos->x/TerrainConfig::Chunk::RESOLUTION, this->PlayerPos->z/TerrainConfig::Chunk::RESOLUTION);
+    ImGui::Unindent();
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Clearly mocked data as of now
+    ImGui::TextDisabled("Camera casting:");
+    ImGui::Indent();
+    ImGui::Text("X: %03d Y: %03d", this->PlayerPos->x/TerrainConfig::Chunk::RESOLUTION, this->PlayerPos->z/TerrainConfig::Chunk::RESOLUTION);
+    ImGui::Unindent();
+
+    ImGui::End();
 }
 
 void TerrainSystem::FeedTerrainRenderer(ChunkHeightmapLink* ChunkLinkMap, uint16_t* HeightmapMap) {

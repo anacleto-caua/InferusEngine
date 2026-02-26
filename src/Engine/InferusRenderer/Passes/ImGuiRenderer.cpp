@@ -63,9 +63,6 @@ void ImGuiRenderer::EarlyRender() {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    // demo lol
-    ImGui::ShowDemoWindow();
 }
 
 void ImGuiRenderer::LateRender(VkCommandBuffer cmd) {

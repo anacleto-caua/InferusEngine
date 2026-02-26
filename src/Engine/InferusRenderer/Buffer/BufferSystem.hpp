@@ -31,10 +31,10 @@ public:
     void upload(BufferId dstId, const void* upload_data, const size_t size);
     void upload(VkCommandBuffer &cmd, BufferId stagingId, BufferId dstId, const void* upload_data, const size_t size);
 
+    void* map(const VmaAllocation alloc);
+    void unmap(const VmaAllocation alloc);
+
     void del(BufferId id);
 private:
     void destroy(Buffer& buffer);
-
-    void* map(const VmaAllocation alloc);
-    void unmap(const VmaAllocation alloc);
 };

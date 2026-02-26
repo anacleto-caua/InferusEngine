@@ -1,20 +1,17 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
 
 #include "FastNoiseLite.hpp"
 #include "glm/ext/vector_int3.hpp"
 
 #include "Engine/Systems/Terrain/TerrainTypes.hpp"
-#include "Engine/Systems/Terrain/TerrainConfig.hpp"
 
 class TerrainSystem {
 public:
-    // TODO: Consider writing this directly to the mapped hightmap staging buffer
-    std::array<uint16_t, TerrainConfig::Heightmap::HEIGHTMAP_ALL_IMAGES_PIXEL_COUNT> HeightmapsBuffer;
+    uint16_t* HeightmapsBuffer_MappedMem;
+    ChunkHeightmapLink* ChunkLinksBuffer_MappedMem;
 
-    std::array<ChunkHeightmapLink, TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT> ChunkLinksBuffer;
 private:
     glm::ivec3* PlayerPos;
 
@@ -27,6 +24,8 @@ public:
 
     void Init(glm::ivec3* PlayerPos);
     void Update();
+
+    void FeedTerrainRenderer(ChunkHeightmapLink* ChunkLinkMap, uint16_t* HeightmapMap);
 private:
     void FullWriteChunkData();
 

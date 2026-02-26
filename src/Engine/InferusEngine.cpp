@@ -23,8 +23,7 @@ InferusResult InferusEngine::Init(){
         .TerrainRenderer.
         FullFeedTerrainData(
                 InferusRenderer,
-                TerrainSystem.ChunkLinksBuffer.data(),
-                TerrainSystem.HeightmapsBuffer.data()
+                TerrainSystem
                 );
     Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
 

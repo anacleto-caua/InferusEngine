@@ -28,6 +28,12 @@ void TerrainSystem::Update() {
     // ChunkLink information? I think the last option seems better.
 }
 
+void TerrainSystem::FeedTerrainRenderer(ChunkHeightmapLink* ChunkLinkMap, uint16_t* HeightmapMap) {
+    ChunkLinksBuffer_MappedMem = ChunkLinkMap;
+    HeightmapsBuffer_MappedMem = HeightmapMap;
+    FullWriteChunkData(); // TODO: hacky
+}
+
 void TerrainSystem::FullWriteChunkData() {
     // Diamond scan the area around the player
     glm::ivec2 player_coord;
@@ -36,7 +42,7 @@ void TerrainSystem::FullWriteChunkData() {
 
     uint32_t coords_counter = TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT - 1;    // The last array position
     // Add the player position as it's the last chunk that should be drawn
-    ChunkLinksBuffer[coords_counter] = {
+    ChunkLinksBuffer_MappedMem[coords_counter] = {
         .WorldPos = player_coord,
         .InstanceId = (uint32_t)coords_counter,
         .IsVisible = 1
@@ -51,7 +57,7 @@ void TerrainSystem::FullWriteChunkData() {
             int32_t y_neg = player_coord.y - j;
 
             // Memory Layout: [Link3][Link2][Link1][Link0]
-            ChunkHeightmapLink* block = &ChunkLinksBuffer[coords_counter - 3];
+            ChunkHeightmapLink* block = &ChunkLinksBuffer_MappedMem[coords_counter - 3];
 
             // We write sequentially to the memory block (0, 1, 2, 3).
             block[0] = {
@@ -81,8 +87,9 @@ void TerrainSystem::FullWriteChunkData() {
 
     // TODO:
     // Kinda ugly they're on different loops and it's all in the main thread
-    for (ChunkHeightmapLink cl : ChunkLinksBuffer) {
-        WriteChunk(cl.WorldPos, &HeightmapsBuffer[cl.InstanceId * TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_PIXEL_COUNT]);
+    for (uint16_t i = 0; i < TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT; i++) {
+        ChunkHeightmapLink cl = ChunkLinksBuffer_MappedMem[i];
+        WriteChunk(cl.WorldPos, &HeightmapsBuffer_MappedMem[cl.InstanceId * TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_PIXEL_COUNT]);
     }
 }
 

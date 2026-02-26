@@ -10,6 +10,7 @@ class InferusRenderer; // Circular dependency
 #include "Engine/InferusRenderer/Image/Image.hpp"
 #include "Engine/InferusRenderer/Buffer/Buffer.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
+#include "Engine/Systems/Terrain/TerrainSystem.hpp"
 
 struct TerrainDescriptorSet {
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
@@ -35,7 +36,7 @@ public:
     // Heightmap
     ImageId HeightmapImageId;
     VkSampler HeightmapTextureSampler;
-    BufferId HeightmapStagingBufferId;
+    BufferId Heightmap_CPU;
 
     // Chunk to Heightmap linking
     ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT];
@@ -55,7 +56,7 @@ public:
     TerrainRenderer& operator=(const TerrainRenderer&) = delete;
 
     InferusResult Init(InferusRenderer &InferusRenderer, BufferId &CreationWiseStagingBufer);
-    void FullFeedTerrainData(InferusRenderer &InferusRenderer, ChunkHeightmapLink* ChunkLinkSrc, uint16_t* HeightmapSrc);
+    void FullFeedTerrainData(InferusRenderer &InferusRenderer, TerrainSystem &TerrainSystem);
 
     void Destroy(InferusRenderer &InferusRenderer);
 

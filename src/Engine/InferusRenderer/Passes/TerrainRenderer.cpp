@@ -40,7 +40,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
                 .memType = BufferMemoryType::STAGING_UPLOAD,
                 .usage = BufferUsage::STAGING
             };
-            HeightmapStagingBufferId = BufferSystem.add(HeightmapStagingBufferId_CreateInfo);
+            Heightmap_CPU = BufferSystem.add(HeightmapStagingBufferId_CreateInfo);
         }
 
         // Chunk to Heightmap linking
@@ -337,8 +337,7 @@ void TerrainRenderer::Destroy(InferusRenderer &InferusRenderer) {
 
 void TerrainRenderer::FullFeedTerrainData(
         InferusRenderer &InferusRenderer,
-        ChunkHeightmapLink* ChunkLinkSrc,
-        uint16_t* HeightmapSrc)
+        TerrainSystem &TerrainSystem)
 {
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
     BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
@@ -346,14 +345,25 @@ void TerrainRenderer::FullFeedTerrainData(
     QueueContext& Transfer = InferusRenderer.Transfer;
     QueueContext& Graphics = InferusRenderer.Graphics;
 
+    TerrainSystem.FeedTerrainRenderer(
+        (ChunkHeightmapLink*)BufferSystem.map(BufferSystem.get(ChunkHeightmapLinks_CPU).allocation),
+        (uint16_t*)BufferSystem.map(BufferSystem.get(Heightmap_CPU).allocation)
+    );
+    BufferSystem.unmap(BufferSystem.get(ChunkHeightmapLinks_CPU).allocation);
+    BufferSystem.unmap(BufferSystem.get(Heightmap_CPU).allocation);
+
     VkCommandBuffer cmd = InferusRenderer.SingleTimeCmdBegin(Transfer);
 
     // Copy chunk link buffer
-    BufferSystem.upload(cmd, ChunkHeightmapLinks_CPU, ChunkHeightmapLinks_GPU, ChunkLinkSrc, TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE);
+    BufferSystem.copy(
+        cmd,
+        ChunkHeightmapLinks_CPU,
+        ChunkHeightmapLinks_GPU,
+        TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE
+    );
 
     // Upload heightmap to staging buffer
-    BufferSystem.upload(HeightmapStagingBufferId, HeightmapSrc, TerrainConfig::Heightmap::HEIGHTMAP_ALL_IMAGES_SIZE);
-    Buffer HeightmapStagingBuffer = BufferSystem.get(HeightmapStagingBufferId);
+    Buffer HeightmapStagingBuffer = BufferSystem.get(Heightmap_CPU);
     Image HeightmapImage = ImageSystem.get(HeightmapImageId);
 
     // Transfer data to heightmap image

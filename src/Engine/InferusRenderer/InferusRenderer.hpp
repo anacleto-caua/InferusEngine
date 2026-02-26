@@ -12,6 +12,7 @@
 #include "Engine/Core/Window.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
+#include "Engine/InferusRenderer/Passes/ImGuiRenderer.hpp"
 #include "Engine/InferusRenderer/Passes/TerrainRenderer.hpp"
 
 struct QueueContext {
@@ -82,6 +83,8 @@ public:
     VkCommandBufferBeginInfo PipelineCmdBeginInfo {};
     VkSubmitInfo PipelineCmdSubmitInfo {};
 
+    // "Passes"
+    ImGuiRenderer ImGuiRenderer;
     TerrainRenderer TerrainRenderer;
 
 public:
@@ -92,7 +95,8 @@ public:
 
     InferusResult Init(Window& Window);
 
-    void Render();
+    void EarlyRender();
+    void LateRender();
 
     void Resize(uint32_t Width, uint32_t Height);
 

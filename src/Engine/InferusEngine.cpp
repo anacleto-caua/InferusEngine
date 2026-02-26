@@ -37,7 +37,9 @@ InferusEngine::~InferusEngine() {
 void InferusEngine::Run() {
     while (!ShouldClose && !Window.ShouldClose()) {
         Window.Update();
-        InferusRenderer.Render();
+        InferusRenderer.EarlyRender();
+        // ImGui stuff must be here
+        InferusRenderer.LateRender();
         TerrainSystem.Update();
         // ...
     }

@@ -222,10 +222,17 @@ InferusResult InferusRenderer::Init(Window& Window) {
     PipelineCmdSubmitInfo.signalSemaphoreCount = 1;
 
     if (
+        ImGuiRenderer.Init(Window, *this) !=  InferusResult::SUCCESS
+    ) {
+        spdlog::error("Dear ImGui Renderer creation failed");
+        return InferusResult::FAIL;
+    }
+
+    if (
         TerrainRenderer.Init(*this, CreationWiseStagingBuffer) !=  InferusResult::SUCCESS
     ) {
         spdlog::error("Terrain Renderer creation failed");
-        return InferusResult::SUCCESS;
+        return InferusResult::FAIL;
     }
     return InferusResult::SUCCESS;
 }
@@ -234,6 +241,7 @@ InferusRenderer::~InferusRenderer() {
     vkDeviceWaitIdle(Device);
 
     TerrainRenderer.Destroy(*this);
+    ImGuiRenderer.Destroy();
 
     BufferSystem.destroy();
     ImageSystem.destroy();
@@ -329,7 +337,11 @@ void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
     RecreateSwapchain(Swapchain);
 }
 
-void InferusRenderer::Render() {
+void InferusRenderer::EarlyRender() {
+    ImGuiRenderer.EarlyRender();
+}
+
+void InferusRenderer::LateRender() {
     FrameData& TargetFrame = Frames[TargetFrameIndex];
     VkCommandBuffer& cmd = TargetFrame.CmdBuffer;
 
@@ -373,7 +385,10 @@ void InferusRenderer::Render() {
     vkCmdSetScissor(cmd, 0, 1, &Scissor);
 
     // Actual frame begins
+
     TerrainRenderer.Render(cmd);
+
+    ImGuiRenderer.LateRender(cmd);
 
     // Actual frame ends
 

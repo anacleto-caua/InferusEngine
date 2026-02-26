@@ -235,6 +235,9 @@ InferusRenderer::~InferusRenderer() {
 
     TerrainRenderer.Destroy(*this);
 
+    BufferSystem.destroy();
+    ImageSystem.destroy();
+
     for (FrameData &Frame : Frames) {
         if (Frame.ImageAvailable) { vkDestroySemaphore(Device, Frame.ImageAvailable, nullptr); }
         if (Frame.InFlight) { vkDestroyFence(Device, Frame.InFlight, nullptr); }

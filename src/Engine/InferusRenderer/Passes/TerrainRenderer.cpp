@@ -322,11 +322,15 @@ void TerrainRenderer::Destroy(InferusRenderer &InferusRenderer) {
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
     BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
 
+    BufferSystem.del(ChunkHeightmapLinks_CPU);
+    BufferSystem.del(ChunkHeightmapLinks_GPU);
+
+    BufferSystem.del(Heightmap_CPU);
+
     BufferSystem.del(PlaneMeshIndexBufferId);
-    BufferSystem.destroy();
-    ImageSystem.destroy();
 
     if (HeightmapTextureSampler) { vkDestroySampler(Device, HeightmapTextureSampler, nullptr); }
+    ImageSystem.del(HeightmapImageId);
 
     if (TerrainDescriptorSet.pool) { vkDestroyDescriptorPool(Device, TerrainDescriptorSet.pool, nullptr); }
     if (TerrainDescriptorSet.layout) { vkDestroyDescriptorSetLayout(Device, TerrainDescriptorSet.layout, nullptr); }
@@ -346,11 +350,9 @@ void TerrainRenderer::FullFeedTerrainData(
     QueueContext& Graphics = InferusRenderer.Graphics;
 
     TerrainSystem.FeedTerrainRenderer(
-        (ChunkHeightmapLink*)BufferSystem.map(BufferSystem.get(ChunkHeightmapLinks_CPU).allocation),
-        (uint16_t*)BufferSystem.map(BufferSystem.get(Heightmap_CPU).allocation)
+        (ChunkHeightmapLink*)BufferSystem.map(ChunkHeightmapLinks_CPU),
+        (uint16_t*)BufferSystem.map(Heightmap_CPU)
     );
-    BufferSystem.unmap(BufferSystem.get(ChunkHeightmapLinks_CPU).allocation);
-    BufferSystem.unmap(BufferSystem.get(Heightmap_CPU).allocation);
 
     VkCommandBuffer cmd = InferusRenderer.SingleTimeCmdBegin(Transfer);
 
@@ -361,6 +363,8 @@ void TerrainRenderer::FullFeedTerrainData(
         ChunkHeightmapLinks_GPU,
         TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE
     );
+    BufferSystem.unmap(ChunkHeightmapLinks_CPU);
+    BufferSystem.unmap(Heightmap_CPU);
 
     // Upload heightmap to staging buffer
     Buffer HeightmapStagingBuffer = BufferSystem.get(Heightmap_CPU);

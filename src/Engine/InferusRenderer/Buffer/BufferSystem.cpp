@@ -103,7 +103,8 @@ void BufferSystem::upload(BufferId dstId, const void* upload_Data, const size_t 
 
 void* BufferSystem::map(const VmaAllocation alloc) {
     void* mappedData;
-    vmaMapMemory(Allocator, alloc, &mappedData);
+    auto result = vmaMapMemory(Allocator, alloc, &mappedData);
+    assert(result == VK_SUCCESS && "Failed to map VMA memory");
     return mappedData;
 }
 

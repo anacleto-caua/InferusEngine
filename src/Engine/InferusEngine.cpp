@@ -4,6 +4,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Engine/Core/InputSystem.hpp"
+
 InferusResult InferusEngine::Init(){
     PlayerPos = { 0, 0, 0 };
 
@@ -12,6 +14,9 @@ InferusResult InferusEngine::Init(){
         spdlog::error("Window creation failed.");
         return InferusResult::FAIL;
     }
+
+    InputSystem::Init(Window);
+
     auto RendererResult = InferusRenderer.Init(Window);
     if (RendererResult != InferusResult::SUCCESS) {
         spdlog::error("Inferus Renderer creation failed.");
@@ -26,6 +31,10 @@ InferusResult InferusEngine::Init(){
                 TerrainSystem
                 );
     Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
+
+    InputSystem::RegisterCallback(InputSystem::ActionType::Press, InputSystem::InfKey::Forward, [](void){ spdlog::info("W as pressed"); });
+    InputSystem::RegisterCallback(InputSystem::ActionType::Repeat, InputSystem::InfKey::Forward, [](void){ spdlog::info("W is being held"); });
+    InputSystem::RegisterCallback(InputSystem::ActionType::Release, InputSystem::InfKey::Forward, [](void){ spdlog::info("W was released"); });
 
     return InferusResult::SUCCESS;
 }

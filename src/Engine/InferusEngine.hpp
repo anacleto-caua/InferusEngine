@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string_view>
 
 #include "Engine/Types.hpp"
@@ -14,15 +15,16 @@ public:
     static constexpr uint32_t WIDTH = 1280;
     static constexpr uint32_t HEIGHT = 720;
 
+    static constexpr int TARGET_FPS = 165;
+    static constexpr std::chrono::duration<double> FRAME_TARGET_TIME{1.0 / TARGET_FPS};
+
     bool ShouldClose = false;
 
     Window Window;
     InferusRenderer InferusRenderer;
     TerrainSystem TerrainSystem;
     Camera3D Camera;
-
 private:
-    glm::ivec3 PlayerPos;
 public:
     InferusEngine() = default;
     ~InferusEngine();
@@ -32,6 +34,8 @@ public:
     InferusResult Init();
 
     void Run();
+    void OutFps(float DeltaTime);
+
 private:
     void Resize(uint32_t Width, uint32_t Height);
 };

@@ -1,10 +1,11 @@
 #include "TerrainSystem.hpp"
 
+#include <cstdint>
 #include <imgui.h>
 
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
 
-void TerrainSystem::Init(glm::ivec3* pPlayerPos) {
+void TerrainSystem::Init(glm::vec3* pPlayerPos) {
     PlayerPos = pPlayerPos;
 
     BaseNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
@@ -33,9 +34,12 @@ void TerrainSystem::Update() {
     ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Terrain System");
 
+    uint32_t x = static_cast<uint32_t>(this->PlayerPos->x/TerrainConfig::Chunk::RESOLUTION);
+    uint32_t z = static_cast<uint32_t>(this->PlayerPos->z/TerrainConfig::Chunk::RESOLUTION);
+
     ImGui::TextDisabled("Current player chunk:");
     ImGui::Indent();
-    ImGui::Text("X: %03d Y: %03d", this->PlayerPos->x/TerrainConfig::Chunk::RESOLUTION, this->PlayerPos->z/TerrainConfig::Chunk::RESOLUTION);
+    ImGui::Text("X: %03d Z: %03d", x, z);
     ImGui::Unindent();
 
     ImGui::Spacing();
@@ -45,7 +49,7 @@ void TerrainSystem::Update() {
     // Clearly mocked data as of now
     ImGui::TextDisabled("Camera casting:");
     ImGui::Indent();
-    ImGui::Text("X: %03d Y: %03d", this->PlayerPos->x/TerrainConfig::Chunk::RESOLUTION, this->PlayerPos->z/TerrainConfig::Chunk::RESOLUTION);
+    ImGui::Text("X: %03d Z: %03d", x, z);
     ImGui::Unindent();
 
     ImGui::End();

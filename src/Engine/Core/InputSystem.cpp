@@ -66,4 +66,11 @@ namespace InputSystem {
                 break;
         }
     }
+
+    void RegisterCallback(InfKey Key, UserAction Callback) {
+        RegisterCallback(ActionType::Press, Key, Callback);
+        RegisterCallback(ActionType::Repeat, Key, Callback);
+        RegisterCallback(ActionType::Release, Key, Callback);
+    }
+
 };

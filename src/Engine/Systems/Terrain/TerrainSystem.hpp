@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include "FastNoiseLite.hpp"
-#include "glm/ext/vector_int3.hpp"
+#include <glm/glm.hpp>
+#include <FastNoiseLite.hpp>
 
 #include "Engine/Systems/Terrain/TerrainTypes.hpp"
 
@@ -13,7 +13,7 @@ public:
     ChunkHeightmapLink* ChunkLinksBuffer_MappedMem;
 
 private:
-    glm::ivec3* PlayerPos;
+    glm::vec3* PlayerPos;
 
     FastNoiseLite BaseNoise;
 public:
@@ -22,7 +22,7 @@ public:
     TerrainSystem(const TerrainSystem&) = delete;
     TerrainSystem& operator=(const TerrainSystem&) = delete;
 
-    void Init(glm::ivec3* PlayerPos);
+    void Init(glm::vec3* PlayerPos);
     void Update();
 
     void FeedTerrainRenderer(ChunkHeightmapLink* ChunkLinkMap, uint16_t* HeightmapMap);

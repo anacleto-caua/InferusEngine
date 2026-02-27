@@ -53,4 +53,7 @@ namespace InputSystem {
     InferusResult Init(Window& Window);
 
     void RegisterCallback(ActionType ActionType, InfKey Key, UserAction Callback);
+
+    // Whithout an ActionType the callback is set for every Action possible
+    void RegisterCallback(InfKey Key, UserAction Callback);
 };

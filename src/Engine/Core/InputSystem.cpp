@@ -2,14 +2,22 @@
 
 #include <vector>
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
+
+#include "Engine/Core/Window.hpp"
 
 namespace InputSystem {
     std::vector<UserAction> PressActions;
     std::vector<UserAction> RepeatActions;
     std::vector<UserAction> ReleaseActions;
 
-    void KeyCallbackStrain([[maybe_unused]]GLFWwindow* window, int key, [[maybe_unused]]int scancode, int action, [[maybe_unused]]int mods) {
+    void KeyCallbackStrain(
+            [[maybe_unused]]GLFWwindow* window,
+            int key,
+            [[maybe_unused]]int scancode,
+            int action,
+            [[maybe_unused]]int mods)
+    {
         if (action == GLFW_PRESS) {
             if (static_cast<size_t>(key) < PressActions.size()) {
                 if (PressActions[key]) {
@@ -36,9 +44,8 @@ namespace InputSystem {
         }
     }
 
-    InferusResult Init(Window& Window) {
-        glfwSetKeyCallback(Window.glfwWindow, KeyCallbackStrain);
-        return InferusResult::SUCCESS;
+    void Create() {
+        glfwSetKeyCallback(Window::glfwWindow, KeyCallbackStrain);
     }
 
     void RegisterCallback(ActionType ActionType, InfKey Key, UserAction Callback) {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "glm/fwd.hpp"
-#include "glm/ext/matrix_float4x4.hpp"
+#include <glm/fwd.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 
 class Camera3D {
 public:
-    static constexpr uint32_t SPEED = 20;
+    static constexpr float SPEED = 20;
 
     float FOV;
     float Aspect;

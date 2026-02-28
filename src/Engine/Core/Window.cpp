@@ -1,64 +1,61 @@
 #include "Window.hpp"
 
-InferusResult Window::Init(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback Callback) {
-    glfwInit();
+namespace Window {
+    InferusResult Init(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback Callback) {
+        glfwInit();
 
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    glfwWindow = glfwCreateWindow(Width, Height, Title.c_str(), nullptr, nullptr);
-    if (!glfwWindow) {
-        return InferusResult::FAIL;
+        glfwWindow = glfwCreateWindow(Width, Height, Title.c_str(), nullptr, nullptr);
+        if (!glfwWindow) {
+            return InferusResult::FAIL;
+        }
+
+        userResizeCallback = Callback;
+        glfwSetFramebufferSizeCallback(glfwWindow, StaticFramebufferResizeCallback);
+
+        return InferusResult::SUCCESS;
     }
-    glfwSetWindowUserPointer(glfwWindow, this);
 
-    userResizeCallback = Callback;
-    glfwSetFramebufferSizeCallback(glfwWindow, StaticFramebufferResizeCallback);
+    void Destroy() {
+        glfwDestroyWindow(glfwWindow);
+        glfwTerminate();
+    }
 
-    return InferusResult::SUCCESS;
-}
+    std::vector<const char*> GetRequiredExtensions() {
+        uint32_t glfwExtensionCount = 0;
+        const char **glfwExtensions;
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-Window::~Window() {
-    glfwDestroyWindow(glfwWindow);
-    glfwTerminate();
-}
+        return std::vector<const char*> (glfwExtensions, glfwExtensions + glfwExtensionCount);
+    }
 
-std::vector<const char*> Window::GetRequiredExtensions() {
-    uint32_t glfwExtensionCount = 0;
-    const char **glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    VkResult CreateSurface(VkInstance instance, VkSurfaceKHR &surface) {
+        return glfwCreateWindowSurface(instance, glfwWindow, nullptr, &surface);
+    }
 
-    return std::vector<const char*> (glfwExtensions, glfwExtensions + glfwExtensionCount);
-}
+    void GetFramebufferSize(uint32_t &Width, uint32_t &Height) {
+        int c_width = 0, c_height = 0;
+        glfwGetFramebufferSize(glfwWindow, &c_width, &c_height);
+        Width = static_cast<uint32_t>(c_width);
+        Height = static_cast<uint32_t>(c_height);
+    }
 
-VkResult Window::CreateSurface(VkInstance instance, VkSurfaceKHR &surface) {
-    return glfwCreateWindowSurface(instance, glfwWindow, nullptr, &surface);
-}
+    void StaticFramebufferResizeCallback([[maybe_unused]]GLFWwindow* window, int width, int height) {
+        OnResize(width, height);
+        userResizeCallback(width, height);
+    }
 
-void Window::WaitEvents() {
-    glfwWaitEvents();
-}
+    void WaitEvents() {
+        glfwWaitEvents();
+    }
 
-bool Window::ShouldClose() {
-    return glfwWindowShouldClose(glfwWindow);
-}
+    bool ShouldClose() {
+        return glfwWindowShouldClose(glfwWindow);
+    }
 
-void Window::Update() {
-    glfwPollEvents();
-}
-
-void Window::GetFramebufferSize(uint32_t &Width, uint32_t &Height) {
-    int c_width = 0, c_height = 0;
-    glfwGetFramebufferSize(glfwWindow, &c_width, &c_height);
-    Width = static_cast<uint32_t>(c_width);
-    Height = static_cast<uint32_t>(c_height);
-}
-
-void Window::StaticFramebufferResizeCallback(GLFWwindow* window, int width, int height) {
-    Window* self = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
-    self->OnResize(width, height);
-}
-
-void Window::OnResize(uint32_t width, uint32_t height) {
-    userResizeCallback(width, height);
+    void Update() {
+        glfwPollEvents();
+    }
 }

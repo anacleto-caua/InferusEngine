@@ -1,5 +1,6 @@
 #include "Camera3D.hpp"
 
+#include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
 #include "Default.hpp"

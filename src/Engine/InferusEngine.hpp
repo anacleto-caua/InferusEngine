@@ -9,8 +9,7 @@
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/Systems/Terrain/TerrainSystem.hpp"
 
-class InferusEngine {
-public:
+namespace InferusEngine {
     static constexpr std::string_view ENGINE_NAME = "Inferus Engine";
     static constexpr uint32_t WIDTH = 1280;
     static constexpr uint32_t HEIGHT = 720;
@@ -18,24 +17,16 @@ public:
     static constexpr int TARGET_FPS = 165;
     static constexpr std::chrono::duration<double> FRAME_TARGET_TIME{1.0 / TARGET_FPS};
 
-    bool ShouldClose = false;
+    inline bool ShouldClose = false;
 
-    Window Window;
-    InferusRenderer InferusRenderer;
-    TerrainSystem TerrainSystem;
-    Camera3D Camera;
-private:
-public:
-    InferusEngine() = default;
-    ~InferusEngine();
-    InferusEngine(const InferusEngine&) = delete;
-    InferusEngine& operator=(const InferusEngine&) = delete;
+    inline InferusRenderer InferusRenderer;
+    inline TerrainSystem TerrainSystem;
+    inline Camera3D Camera;
 
     InferusResult Init();
+    void Cleanup();
 
     void Run();
     void OutFps(float DeltaTime);
-
-private:
     void Resize(uint32_t Width, uint32_t Height);
 };

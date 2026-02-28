@@ -7,84 +7,88 @@
 
 #include "Engine/Core/InputSystem.hpp"
 
-InferusResult InferusEngine::Init(){
-    auto WindowResult = Window.Init(WIDTH, HEIGHT, ENGINE_NAME.data(), [this](uint32_t w, uint32_t h){this->Resize(w, h);});
-    if (WindowResult != InferusResult::SUCCESS) {
-        spdlog::error("Window creation failed.");
-        return InferusResult::FAIL;
-    }
+namespace InferusEngine {
+    InferusResult Init(){
+        auto WindowResult = Window::Create(WIDTH, HEIGHT, ENGINE_NAME.data(), [](uint32_t w, uint32_t h){Resize(w, h);});
 
-    InputSystem::Init(Window);
-
-    auto RendererResult = InferusRenderer.Init(Window);
-    if (RendererResult != InferusResult::SUCCESS) {
-        spdlog::error("Inferus Renderer creation failed.");
-        return InferusResult::FAIL;
-    }
-
-    TerrainSystem.Init(&Camera.Position);
-    InferusRenderer
-        .TerrainRenderer.
-        FullFeedTerrainData(
-                InferusRenderer,
-                TerrainSystem
-                );
-    Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
-
-    return InferusResult::SUCCESS;
-}
-
-InferusEngine::~InferusEngine() {
-    // ...
-}
-
-void InferusEngine::Run() {
-    auto LastFrameTime = std::chrono::high_resolution_clock::now();
-    while (!ShouldClose && !Window.ShouldClose()) {
-        auto FrameBegin = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<float> DeltaTimeRaw = LastFrameTime - FrameBegin;
-        float DeltaTime = DeltaTimeRaw.count();
-        LastFrameTime = FrameBegin;
-
-        Camera.Update(DeltaTime);
-        InferusRenderer.EarlyRender();
-        Window.Update();
-        TerrainSystem.Update();
-        OutFps(DeltaTime);
-        InferusRenderer.LateRender();
-
-        auto FrameEnd = std::chrono::high_resolution_clock::now();
-        auto ElapsedTime = FrameBegin - FrameEnd;
-
-        if ( ElapsedTime < FRAME_TARGET_TIME ) {
-            std::this_thread::sleep_for(FRAME_TARGET_TIME - ElapsedTime);
+        if (WindowResult != InferusResult::SUCCESS) {
+            spdlog::error("Window creation failed.");
+            return InferusResult::FAIL;
         }
+
+        InputSystem::Create();
+
+        auto RendererResult = InferusRenderer.Create();
+        if (RendererResult != InferusResult::SUCCESS) {
+            spdlog::error("Inferus Renderer creation failed.");
+            return InferusResult::FAIL;
+        }
+
+        TerrainSystem.Init(&Camera.Position);
+        InferusRenderer
+            .TerrainRenderer.
+            FullFeedTerrainData(
+                    InferusRenderer,
+                    TerrainSystem
+                    );
+        Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
+
+        return InferusResult::SUCCESS;
     }
-    Window.WaitEvents();
-}
 
-void InferusEngine::OutFps(float DeltaTime) {
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-                                    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
-                                    ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs;
-
-    // Position: Bottom-Right
-    const float PAD = 10.0f;
-    const ImVec2 viewport_pos = ImGui::GetMainViewport()->WorkPos;
-    const ImVec2 viewport_size = ImGui::GetMainViewport()->WorkSize;
-    ImVec2 window_pos = { (viewport_pos.x + viewport_size.x - PAD), (viewport_pos.y + viewport_size.y - PAD) };
-    ImVec2 window_pos_pivot = { 1.0f, 1.0f }; // Pivot on bottom-right corner
-
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-    ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-
-    if (ImGui::Begin("Performance Overlay", nullptr, window_flags)) {
-        ImGui::Text("FPS: %.1f (%.3f ms)", 1.0f / DeltaTime, DeltaTime * 1000.0f);
+    void Cleanup() {
+        Window::Destroy();
+        InputSystem::Destroy();
     }
-    ImGui::End();
-}
 
-void InferusEngine::Resize(uint32_t Width, uint32_t Height) {
-    InferusRenderer.Resize(Width, Height);
-    Camera.Resize(float(Width)/float(Height));
-}
+    void Run() {
+        auto LastFrameTime = std::chrono::high_resolution_clock::now();
+        while (!ShouldClose && !Window.ShouldClose()) {
+            auto FrameBegin = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<float> DeltaTimeRaw = LastFrameTime - FrameBegin;
+            float DeltaTime = DeltaTimeRaw.count();
+            LastFrameTime = FrameBegin;
+
+            Camera.Update(DeltaTime);
+            InferusRenderer.EarlyRender();
+            Window.Update();
+            TerrainSystem.Update();
+            OutFps(DeltaTime);
+            InferusRenderer.LateRender();
+
+            auto FrameEnd = std::chrono::high_resolution_clock::now();
+            auto ElapsedTime = FrameBegin - FrameEnd;
+
+            if ( ElapsedTime < FRAME_TARGET_TIME ) {
+                std::this_thread::sleep_for(FRAME_TARGET_TIME - ElapsedTime);
+            }
+        }
+        Window.WaitEvents();
+    }
+
+    void OutFps(float DeltaTime) {
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                                        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                                        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs;
+
+        // Position: Bottom-Right
+        const float PAD = 10.0f;
+        const ImVec2 viewport_pos = ImGui::GetMainViewport()->WorkPos;
+        const ImVec2 viewport_size = ImGui::GetMainViewport()->WorkSize;
+        ImVec2 window_pos = { (viewport_pos.x + viewport_size.x - PAD), (viewport_pos.y + viewport_size.y - PAD) };
+        ImVec2 window_pos_pivot = { 1.0f, 1.0f }; // Pivot on bottom-right corner
+
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+
+        if (ImGui::Begin("Performance Overlay", nullptr, window_flags)) {
+            ImGui::Text("FPS: %.1f (%.3f ms)", 1.0f / DeltaTime, DeltaTime * 1000.0f);
+        }
+        ImGui::End();
+    }
+
+    void Resize(uint32_t Width, uint32_t Height) {
+        InferusRenderer.Resize(Width, Height);
+        Camera.Resize(float(Width)/float(Height));
+    }
+};

@@ -15,12 +15,6 @@
 #include "Engine/InferusRenderer/Passes/ImGuiRenderer.hpp"
 #include "Engine/InferusRenderer/Passes/TerrainRenderer.hpp"
 
-struct QueueContext {
-    uint32_t Index;
-    VkQueue Queue = VK_NULL_HANDLE;
-    VkCommandPool MainCmdPool = VK_NULL_HANDLE;
-};
-
 struct FrameData {
     float DeltaTime = 0;
     VkFence InFlight = VK_NULL_HANDLE;
@@ -48,8 +42,8 @@ public:
     QueueContext Transfer;
     QueueContext Compute;
 
-    BufferSystem BufferSystem;
     static constexpr size_t CREATION_WISE_STAGING_BUFFER_SIZE = 1 * 1024 * 1024;
+    BufferSystem BufferSystem;
     ImageSystem ImageSystem;
 
     // Swapchain

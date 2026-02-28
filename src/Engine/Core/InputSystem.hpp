@@ -8,9 +8,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include "Engine/Types.hpp"
-#include "Engine/Core/Window.hpp"
-
 namespace InputSystem {
     enum class ActionType {
         Press,
@@ -50,10 +47,9 @@ namespace InputSystem {
 
     inline bool IsActive = true;
 
-    InferusResult Init(Window& Window);
+    void Create();
+    void Destroy();
 
     void RegisterCallback(ActionType ActionType, InfKey Key, UserAction Callback);
-
-    // Whithout an ActionType the callback is set for every Action possible
     void RegisterCallback(InfKey Key, UserAction Callback);
 };

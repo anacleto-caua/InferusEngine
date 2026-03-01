@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
@@ -18,10 +20,15 @@ namespace VulkanContext {
     inline VkDevice Device;
     inline VmaAllocator VmaAllocator;
 
+    inline VkSurfaceKHR Surface;
+    inline VkSurfaceFormatKHR SurfaceFormat;
+    inline VkPresentModeKHR PresentMode;
+
     inline QueueContext Graphics;
     inline QueueContext Present;
     inline QueueContext Transfer;
     inline QueueContext Compute;
+    inline std::vector Queues = { &Graphics, &Present, &Transfer, &Compute };
 
     InferusResult Create();
     void Destroy();

@@ -18,7 +18,7 @@ namespace InferusEngine {
 
         InputSystem::Create();
 
-        auto RendererResult = InferusRenderer.Create();
+        auto RendererResult = InferusRenderer::Create();
         if (RendererResult != InferusResult::SUCCESS) {
             spdlog::error("Inferus Renderer creation failed.");
             return InferusResult::FAIL;
@@ -43,7 +43,7 @@ namespace InferusEngine {
 
     void Run() {
         auto LastFrameTime = std::chrono::high_resolution_clock::now();
-        while (!ShouldClose && !Window.ShouldClose()) {
+        while (!ShouldClose && !Window::ShouldClose()) {
             auto FrameBegin = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> DeltaTimeRaw = LastFrameTime - FrameBegin;
             float DeltaTime = DeltaTimeRaw.count();
@@ -51,7 +51,7 @@ namespace InferusEngine {
 
             Camera.Update(DeltaTime);
             InferusRenderer.EarlyRender();
-            Window.Update();
+            Window::Update();
             TerrainSystem.Update();
             OutFps(DeltaTime);
             InferusRenderer.LateRender();
@@ -63,7 +63,7 @@ namespace InferusEngine {
                 std::this_thread::sleep_for(FRAME_TARGET_TIME - ElapsedTime);
             }
         }
-        Window.WaitEvents();
+        Window::WaitEvents();
     }
 
     void OutFps(float DeltaTime) {

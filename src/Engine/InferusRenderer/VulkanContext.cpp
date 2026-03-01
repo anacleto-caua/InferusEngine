@@ -1,7 +1,9 @@
 #include "VulkanContext.hpp"
 
 #include <array>
-#include <vector>
+#include <string>
+
+#include <spdlog/spdlog.h>
 
 #include "Engine/Core/Window.hpp"
 
@@ -17,9 +19,91 @@ namespace VulkanContext {
     };
 
 #ifndef NDEBUG
+    VkDebugUtilsMessengerEXT _DebugMessenger;
+
     static constexpr std::array<const char*, 1> VALIDATION_LAYERS = { "VK_LAYER_KHRONOS_validation" };
     static constexpr std::array<const char*, 1> VALIDATION_LAYERS_EXTENSION = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
+
+    VKAPI_ATTR VkBool32 VKAPI_CALL _DebugMessageCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+            [[maybe_unused]]void *pUserData)
+    {
+        std::string strMessageType;
+        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)     strMessageType += "General|";
+        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)  strMessageType += "Validation|";
+        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) strMessageType += "Performance|";
+
+        // Result: [Validation] ID: 0x12345 | Message: ...
+        std::string msg = fmt::format("[{}] ID: {} | {}",
+            strMessageType,
+            pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "None",
+            pCallbackData->pMessage);
+
+        switch (messageSeverity) {
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                spdlog::error(msg);
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                spdlog::warn(msg);
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+                spdlog::info(msg);
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                spdlog::debug(msg);
+                break;
+            default:
+                spdlog::critical("Unknown Severity Validation Error: {}", msg);
+                break;
+        }
+        return VK_FALSE;
+    }
+
+    InferusResult _SetupDebugMessenger() {
+        VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
+        CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        CreateInfo.messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        CreateInfo.messageType =
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        CreateInfo.pfnUserCallback = _DebugMessageCallback;
+
+        auto Func =
+            (PFN_vkCreateDebugUtilsMessengerEXT)
+                vkGetInstanceProcAddr(
+                    Instance,
+                    "vkCreateDebugUtilsMessengerEXT"
+                );
+        if ((Func == nullptr) || (Func(Instance, &CreateInfo, nullptr, &_DebugMessenger) != VK_SUCCESS)) {
+            return InferusResult::FAIL;
+        }
+        return InferusResult::SUCCESS;
+    }
+
+    void _DestroyDebugUtilsMessengerEXT() {
+        auto Func = (PFN_vkDestroyDebugUtilsMessengerEXT)
+            vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT");
+
+        if (Func != nullptr) {
+            Func(Instance, _DebugMessenger, nullptr);
+        }
+    }
 #endif
+
+    VkSurfaceFormatKHR DESIRABLE_SURFACE_FORMAT = {
+        .format = VK_FORMAT_B8G8R8A8_SRGB,
+        .colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR
+    };
+
+    std::array<VkPresentModeKHR, 3> PRESENT_MODE_TIERLIST = {
+        VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR
+    };
 
     InferusResult CreateInstance() {
         VkApplicationInfo AppInfo {
@@ -52,10 +136,10 @@ namespace VulkanContext {
         // Validation layers
 #ifndef NDEBUG
         AllInstanceExtensions.insert(
-                AllInstanceExtensions.end(),
-                VALIDATION_LAYERS_EXTENSION.begin(),
-                VALIDATION_LAYERS_EXTENSION.end()
-                );
+            AllInstanceExtensions.end(),
+            VALIDATION_LAYERS_EXTENSION.begin(),
+            VALIDATION_LAYERS_EXTENSION.end()
+        );
         InstanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
         InstanceCreateInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 #endif
@@ -249,8 +333,7 @@ namespace VulkanContext {
     InferusResult CreateLogicalDevice() {
         float QueuePriority = 1.0f;
         std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos = {};
-        std::vector AllQueues = { &Graphics, &Present, &Transfer, &Compute };
-        for (QueueContext* Queue : AllQueues) {
+        for (QueueContext *Queue :Queues) {
             bool IsUnique = true;
             for (auto CreateInfo : QueueCreateInfos) {
                 if (Queue->Index == CreateInfo.queueFamilyIndex) {
@@ -307,20 +390,66 @@ namespace VulkanContext {
     }
 
     InferusResult CreateVmaAllocator() {
-        // Vma Allocator
         VmaAllocatorCreateInfo AllocatorCreateInfo = {};
         AllocatorCreateInfo.physicalDevice = PhysicalDevice;
         AllocatorCreateInfo.device = Device;
         AllocatorCreateInfo.instance = Instance;
-        if ( vmaCreateAllocator(&AllocatorCreateInfo, &VmaAllocator) != VK_SUCCESS ) {
+        if (vmaCreateAllocator(&AllocatorCreateInfo, &VmaAllocator) != VK_SUCCESS) {
             return InferusResult::FAIL;
         }
         return InferusResult::SUCCESS;
     }
 
+    void PickSurfaceFormat() {
+        uint32_t SurfaceFormatCount;
+        std::vector<VkSurfaceFormatKHR> SurfaceFormats;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatCount, nullptr);
+        SurfaceFormats.resize(SurfaceFormatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &SurfaceFormatCount, SurfaceFormats.data());
+
+        for (VkSurfaceFormatKHR CurrSurfaceFormat : SurfaceFormats) {
+            if ((CurrSurfaceFormat.format == DESIRABLE_SURFACE_FORMAT.format) &&
+                (CurrSurfaceFormat.colorSpace == DESIRABLE_SURFACE_FORMAT.colorSpace)) {
+                // Desirable surface format picked
+                SurfaceFormat = CurrSurfaceFormat;
+                return;
+            }
+        }
+        // Non desirable surface format picked.
+        SurfaceFormat = SurfaceFormats[0];
+    }
+
+    void PickPresentMode() {
+        uint32_t PresentModesCount;
+        std::vector<VkPresentModeKHR> PresentModes;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, nullptr);
+        PresentModes.resize(PresentModesCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &PresentModesCount, PresentModes.data());
+
+        for (VkPresentModeKHR ComparingPresentMode : PRESENT_MODE_TIERLIST ) {
+            for (VkPresentModeKHR CurrPresentMode : PresentModes) {
+                if (ComparingPresentMode == CurrPresentMode) {
+                    // Desirable present mode picked
+                    PresentMode = CurrPresentMode;
+                    return;
+                }
+            }
+        }
+        // Non desirable present mode picked
+        PresentMode = PresentModes[0];
+    }
+
     InferusResult Create() {
         CreateInstance();
+
+#ifndef NDEBUG
+        _SetupDebugMessenger();
+#endif
+
         PickPhysicalDevice();
+        Window::CreateSurface(Instance, Surface);
+        PickSurfaceFormat();
+        PickPresentMode();
         PickQueues();
         CreateLogicalDevice();
         CreateVmaAllocator();
@@ -328,8 +457,18 @@ namespace VulkanContext {
     }
 
     void Destroy() {
+        vkDeviceWaitIdle(Device);
+
+        for (QueueContext *Queue : Queues) {
+            if (Queue->MainCmdPool) { vkDestroyCommandPool(Device, Queue->MainCmdPool, nullptr); }
+        }
+
         if (VmaAllocator) { vmaDestroyAllocator(VmaAllocator); }
         if (Device) { vkDestroyDevice(Device, nullptr); }
+
+#ifndef NDEBUG
+        _DestroyDebugUtilsMessengerEXT();
+#endif
         if (Instance) { vkDestroyInstance(Instance, nullptr); }
     }
 }

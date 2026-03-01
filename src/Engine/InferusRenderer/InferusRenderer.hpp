@@ -31,17 +31,6 @@ struct SwapchainImage {
 
 class InferusRenderer {
 public:
-    // Vulkan Context
-    VkInstance Instance;
-    VkPhysicalDevice PhysicalDevice;
-    VkDevice Device;
-    VmaAllocator VmaAllocator;
-
-    QueueContext Graphics;
-    QueueContext Present;
-    QueueContext Transfer;
-    QueueContext Compute;
-
     static constexpr size_t CREATION_WISE_STAGING_BUFFER_SIZE = 1 * 1024 * 1024;
     BufferSystem BufferSystem;
     ImageSystem ImageSystem;

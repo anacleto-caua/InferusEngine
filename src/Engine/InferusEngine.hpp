@@ -1,37 +1,31 @@
 #pragma once
 
+#include <chrono>
 #include <string_view>
 
 #include "Engine/Types.hpp"
-#include "Engine/Components/Window.hpp"
-#include "Engine/Components/Camera3D.hpp"
+#include "Engine/Core/Camera3D.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
-#include "Engine/Components/Terrain/TerrainSystem.hpp"
+#include "Engine/Systems/Terrain/TerrainSystem.hpp"
 
-class InferusEngine {
-public:
+namespace InferusEngine {
     static constexpr std::string_view ENGINE_NAME = "Inferus Engine";
     static constexpr uint32_t WIDTH = 1280;
     static constexpr uint32_t HEIGHT = 720;
 
-    bool ShouldClose = false;
+    static constexpr int TARGET_FPS = 165;
+    static constexpr std::chrono::duration<double> FRAME_TARGET_TIME{1.0 / TARGET_FPS};
 
-    Window Window;
-    InferusRenderer InferusRenderer;
-    TerrainSystem TerrainSystem;
-    Camera3D Camera;
+    inline bool ShouldClose = false;
 
-private:
-    glm::ivec3 PlayerPos;
-public:
-    InferusEngine() = default;
-    ~InferusEngine();
-    InferusEngine(const InferusEngine&) = delete;
-    InferusEngine& operator=(const InferusEngine&) = delete;
+    inline InferusRenderer InferusRenderer;
+    inline TerrainSystem TerrainSystem;
+    inline Camera3D Camera;
 
     InferusResult Init();
+    void Destroy();
 
     void Run();
-private:
+    void OutFps(float DeltaTime);
     void Resize(uint32_t Width, uint32_t Height);
 };

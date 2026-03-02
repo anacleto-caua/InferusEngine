@@ -1,16 +1,17 @@
 #include "TerrainSystem.hpp"
 
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
+#include <cstdint>
+#include <imgui.h>
 
-void TerrainSystem::Init(glm::ivec3* pPlayerPos) {
+#include "Engine/Systems/Terrain/TerrainConfig.hpp"
+
+void TerrainSystem::Init(glm::vec3* pPlayerPos) {
     PlayerPos = pPlayerPos;
 
     BaseNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     BaseNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
     BaseNoise.SetFractalOctaves(8);
     BaseNoise.SetFrequency(.02);
-
-    FullWriteChunkData();
 }
 
 TerrainSystem::~TerrainSystem() {
@@ -26,6 +27,38 @@ void TerrainSystem::Update() {
     // allocations we could just update the other ones and provide a glInstanceIndex offset
     // on the push constants? Maybe have double or triple buffering on Heightmap and
     // ChunkLink information? I think the last option seems better.
+    // -- Turns out all that stuff has already been figured out, so I may just pick one or
+    // a combination of them and rock with it. One could also consider do a performance
+    // comparisson and etc.
+
+    ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Terrain System");
+
+    uint32_t x = static_cast<uint32_t>(this->PlayerPos->x/TerrainConfig::Chunk::RESOLUTION);
+    uint32_t z = static_cast<uint32_t>(this->PlayerPos->z/TerrainConfig::Chunk::RESOLUTION);
+
+    ImGui::TextDisabled("Current player chunk:");
+    ImGui::Indent();
+    ImGui::Text("X: %03d Z: %03d", x, z);
+    ImGui::Unindent();
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Clearly mocked data as of now
+    ImGui::TextDisabled("Camera casting:");
+    ImGui::Indent();
+    ImGui::Text("X: %03d Z: %03d", x, z);
+    ImGui::Unindent();
+
+    ImGui::End();
+}
+
+void TerrainSystem::FeedTerrainRenderer(ChunkHeightmapLink* ChunkLinkMap, uint16_t* HeightmapMap) {
+    ChunkLinksBuffer_MappedMem = ChunkLinkMap;
+    HeightmapsBuffer_MappedMem = HeightmapMap;
+    FullWriteChunkData(); // TODO: hacky
 }
 
 void TerrainSystem::FullWriteChunkData() {
@@ -36,7 +69,7 @@ void TerrainSystem::FullWriteChunkData() {
 
     uint32_t coords_counter = TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT - 1;    // The last array position
     // Add the player position as it's the last chunk that should be drawn
-    ChunkLinksBuffer[coords_counter] = {
+    ChunkLinksBuffer_MappedMem[coords_counter] = {
         .WorldPos = player_coord,
         .InstanceId = (uint32_t)coords_counter,
         .IsVisible = 1
@@ -51,7 +84,7 @@ void TerrainSystem::FullWriteChunkData() {
             int32_t y_neg = player_coord.y - j;
 
             // Memory Layout: [Link3][Link2][Link1][Link0]
-            ChunkHeightmapLink* block = &ChunkLinksBuffer[coords_counter - 3];
+            ChunkHeightmapLink* block = &ChunkLinksBuffer_MappedMem[coords_counter - 3];
 
             // We write sequentially to the memory block (0, 1, 2, 3).
             block[0] = {
@@ -81,8 +114,9 @@ void TerrainSystem::FullWriteChunkData() {
 
     // TODO:
     // Kinda ugly they're on different loops and it's all in the main thread
-    for (ChunkHeightmapLink cl : ChunkLinksBuffer) {
-        WriteChunk(cl.WorldPos, &HeightmapsBuffer[cl.InstanceId * TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_PIXEL_COUNT]);
+    for (uint16_t i = 0; i < TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT; i++) {
+        ChunkHeightmapLink cl = ChunkLinksBuffer_MappedMem[i];
+        WriteChunk(cl.WorldPos, &HeightmapsBuffer_MappedMem[cl.InstanceId * TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_PIXEL_COUNT]);
     }
 }
 

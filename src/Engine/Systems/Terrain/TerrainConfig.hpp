@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Engine/Components/Terrain/TerrainTypes.hpp"
+#include "Engine/Systems/Terrain/TerrainTypes.hpp"
 
 namespace TerrainConfig {
     namespace Chunk {

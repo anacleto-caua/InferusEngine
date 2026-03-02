@@ -5,7 +5,6 @@
 #include <vulkan/vulkan.h>
 
 #include "Engine/InferusRenderer/Image/Image.hpp"
-#include "vulkan/vulkan_core.h"
 
 #define RECIPE static inline
 

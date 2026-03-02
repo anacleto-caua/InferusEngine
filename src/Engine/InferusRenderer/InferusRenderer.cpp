@@ -6,74 +6,15 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Engine/Core/Window.hpp"
 #include "Engine/InferusRenderer/Recipes.hpp"
-#include "Engine/InferusRenderer/InitSkinner.hpp"
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
-#include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
-#include "Engine/Components/Terrain/PlaneMeshIndicesGenerator.hpp"
 
-InferusResult InferusRenderer::Init(Window& Window) {
-    // Instance
-    if ( InitSkinner::Instance::CreateInstance(Window, Instance) != InferusResult::SUCCESS ) {
-        spdlog::error("Instance creation failed");
-        return InferusResult::FAIL;
-    }
+using namespace VulkanContext; // Yes I know
 
-#ifndef NDEBUG
-    _SetupDebugMessenger();
-#endif
-
-    // Physical device
-    if ( InitSkinner::PhysicalDevice::PickPhysicalDevice(Instance, PhysicalDevice) != InferusResult::SUCCESS ) {
-        spdlog::error("No valid Physical Device was found");
-        return InferusResult::FAIL;
-    }
-
-    VkPhysicalDeviceProperties DeviceProperties;
-    vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
-    spdlog::info("InferusRenderer's chosen device: {}", DeviceProperties.deviceName);
-
-    // Surface creation
-    Window.CreateSurface(Instance, Surface);
-
-    // TODO: Add support for presenting from the compute queue, as in:
-    // on graphics: bindings -> draw -[pass to compute]> post processing -> present[still on processing]
-    // Sugested by:
-    // AMD:     https://gpuopen.com/learn/rdna-performance-guide/#presenting
-    // NVDIA:   https://developer.nvidia.com/blog/advanced-api-performance-async-compute-and-overlap/
-
-    // Select queues
-    if ( InitSkinner::Queues::PickQueues(PhysicalDevice, Surface, Graphics, Present, Transfer, Compute) != InferusResult::SUCCESS ) {
-        spdlog::error("One or more queue families couldn't meet their minimum criteria");
-        return InferusResult::FAIL;
-    }
-
-    spdlog::info("Picked queues:");
-    spdlog::info(" - Graphics: {}", Graphics.Index);
-    spdlog::info(" - Present: {}", Present.Index);
-    spdlog::info(" - Transfer: {}", Transfer.Index);
-    spdlog::info(" - Compute: {}", Compute.Index);
-
-    // Creating queue families
-    std::vector AllQueues = { &Graphics, &Present, &Transfer, &Compute };
-    // Logical device
-    if ( InitSkinner::LogicalDevice::CreateLogicalDevice(PhysicalDevice, AllQueues, Device) != InferusResult::SUCCESS ) {
-        spdlog::error("Failed to create VkDevice");
-        return InferusResult::FAIL;
-    }
-
-    // Vma Allocator
-    VmaAllocatorCreateInfo AllocatorCreateInfo = {};
-    AllocatorCreateInfo.physicalDevice = PhysicalDevice;
-    AllocatorCreateInfo.device = Device;
-    AllocatorCreateInfo.instance = Instance;
-    if ( vmaCreateAllocator(&AllocatorCreateInfo, &VmaAllocator) != VK_SUCCESS ) {
-        spdlog::error("Failed to create VmaAllocator");
-        return InferusResult::FAIL;
-    }
-
+InferusResult InferusRenderer::Create() {
+    VulkanContext::Create();
     // Memory resources management systems
-    BufferSystem.create(VmaAllocator);
+    BufferSystem.create(VulkanContext::VmaAllocator);
     BufferId CreationWiseStagingBuffer;
     {
         BufferCreateDescription CreationWiseStagingBufferCreateDesc = {
@@ -83,38 +24,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
         };
         CreationWiseStagingBuffer = BufferSystem.add(CreationWiseStagingBufferCreateDesc);
     }
-    ImageSystem.create(Device, VmaAllocator);
-
-    // Create the rest of queue context
-    VkCommandPoolCreateInfo PoolCreateInfo{};
-    PoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    PoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    for (QueueContext *Queue : AllQueues) {
-        vkGetDeviceQueue(Device, Queue->Index, 0, &Queue->Queue);
-        PoolCreateInfo.queueFamilyIndex = Queue->Index;
-        if (vkCreateCommandPool(Device, &PoolCreateInfo, nullptr, &Queue->MainCmdPool) != VK_SUCCESS) {
-            spdlog::error("main command pool creation failed");
-            return InferusResult::FAIL;
-        }
-    }
-
-    // Pick Swapchain surface format
-    VkSurfaceFormatKHR DesirableSurfaceFormat = {
-        .format = VK_FORMAT_B8G8R8A8_SRGB,
-        .colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR
-    };
-
-    if ( !InitSkinner::SurfaceOptions::PickSurfaceFormat(PhysicalDevice, Surface, DesirableSurfaceFormat, SurfaceFormat) ) {
-        spdlog::warn("Non desirable surface format picked");
-    }
-
-    // Pick present mode
-    std::vector<VkPresentModeKHR> PresentModesTierList = {
-        VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR
-    };
-    if ( !InitSkinner::SurfaceOptions::PickPresentMode(PhysicalDevice, Surface, PresentModesTierList, PresentMode) ) {
-        spdlog::warn("Non desirable present mode picked");
-    }
+    ImageSystem.create(Device, VulkanContext::VmaAllocator);
 
     QuerySurfaceCapabilities();
     Extent = SurfaceCapabilities.currentExtent;
@@ -145,7 +55,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
     }
 
     // Finally create the Swapchain
-    Window.GetFramebufferSize(Extent.width, Extent.height);
+    Window::GetFramebufferSize(Extent.width, Extent.height);
     RecreateSwapchain(VK_NULL_HANDLE);
 
     PresentInfo = {};
@@ -224,314 +134,30 @@ InferusResult InferusRenderer::Init(Window& Window) {
     PipelineCmdSubmitInfo.commandBufferCount = 1;
     PipelineCmdSubmitInfo.signalSemaphoreCount = 1;
 
-    // Create Terrain Pipeline specific
-    {
-        VkShaderStageFlags AllStages = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
-
-        // TODO: I'm mostly def handling staging buffer in a very very dumb way
-
-        // Terrain heightmap
-        {
-            ImageCreateDescription HeightmapImageCreateDesc;
-            HeightmapImageCreateDesc.width = TerrainConfig::Chunk::RESOLUTION;
-            HeightmapImageCreateDesc.height = TerrainConfig::Chunk::RESOLUTION;
-            HeightmapImageCreateDesc.arrayLayers = TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT;
-            HeightmapImageCreateDesc.format = TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_FORMAT;
-            HeightmapImageCreateDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-            HeightmapImageId = ImageSystem.add(HeightmapImageCreateDesc);
-
-            auto HeightmapSamplerInfo = Recipes::SamplerCreateInfo::HeightmapSampler();
-            vkCreateSampler(Device, &HeightmapSamplerInfo, nullptr, &HeightmapTextureSampler);
-
-            BufferCreateDescription HeightmapStagingBufferId_CreateInfo = {
-                .size = TerrainConfig::Heightmap::HEIGHTMAP_ALL_IMAGES_SIZE,
-                .memType = BufferMemoryType::STAGING_UPLOAD,
-                .usage = BufferUsage::STAGING
-            };
-            HeightmapStagingBufferId = BufferSystem.add(HeightmapStagingBufferId_CreateInfo);
-        }
-
-        // Chunk to Heightmap linking
-        {
-            BufferCreateDescription ChunkHeightmapLinksCPU_CreateDesc = {
-                .size = TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE,
-                .memType = BufferMemoryType::STAGING_UPLOAD,
-                .usage = BufferUsage::STAGING
-            };
-            BufferCreateDescription ChunkHeightmapLinksGPU_CreateDesc = {
-                .size = TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE,
-                .memType = BufferMemoryType::GPU_STATIC,
-                .usage = BufferUsage::SSBO
-            };
-
-            ChunkHeightmapLinks_CPU = BufferSystem.add(ChunkHeightmapLinksCPU_CreateDesc);
-            ChunkHeightmapLinks_GPU = BufferSystem.add(ChunkHeightmapLinksGPU_CreateDesc);
-        }
-
-        // Terrain System Descriptors
-        {
-            // Heightmap Texture Sampler descriptor
-            auto HeightmapImage = ImageSystem.get(HeightmapImageId);
-            VkDescriptorImageInfo HeightmapTextureDescriptorImageInfo {};
-            HeightmapTextureDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            HeightmapTextureDescriptorImageInfo.imageView = HeightmapImage.imageView;
-            HeightmapTextureDescriptorImageInfo.sampler = HeightmapTextureSampler;
-
-            VkDescriptorSetLayoutBinding HeightmapSetLayoutBinding {};
-            HeightmapSetLayoutBinding.binding = 0;
-            HeightmapSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            HeightmapSetLayoutBinding.descriptorCount = 1;
-            HeightmapSetLayoutBinding.stageFlags = AllStages;
-            HeightmapSetLayoutBinding.pImmutableSamplers = nullptr;
-
-            VkWriteDescriptorSet HeightmapSamplerWrite {};
-            HeightmapSamplerWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            HeightmapSamplerWrite.dstBinding = 0;
-            HeightmapSamplerWrite.dstArrayElement = 0;
-            HeightmapSamplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            HeightmapSamplerWrite.descriptorCount = 1;
-            HeightmapSamplerWrite.pImageInfo = &HeightmapTextureDescriptorImageInfo;
-
-            // Chunk to Heightmap descriptor
-            // TODO: The fact I'm not carrying offsets arround is most definitvelly a bad signal
-            auto ChunkLinkBuffer = BufferSystem.get(ChunkHeightmapLinks_GPU);
-            VkDescriptorBufferInfo ChunkToHeightmapDescriptorBufferInfo {};
-            ChunkToHeightmapDescriptorBufferInfo.buffer = ChunkLinkBuffer.buffer;
-            ChunkToHeightmapDescriptorBufferInfo.offset = 0;
-            ChunkToHeightmapDescriptorBufferInfo.range = ChunkLinkBuffer.size;
-
-            VkDescriptorSetLayoutBinding ChunkLinkBinding {};
-            ChunkLinkBinding.binding = 1;
-            ChunkLinkBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            ChunkLinkBinding.descriptorCount = 1;
-            ChunkLinkBinding.stageFlags = AllStages;
-            ChunkLinkBinding.pImmutableSamplers = nullptr;
-
-            VkWriteDescriptorSet ChunkLinkSSBOWrite {};
-            ChunkLinkSSBOWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            ChunkLinkSSBOWrite.dstBinding = 1;
-            ChunkLinkSSBOWrite.dstArrayElement = 0;
-            ChunkLinkSSBOWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            ChunkLinkSSBOWrite.descriptorCount = 1;
-            ChunkLinkSSBOWrite.pBufferInfo = &ChunkToHeightmapDescriptorBufferInfo;
-
-            // Descriptor layout
-            std::array<VkDescriptorSetLayoutBinding, 2> LayoutBindings = {
-                HeightmapSetLayoutBinding,
-                ChunkLinkBinding
-            };
-            VkDescriptorSetLayoutCreateInfo TerrainDescriptorSetLayoutCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .bindingCount = static_cast<uint32_t>(LayoutBindings.size()),
-                .pBindings = LayoutBindings.data()
-            };
-            if (
-                vkCreateDescriptorSetLayout(
-                    Device,
-                    &TerrainDescriptorSetLayoutCreateInfo,
-                    nullptr,
-                    &TerrainDescriptorSet.layout
-                ) != VK_SUCCESS
-                )
-            {
-                spdlog::error("Terrain descriptor set layout creation failed");
-                return InferusResult::FAIL;
-            }
-
-            // Descriptor pool
-            VkDescriptorPoolSize SamplerHeightmapPoolSize = {
-                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1
-            };
-            VkDescriptorPoolSize SSBOHeightmapPoolSize = {
-                .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                .descriptorCount = 1
-            };
-            std::array<VkDescriptorPoolSize, 2> PoolSize = {
-                SamplerHeightmapPoolSize,
-                SSBOHeightmapPoolSize
-            };
-
-            VkDescriptorPoolCreateInfo PoolInfo{};
-            PoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-            PoolInfo.poolSizeCount = static_cast<uint32_t>(PoolSize.size());
-            PoolInfo.pPoolSizes = PoolSize.data();
-            PoolInfo.maxSets = 1;
-
-            if (vkCreateDescriptorPool(Device, &PoolInfo, nullptr, &TerrainDescriptorSet.pool) != VK_SUCCESS) {
-                spdlog::error("Descriptor pool creation failed");
-                return InferusResult::FAIL;
-            }
-
-            VkDescriptorSetAllocateInfo allocInfo{};
-            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            allocInfo.descriptorPool = TerrainDescriptorSet.pool;
-            allocInfo.descriptorSetCount = 1;
-            allocInfo.pSetLayouts = &TerrainDescriptorSet.layout;
-
-            if (vkAllocateDescriptorSets(Device, &allocInfo, &TerrainDescriptorSet.set) != VK_SUCCESS) {
-                spdlog::error("Descriptor set allocation failed");
-                return InferusResult::FAIL;
-            }
-
-            std::array<VkWriteDescriptorSet, 2> TerrainWrites = {
-                HeightmapSamplerWrite, ChunkLinkSSBOWrite
-            };
-            for (VkWriteDescriptorSet& write : TerrainWrites) {
-                write.dstSet = TerrainDescriptorSet.set;
-            }
-
-            vkUpdateDescriptorSets(Device, static_cast<uint32_t>(TerrainWrites.size()), TerrainWrites.data(), 0, nullptr);
-        }
-
-        TerrainPipelineLayout = {};
-        VkPushConstantRange TerrainPushConstantRange = {
-            .stageFlags = AllStages,
-            .offset = 0,
-            .size = static_cast<uint32_t>(sizeof(TerrainPushConstants))
-        };
-
-        VkPipelineLayoutCreateInfo TerrainPipelineLayoutCreateInfo {};
-        TerrainPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        TerrainPipelineLayoutCreateInfo.setLayoutCount = 1;
-        TerrainPipelineLayoutCreateInfo.pSetLayouts = &TerrainDescriptorSet.layout;
-        TerrainPipelineLayoutCreateInfo.pPushConstantRanges = &TerrainPushConstantRange;
-        TerrainPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-        if (vkCreatePipelineLayout(Device, &TerrainPipelineLayoutCreateInfo, nullptr, &TerrainPipelineLayout) != VK_SUCCESS) {
-            spdlog::error("Terrain pipeline layout creation failed");
-            return InferusResult::FAIL;
-        }
-
-        // Finally creating the terrain VkPipeline itself
-        // TODO: Check if it's needed since we're already using dynamic rendering
-        std::vector<VkDynamicState> DynamicStates {};
-        DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-        VkPipelineDynamicStateCreateInfo DynamicState {};
-        DynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        DynamicState.dynamicStateCount = static_cast<uint32_t>(DynamicStates.size());
-        DynamicState.pDynamicStates = DynamicStates.data();
-
-        // TODO: Do I need a depth attachment?
-        // Can I use this instead of picking chunks in order? Compare performance
-        VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
-
-        std::array<VkFormat, 1> ColorAttachmentFormats = { SurfaceFormat.format };
-        auto TerrainColorBlendState = Recipes::Pipeline::Parts::ColorBlendAttachmentState::Default();
-        std::vector<VkPipelineColorBlendAttachmentState> TerrainBlendAttachments(ColorAttachmentFormats.size(), TerrainColorBlendState);
-        VkPipelineRenderingCreateInfo RenderingCreateInfo{};
-        RenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-        RenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(ColorAttachmentFormats.size());
-        RenderingCreateInfo.pColorAttachmentFormats = ColorAttachmentFormats.data();
-        RenderingCreateInfo.depthAttachmentFormat = DepthAttachmentFormat;
-        RenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-
-        auto VertexInput = Recipes::Pipeline::Parts::VertexInput::Default();
-        auto InputAssembly = Recipes::Pipeline::Parts::InputAssembly::Default();
-        auto ViewportState = Recipes::Pipeline::Parts::ViewportState::Default();
-        auto Rasterization = Recipes::Pipeline::Parts::Rasterization::Default();
-        auto Multisample = Recipes::Pipeline::Parts::Multisample::Default();
-        auto DepthStencil = Recipes::Pipeline::Parts::DepthStencil::Default();
-        auto ColorBlendState = Recipes::Pipeline::Parts::ColorBlendState::Default(TerrainBlendAttachments);
-
-        VkGraphicsPipelineCreateInfo TerrainPipelineCreateInfo {};
-        TerrainPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        TerrainPipelineCreateInfo.pVertexInputState = &VertexInput;
-        TerrainPipelineCreateInfo.pInputAssemblyState = &InputAssembly;
-        TerrainPipelineCreateInfo.pViewportState = &ViewportState;
-        TerrainPipelineCreateInfo.pRasterizationState = &Rasterization;
-        TerrainPipelineCreateInfo.pMultisampleState = &Multisample;
-        TerrainPipelineCreateInfo.pDepthStencilState = &DepthStencil;
-        TerrainPipelineCreateInfo.pColorBlendState = &ColorBlendState;
-        TerrainPipelineCreateInfo.pDynamicState = &DynamicState;
-        TerrainPipelineCreateInfo.layout = TerrainPipelineLayout;
-        TerrainPipelineCreateInfo.basePipelineIndex = -1;
-        TerrainPipelineCreateInfo.pNext = &RenderingCreateInfo;
-
-        // Add shaders
-        std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
-        std::vector<char> ShaderBuffer;
-        ShaderBuffer.reserve(4096);
-
-        ShaderStages.push_back(
-            ShaderBuilder::CreateShaderStage(
-                VK_SHADER_STAGE_VERTEX_BIT,
-                "shaders/terrain.vert.spv",
-                ShaderBuffer,
-                Device
-            )
-        );
-        ShaderStages.push_back(
-            ShaderBuilder::CreateShaderStage(
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                "shaders/terrain.frag.spv",
-                ShaderBuffer,
-                Device
-            )
-        );
-
-        TerrainPipelineCreateInfo.stageCount = static_cast<uint32_t>(ShaderStages.size());
-        TerrainPipelineCreateInfo.pStages = ShaderStages.data();
-
-        if (
-            vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &TerrainPipelineCreateInfo, nullptr, &TerrainPipeline) != VK_SUCCESS
-            ) {
-            spdlog::error("Terrain Pipeline creation failed.");
-            return InferusResult::FAIL;
-        }
-
-        // TODO: Add caching
-        // As of now just destroy the shader modules
-        for (auto ShaderStage : ShaderStages) {
-            if (ShaderStage.module) { vkDestroyShaderModule(Device, ShaderStage.module, nullptr); }
-        }
+    if (
+        ImGuiRenderer::Create(*this) !=  InferusResult::SUCCESS
+    ) {
+        spdlog::error("Dear ImGui Renderer creation failed");
+        return InferusResult::FAIL;
     }
 
-    // --- Creation wise command buffer begins
-    VkCommandBuffer CreationWiseTransferCmdBuffer = SingleTimeCmdBegin(Transfer);
-
-    // Terrain plane mesh indices buffer
-    std::array<uint32_t, TerrainConfig::Chunk::INDICES_COUNT> TerrainPlaneMeshIndices;
-    PlaneMeshIndicesGenerator::GetIndices(TerrainPlaneMeshIndices.data());
-
-    BufferCreateDescription Terrain_PlaneMeshIndexBufferCreateDescription = {
-        .size = TerrainConfig::Chunk::INDICES_BUFFER_SIZE,
-        .memType = BufferMemoryType::GPU_STATIC,
-        .usage = BufferUsage::INDEX,
-    };
-    Terrain_PlaneMeshIndexBufferId = BufferSystem.add(Terrain_PlaneMeshIndexBufferCreateDescription);
-
-    BufferSystem.upload(CreationWiseTransferCmdBuffer, CreationWiseStagingBuffer, Terrain_PlaneMeshIndexBufferId, TerrainPlaneMeshIndices.data(), TerrainConfig::Chunk::INDICES_BUFFER_SIZE);
-
-    // --- Creation wise command buffer ends
-    SingleTimeCmdSubmit(Transfer, CreationWiseTransferCmdBuffer);
-
-    // Zeroing terrain push constants
-    TerrainPushConstants = {
-        .CameraMVP = glm::mat4(0),
-        .PlayerPosition = glm::vec4(0)
-    };
-
-    BufferSystem.del(CreationWiseStagingBuffer);
+    if (
+        TerrainRenderer.Init(*this, CreationWiseStagingBuffer) !=  InferusResult::SUCCESS
+    ) {
+        spdlog::error("Terrain Renderer creation failed");
+        return InferusResult::FAIL;
+    }
     return InferusResult::SUCCESS;
 }
 
-InferusRenderer::~InferusRenderer() {
+void InferusRenderer::Destroy() {
     vkDeviceWaitIdle(Device);
 
-    BufferSystem.del(Terrain_PlaneMeshIndexBufferId);
+    TerrainRenderer.Destroy(*this);
+    ImGuiRenderer::Destroy();
+
     BufferSystem.destroy();
     ImageSystem.destroy();
-
-    if (HeightmapTextureSampler) { vkDestroySampler(Device, HeightmapTextureSampler, nullptr); }
-
-    if (TerrainDescriptorSet.pool) { vkDestroyDescriptorPool(Device, TerrainDescriptorSet.pool, nullptr); }
-    if (TerrainDescriptorSet.layout) { vkDestroyDescriptorSetLayout(Device, TerrainDescriptorSet.layout, nullptr); }
-
-    if (TerrainPipeline) { vkDestroyPipeline(Device, TerrainPipeline, nullptr); }
-    if (TerrainPipelineLayout) { vkDestroyPipelineLayout(Device, TerrainPipelineLayout, nullptr); }
 
     for (FrameData &Frame : Frames) {
         if (Frame.ImageAvailable) { vkDestroySemaphore(Device, Frame.ImageAvailable, nullptr); }
@@ -542,20 +168,7 @@ InferusRenderer::~InferusRenderer() {
     CleanupSwapchainImages();
     DestroySwapchain(Swapchain);
 
-    std::array Queues = { &Graphics, &Present, &Transfer, &Compute };
-    for (QueueContext *Queue : Queues) {
-        if (Queue->MainCmdPool) { vkDestroyCommandPool(Device, Queue->MainCmdPool, nullptr); }
-    }
-
-    if (VmaAllocator) { vmaDestroyAllocator(VmaAllocator); }
-    if (Device) { vkDestroyDevice(Device, nullptr); }
-    if (Surface) { vkDestroySurfaceKHR(Instance, Surface, nullptr); }
-
-#ifndef NDEBUG
-    _DestroyDebugUtilsMessengerEXT();
-#endif
-
-    if (Instance) { vkDestroyInstance(Instance, nullptr); }
+    VulkanContext::Destroy();
 }
 
 // TODO: Make this async
@@ -624,83 +237,11 @@ void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
     RecreateSwapchain(Swapchain);
 }
 
-void InferusRenderer::FullFeedTerrainData(ChunkHeightmapLink* ChunkLinkSrc, uint16_t* HeightmapSrc) {
-    VkCommandBuffer cmd = SingleTimeCmdBegin(Transfer);
-
-    // Copy chunk link buffer
-    BufferSystem.upload(cmd, ChunkHeightmapLinks_CPU, ChunkHeightmapLinks_GPU, ChunkLinkSrc, TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE);
-
-    // Upload heightmap to staging buffer
-    BufferSystem.upload(HeightmapStagingBufferId, HeightmapSrc, TerrainConfig::Heightmap::HEIGHTMAP_ALL_IMAGES_SIZE);
-    Buffer HeightmapStagingBuffer = BufferSystem.get(HeightmapStagingBufferId);
-    Image HeightmapImage = ImageSystem.get(HeightmapImageId);
-
-    // Transfer data to heightmap image
-    VkImageMemoryBarrier barrier1 = Recipes::ImageMemoryBarrier::TransferDest(HeightmapImage);
-    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    vkCmdPipelineBarrier(
-        cmd,
-        srcStage,
-        dstStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier1
-    );
-
-    VkBufferImageCopy HeightmapCopy = Recipes::BufferImageCopy::Default(HeightmapImage);
-    vkCmdCopyBufferToImage(
-        cmd,
-        HeightmapStagingBuffer.buffer,
-        HeightmapImage.image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &HeightmapCopy
-    );
-
-    VkImageMemoryBarrier barrier2 = Recipes::ImageMemoryBarrier::ShaderRead(HeightmapImage);
-    barrier2.srcQueueFamilyIndex = Transfer.Index;
-    barrier2.dstQueueFamilyIndex = Graphics.Index;
-    barrier2.dstAccessMask = 0;
-    srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-
-    vkCmdPipelineBarrier(
-        cmd,
-        srcStage,
-        dstStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier2
-    );
-
-    SingleTimeCmdSubmit(Transfer, cmd);
-
-    cmd = SingleTimeCmdBegin(Graphics);
-
-    VkImageMemoryBarrier barrier3 = Recipes::ImageMemoryBarrier::ShaderRead(HeightmapImage);
-    barrier3.srcQueueFamilyIndex = Transfer.Index;
-    barrier3.dstQueueFamilyIndex = Graphics.Index;
-    barrier3.srcAccessMask = 0;
-    srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-    vkCmdPipelineBarrier(
-        cmd,
-        srcStage,
-        dstStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier3
-    );
-
-    SingleTimeCmdSubmit(Graphics, cmd);
+void InferusRenderer::EarlyRender() {
+    ImGuiRenderer::EarlyRender();
 }
 
-void InferusRenderer::Render() {
+void InferusRenderer::LateRender() {
     FrameData& TargetFrame = Frames[TargetFrameIndex];
     VkCommandBuffer& cmd = TargetFrame.CmdBuffer;
 
@@ -745,30 +286,9 @@ void InferusRenderer::Render() {
 
     // Actual frame begins
 
-    vkCmdBindIndexBuffer(cmd, BufferSystem.get(Terrain_PlaneMeshIndexBufferId).buffer, 0, VK_INDEX_TYPE_UINT32);
+    TerrainRenderer.Render(cmd);
 
-    vkCmdPushConstants(
-        cmd,
-        TerrainPipelineLayout,
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        0,
-        sizeof(TerrainPushConstants),
-        &TerrainPushConstants
-    );
-
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, TerrainPipeline);
-    vkCmdBindDescriptorSets(
-        cmd,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        TerrainPipelineLayout,
-        0, // Probably a bad idea the way I carry this binding value lol TEXTURE_SAMPLER_BINDING,
-        1,
-        &TerrainDescriptorSet.set,
-        0,
-        nullptr
-    );
-
-    vkCmdDrawIndexed(cmd, TerrainConfig::Chunk::INDICES_COUNT, TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT, 0, 0, 0);
+    ImGuiRenderer::LateRender(cmd);
 
     // Actual frame ends
 
@@ -837,74 +357,3 @@ void InferusRenderer::SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd
 
     vkFreeCommandBuffers(Device, ctx.MainCmdPool, 1, &cmd);
 }
-
-#ifndef NDEBUG
-VKAPI_ATTR VkBool32 VKAPI_CALL InferusRenderer::_DebugMessageCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-        [[maybe_unused]]void *pUserData)
-{
-    std::string strMessageType;
-    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)     strMessageType += "General|";
-    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)  strMessageType += "Validation|";
-    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) strMessageType += "Performance|";
-
-    // Result: [Validation] ID: 0x12345 | Message: ...
-    std::string msg = fmt::format("[{}] ID: {} | {}",
-        strMessageType,
-        pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "None",
-        pCallbackData->pMessage);
-
-    switch (messageSeverity) {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            spdlog::error(msg);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            spdlog::warn(msg);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            spdlog::info(msg);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            spdlog::debug(msg);
-            break;
-        default:
-            spdlog::critical("Unknown Severity Validation Error: {}", msg);
-            break;
-    }
-    return VK_FALSE;
-}
-
-void InferusRenderer::_SetupDebugMessenger() {
-    VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
-    CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    CreateInfo.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    CreateInfo.messageType =
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    CreateInfo.pfnUserCallback = _DebugMessageCallback;
-
-    PFN_vkCreateDebugUtilsMessengerEXT Func =
-        (PFN_vkCreateDebugUtilsMessengerEXT)
-            vkGetInstanceProcAddr(
-                Instance,
-                "vkCreateDebugUtilsMessengerEXT"
-            );
-    if ((Func == nullptr) || (Func(Instance, &CreateInfo, nullptr, &_DebugMessenger) != VK_SUCCESS)) {
-        throw std::runtime_error("failed to set up debug messenger! it may not be supported by the driver");
-    }
-
-}
-
-void InferusRenderer::_DestroyDebugUtilsMessengerEXT() {
-    PFN_vkDestroyDebugUtilsMessengerEXT Func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (Func != nullptr) {
-        Func(Instance, _DebugMessenger, nullptr);
-    }
-}
-#endif

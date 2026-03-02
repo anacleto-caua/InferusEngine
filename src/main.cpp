@@ -14,19 +14,19 @@ int main() {
         spdlog::set_level(spdlog::level::debug);
     #endif
 
-    InferusEngine Engine = InferusEngine();
-
-    if ( Engine.Init() != InferusResult::SUCCESS ) {
+    if ( InferusEngine::Init() != InferusResult::SUCCESS ) {
         spdlog::critical("Couldn't open engine.");
         return -1;
     }
 
     try {
-        Engine.Run();
+        InferusEngine::Run();
     } catch (const std::exception &e) {
         spdlog::critical("runtime exception - ", e.what());
         return -1;
     }
+
+    InferusEngine::Destroy();
 
     return 0;
 }

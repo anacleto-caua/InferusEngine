@@ -1,45 +1,96 @@
 #include "InferusEngine.hpp"
 
+#include <thread>
 #include <cstdint>
 
 #include <spdlog/spdlog.h>
 
-InferusResult InferusEngine::Init(){
-    PlayerPos = { 0, 0, 0 };
+#include "Engine/Core/Window.hpp"
+#include "Engine/Core/InputSystem.hpp"
 
-    auto WindowResult = Window.Init(WIDTH, HEIGHT, ENGINE_NAME.data(), [this](uint32_t w, uint32_t h){this->Resize(w, h);});
-    if (WindowResult != InferusResult::SUCCESS) {
-        spdlog::error("Window creation failed.");
-        return InferusResult::FAIL;
+namespace InferusEngine {
+    InferusResult Init(){
+        auto WindowResult = Window::Create(WIDTH, HEIGHT, ENGINE_NAME.data(), [](uint32_t w, uint32_t h){Resize(w, h);});
+
+        if (WindowResult != InferusResult::SUCCESS) {
+            spdlog::error("Window creation failed.");
+            return InferusResult::FAIL;
+        }
+
+        InputSystem::Create();
+
+        auto RendererResult = InferusRenderer.Create();
+        if (RendererResult != InferusResult::SUCCESS) {
+            spdlog::error("Inferus Renderer creation failed.");
+            return InferusResult::FAIL;
+        }
+
+        TerrainSystem.Init(&Camera.Position);
+        InferusRenderer
+            .TerrainRenderer.
+            FullFeedTerrainData(
+                    InferusRenderer,
+                    TerrainSystem
+                    );
+        Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
+
+        return InferusResult::SUCCESS;
     }
-    auto RendererResult = InferusRenderer.Init(Window);
-    if (RendererResult != InferusResult::SUCCESS) {
-        spdlog::error("Inferus Renderer creation failed.");
-        return InferusResult::FAIL;
+
+    void Destroy() {
+        Window::Destroy();
+        InputSystem::Destroy();
+        InferusRenderer.Destroy();
     }
 
-    TerrainSystem.Init(&PlayerPos);
-    InferusRenderer.FullFeedTerrainData(TerrainSystem.ChunkLinksBuffer.data(), TerrainSystem.HeightmapsBuffer.data());
-    Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainPushConstants.CameraMVP);
+    void Run() {
+        auto LastFrameTime = std::chrono::high_resolution_clock::now();
+        while (!ShouldClose && !Window::ShouldClose()) {
+            auto FrameBegin = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<float> DeltaTimeRaw = LastFrameTime - FrameBegin;
+            float DeltaTime = DeltaTimeRaw.count();
+            LastFrameTime = FrameBegin;
 
-    return InferusResult::SUCCESS;
-}
+            Camera.Update(DeltaTime);
+            InferusRenderer.EarlyRender();
+            Window::Update();
+            TerrainSystem.Update();
+            OutFps(DeltaTime);
+            InferusRenderer.LateRender();
 
-InferusEngine::~InferusEngine() {
-    // ...
-}
+            auto FrameEnd = std::chrono::high_resolution_clock::now();
+            auto ElapsedTime = FrameBegin - FrameEnd;
 
-void InferusEngine::Run() {
-    while (!ShouldClose && !Window.ShouldClose()) {
-        Window.Update();
-        InferusRenderer.Render();
-        TerrainSystem.Update();
-        // ...
+            if ( ElapsedTime < FRAME_TARGET_TIME ) {
+                std::this_thread::sleep_for(FRAME_TARGET_TIME - ElapsedTime);
+            }
+        }
+        Window::WaitEvents();
     }
-    Window.WaitEvents();
-}
 
-void InferusEngine::Resize(uint32_t Width, uint32_t Height) {
-    InferusRenderer.Resize(Width, Height);
-    Camera.Resize(float(Width)/float(Height));
-}
+    void OutFps(float DeltaTime) {
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                                        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                                        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs;
+
+        // Position: Bottom-Right
+        const float PAD = 10.0f;
+        const ImVec2 viewport_pos = ImGui::GetMainViewport()->WorkPos;
+        const ImVec2 viewport_size = ImGui::GetMainViewport()->WorkSize;
+        ImVec2 window_pos = { (viewport_pos.x + viewport_size.x - PAD), (viewport_pos.y + viewport_size.y - PAD) };
+        ImVec2 window_pos_pivot = { 1.0f, 1.0f }; // Pivot on bottom-right corner
+
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+
+        if (ImGui::Begin("Performance Overlay", nullptr, window_flags)) {
+            ImGui::Text("FPS: %.1f (%.3f ms)", 1.0f / DeltaTime, DeltaTime * 1000.0f);
+        }
+        ImGui::End();
+    }
+
+    void Resize(uint32_t Width, uint32_t Height) {
+        InferusRenderer.Resize(Width, Height);
+        Camera.Resize(float(Width)/float(Height));
+    }
+};

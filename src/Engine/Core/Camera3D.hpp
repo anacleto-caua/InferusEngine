@@ -1,20 +1,27 @@
 #pragma once
 
-#include "glm/fwd.hpp"
-#include "glm/ext/matrix_float4x4.hpp"
+#include <glm/fwd.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 
 class Camera3D {
 public:
-private:
-    glm::vec3 Position;
+    static constexpr float SPEED = 20;
+
     float FOV;
     float Aspect;
     float FocalLength;
 
+    glm::vec3 Position;
+    glm::vec3 LookAt;
+
     glm::mat4 Model;
     glm::mat4 View;
     glm::mat4 Projection;
+
     glm::mat4* ModelViewProjection;
+
+    glm::vec3 FrameMovement;
+
 public:
     Camera3D() = default;
     ~Camera3D();
@@ -25,7 +32,9 @@ public:
 
     void Resize(float NewAspect);
 
+    void Move();
+
     void RefreshMVP();
 
-private:
+    void Update(float DeltaTime);
 };

@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
+#include "Engine/Systems/Terrain/TerrainConfig.hpp"
 
 namespace PlaneMeshIndicesGenerator {
     static inline void GetIndices(uint32_t* IndicesBegin) {

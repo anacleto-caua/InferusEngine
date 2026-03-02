@@ -99,8 +99,8 @@ void ImageSystem::upload(ImageId id, void *upload_data, size_t size) {
 }
 
 void ImageSystem::destroy(Image& image) {
-    vkDestroyImageView(Device, image.imageView, nullptr);
-    vmaDestroyImage(Allocator, image.image, image.allocation);
+    if (image.imageView) { vkDestroyImageView(Device, image.imageView, nullptr); }
+    if (image.image) { vmaDestroyImage(Allocator, image.image, image.allocation); }
     image.image = VK_NULL_HANDLE;
     image.imageView = VK_NULL_HANDLE;
 }

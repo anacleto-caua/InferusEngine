@@ -9,17 +9,11 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "Engine/Types.hpp"
-#include "Engine/Components/Window.hpp"
-#include "Engine/Components/Terrain/TerrainTypes.hpp"
-#include "Engine/Components/Terrain/TerrainConfig.hpp"
+#include "Engine/InferusRenderer/VulkanContext.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
-
-struct QueueContext {
-    uint32_t Index;
-    VkQueue Queue = VK_NULL_HANDLE;
-    VkCommandPool MainCmdPool = VK_NULL_HANDLE;
-};
+#include "Engine/InferusRenderer/Passes/ImGuiRenderer.hpp"
+#include "Engine/InferusRenderer/Passes/TerrainRenderer.hpp"
 
 struct FrameData {
     float DeltaTime = 0;
@@ -35,42 +29,17 @@ struct SwapchainImage {
     VkSemaphore RenderFinished = VK_NULL_HANDLE;
 };
 
-struct TerrainDescriptorSet {
-    VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-    VkDescriptorSet set = VK_NULL_HANDLE;
-    VkDescriptorPool pool = VK_NULL_HANDLE;
-};
-
-struct TerrainPushConstants {
-    glm::mat4 CameraMVP;
-    glm::vec4 PlayerPosition;
-};
-
 class InferusRenderer {
 public:
-    // Vulkan Context
-    VkInstance Instance;
-    VkPhysicalDevice PhysicalDevice;
-    VkDevice Device;
-    VmaAllocator VmaAllocator;
-
-    QueueContext Graphics;
-    QueueContext Present;
-    QueueContext Transfer;
-    QueueContext Compute;
-
-    BufferSystem BufferSystem;
     static constexpr size_t CREATION_WISE_STAGING_BUFFER_SIZE = 1 * 1024 * 1024;
+    BufferSystem BufferSystem;
     ImageSystem ImageSystem;
 
     // Swapchain
-    VkSurfaceKHR Surface;
-    VkPresentModeKHR PresentMode {};
     VkSurfaceCapabilitiesKHR SurfaceCapabilities {};
     VkSwapchainCreateInfoKHR SwapchainCreateInfo {};
 
     VkExtent2D Extent;
-    VkSurfaceFormatKHR SurfaceFormat;
     VkSwapchainKHR Swapchain;
 
     uint32_t SwapchainImageCount = 0;
@@ -83,7 +52,7 @@ public:
     uint32_t TargetFrameIndex = 0;
     uint32_t TargetImageViewIndex = 0;
 
-    // Drawing
+    // Drawing -- I imagine this may be shared between all the other pipelines
     static constexpr VkPipelineStageFlags G_PIPELINE_WAIT_STAGES[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
     VkRect2D Scissor {};
@@ -94,42 +63,20 @@ public:
     VkCommandBufferBeginInfo PipelineCmdBeginInfo {};
     VkSubmitInfo PipelineCmdSubmitInfo {};
 
-    // Terrain plane mesh
-    BufferId Terrain_PlaneMeshIndexBufferId;
-
-    // Terrain pipeline
-    VkPipeline TerrainPipeline {};
-    VkPipelineLayout TerrainPipelineLayout {};
-
-    // Heightmap
-    ImageId HeightmapImageId;
-    VkSampler HeightmapTextureSampler;
-    BufferId HeightmapStagingBufferId;
-
-    // Chunk to Heightmap linking
-    ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT];
-    BufferId ChunkHeightmapLinks_CPU;
-    BufferId ChunkHeightmapLinks_GPU;
-
-    // Terrain descriptor sets
-    TerrainDescriptorSet TerrainDescriptorSet {};
-
-    // Push constants
-    TerrainPushConstants TerrainPushConstants {};
+    // "Passes"
+    TerrainRenderer TerrainRenderer;
 
 public:
     InferusRenderer() = default;
-    ~InferusRenderer();
+    ~InferusRenderer() = default;
     InferusRenderer(const InferusRenderer&) = delete;
     InferusRenderer& operator=(const InferusRenderer&) = delete;
 
-    InferusResult Init(Window& Window);
+    InferusResult Create();
+    void Destroy();
 
-    void Render();
-
-    // TODO:
-    // That's kinda hacky, find a better way, separate the Renderer Data management from the renderer itself
-    void FullFeedTerrainData(ChunkHeightmapLink* ChunkLinkSrc, uint16_t* HeightmapSrc);
+    void EarlyRender();
+    void LateRender();
 
     void Resize(uint32_t Width, uint32_t Height);
 
@@ -144,23 +91,4 @@ private:
     void CleanupSwapchainImages();
 
     void QuerySurfaceCapabilities();
-private:
-#ifndef NDEBUG
-    VkDebugUtilsMessengerEXT _DebugMessenger;
-
-    std::vector<const char*> VALIDATION_LAYERS = { "VK_LAYER_KHRONOS_validation" };
-    std::vector<const char*> VALIDATION_LAYERS_EXTENSION = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL _DebugMessageCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT Severity,
-        VkDebugUtilsMessageTypeFlagsEXT Type,
-        const VkDebugUtilsMessengerCallbackDataEXT *CallbackData,
-        void *UserData
-    );
-
-    void _SetupDebugMessenger();
-    void _DestroyDebugUtilsMessengerEXT();
-#endif
-
-
 };

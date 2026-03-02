@@ -101,9 +101,18 @@ void BufferSystem::upload(BufferId dstId, const void* upload_Data, const size_t 
     unmap(alloc);
 }
 
+void* BufferSystem::map(BufferId id) {
+    return map(get(id).allocation);
+}
+
+void BufferSystem::unmap(BufferId id) {
+    unmap(get(id).allocation);
+}
+
 void* BufferSystem::map(const VmaAllocation alloc) {
     void* mappedData;
-    vmaMapMemory(Allocator, alloc, &mappedData);
+    auto result = vmaMapMemory(Allocator, alloc, &mappedData);
+    assert(result == VK_SUCCESS && "Failed to map VMA memory");
     return mappedData;
 }
 

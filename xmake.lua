@@ -17,13 +17,23 @@ rule("compile_shaders")
     set_extensions(".vert", ".frag", ".comp")
     on_build_file(function (target, sourcefile, opt)
         import("core.project.depend")
+        import("lib.detect.find_program")
         local shader_name = path.filename(sourcefile)
         local output_file = path.join(target:targetdir(), "shaders", shader_name .. ".spv")
-        -- Check env var, fallback to path
-        local vk_sdk = os.getenv("VULKAN_SDK")
-        local glslc = vk_sdk and path.join(vk_sdk, "bin", "glslc.exe") or find_tool("glslc")
 
-        if glslc and os.isfile(glslc) then
+        local glslc = nil
+        local vk_sdk = os.getenv("VULKAN_SDK")
+
+        if vk_sdk then
+            local ext = is_plat("windows") and ".exe" or ""
+            glslc = path.join(vk_sdk, "bin", "glslc" .. ext)
+        end
+
+        if not glslc or not os.isfile(glslc) then
+            glslc = find_program("glslc")
+        end
+
+        if glslc then
             depend.on_changed(function ()
                 local outdir = path.directory(output_file)
                 if not os.exists(outdir) then
@@ -36,6 +46,8 @@ rule("compile_shaders")
                 os.vrunv(glslc, {sourcefile, "-o", output_file})
                 print("Compiling: " .. shader_name .. " -> " .. output_file)
             end, {files = sourcefile})
+        else
+            print("Warning: glslc not found. Skipping: " .. shader_name)
         end
     end)
 

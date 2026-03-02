@@ -23,7 +23,6 @@ namespace Window {
     VkResult CreateSurface(VkInstance instance, VkSurfaceKHR &surface);
 
     void StaticFramebufferResizeCallback(GLFWwindow* window, int width, int height);
-    void OnResize(uint32_t width, uint32_t height);
     void GetFramebufferSize(uint32_t &width, uint32_t &height);
 
     void WaitEvents();

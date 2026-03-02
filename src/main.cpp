@@ -3,7 +3,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Engine/Types.hpp"
-#include "Utils/AnaLogger.hpp"
 #include "Engine/InferusEngine.hpp"
 
 int main() {
@@ -27,7 +26,7 @@ int main() {
         return -1;
     }
 
-    InferusEngine::Cleanup();
+    InferusEngine::Destroy();
 
     return 0;
 }

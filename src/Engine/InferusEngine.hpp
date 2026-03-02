@@ -4,7 +4,6 @@
 #include <string_view>
 
 #include "Engine/Types.hpp"
-#include "Engine/Core/Window.hpp"
 #include "Engine/Core/Camera3D.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/Systems/Terrain/TerrainSystem.hpp"
@@ -24,7 +23,7 @@ namespace InferusEngine {
     inline Camera3D Camera;
 
     InferusResult Init();
-    void Cleanup();
+    void Destroy();
 
     void Run();
     void OutFps(float DeltaTime);

@@ -400,6 +400,22 @@ namespace VulkanContext {
         return InferusResult::SUCCESS;
     }
 
+    InferusResult CreateQueuesCmdPool() {
+        // Create the Queues
+        VkCommandPoolCreateInfo PoolCreateInfo{};
+        PoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        PoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        for (QueueContext *Queue : Queues) {
+            vkGetDeviceQueue(Device, Queue->Index, 0, &Queue->Queue);
+            PoolCreateInfo.queueFamilyIndex = Queue->Index;
+            if (vkCreateCommandPool(Device, &PoolCreateInfo, nullptr, &Queue->MainCmdPool) != VK_SUCCESS) {
+                spdlog::error("main command pool creation failed");
+                return InferusResult::FAIL;
+            }
+        }
+        return InferusResult::SUCCESS;
+    }
+
     void PickSurfaceFormat() {
         uint32_t SurfaceFormatCount;
         std::vector<VkSurfaceFormatKHR> SurfaceFormats;
@@ -452,6 +468,7 @@ namespace VulkanContext {
         PickPresentMode();
         PickQueues();
         CreateLogicalDevice();
+        CreateQueuesCmdPool();
         CreateVmaAllocator();
         return InferusResult::SUCCESS;
     }
@@ -465,6 +482,7 @@ namespace VulkanContext {
 
         if (VmaAllocator) { vmaDestroyAllocator(VmaAllocator); }
         if (Device) { vkDestroyDevice(Device, nullptr); }
+        if (Surface) { vkDestroySurfaceKHR(Instance, Surface, nullptr); }
 
 #ifndef NDEBUG
         _DestroyDebugUtilsMessengerEXT();

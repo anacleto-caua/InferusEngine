@@ -5,6 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Engine/Core/Window.hpp"
 #include "Engine/Core/InputSystem.hpp"
 
 namespace InferusEngine {
@@ -18,7 +19,7 @@ namespace InferusEngine {
 
         InputSystem::Create();
 
-        auto RendererResult = InferusRenderer::Create();
+        auto RendererResult = InferusRenderer.Create();
         if (RendererResult != InferusResult::SUCCESS) {
             spdlog::error("Inferus Renderer creation failed.");
             return InferusResult::FAIL;
@@ -36,9 +37,10 @@ namespace InferusEngine {
         return InferusResult::SUCCESS;
     }
 
-    void Cleanup() {
+    void Destroy() {
         Window::Destroy();
         InputSystem::Destroy();
+        InferusRenderer.Destroy();
     }
 
     void Run() {

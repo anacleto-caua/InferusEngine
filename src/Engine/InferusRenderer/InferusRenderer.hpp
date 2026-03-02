@@ -9,7 +9,7 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "Engine/Types.hpp"
-#include "Engine/Core/Window.hpp"
+#include "Engine/InferusRenderer/VulkanContext.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 #include "Engine/InferusRenderer/Passes/ImGuiRenderer.hpp"
@@ -36,13 +36,10 @@ public:
     ImageSystem ImageSystem;
 
     // Swapchain
-    VkSurfaceKHR Surface;
-    VkPresentModeKHR PresentMode {};
     VkSurfaceCapabilitiesKHR SurfaceCapabilities {};
     VkSwapchainCreateInfoKHR SwapchainCreateInfo {};
 
     VkExtent2D Extent;
-    VkSurfaceFormatKHR SurfaceFormat;
     VkSwapchainKHR Swapchain;
 
     uint32_t SwapchainImageCount = 0;
@@ -67,16 +64,16 @@ public:
     VkSubmitInfo PipelineCmdSubmitInfo {};
 
     // "Passes"
-    ImGuiRenderer ImGuiRenderer;
     TerrainRenderer TerrainRenderer;
 
 public:
     InferusRenderer() = default;
-    ~InferusRenderer();
+    ~InferusRenderer() = default;
     InferusRenderer(const InferusRenderer&) = delete;
     InferusRenderer& operator=(const InferusRenderer&) = delete;
 
-    InferusResult Init(Window& Window);
+    InferusResult Create();
+    void Destroy();
 
     void EarlyRender();
     void LateRender();
@@ -94,23 +91,4 @@ private:
     void CleanupSwapchainImages();
 
     void QuerySurfaceCapabilities();
-private:
-#ifndef NDEBUG
-    VkDebugUtilsMessengerEXT _DebugMessenger;
-
-    std::vector<const char*> VALIDATION_LAYERS = { "VK_LAYER_KHRONOS_validation" };
-    std::vector<const char*> VALIDATION_LAYERS_EXTENSION = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL _DebugMessageCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT Severity,
-        VkDebugUtilsMessageTypeFlagsEXT Type,
-        const VkDebugUtilsMessengerCallbackDataEXT *CallbackData,
-        void *UserData
-    );
-
-    void _SetupDebugMessenger();
-    void _DestroyDebugUtilsMessengerEXT();
-#endif
-
-
 };

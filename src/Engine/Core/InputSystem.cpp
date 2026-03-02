@@ -48,6 +48,10 @@ namespace InputSystem {
         glfwSetKeyCallback(Window::glfwWindow, KeyCallbackStrain);
     }
 
+    void Destroy() {
+        // ...
+    }
+
     void RegisterCallback(ActionType ActionType, InfKey Key, UserAction Callback) {
 
         auto PushKeyAction = [&Callback, &Key](std::vector<UserAction>& vec) {

@@ -14,7 +14,7 @@
 
 InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &CreationWiseStagingBuffer) {
 
-    VkDevice& Device = InferusRenderer.Device;
+    VkDevice& Device = VulkanContext::Device;
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
     BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
 
@@ -209,7 +209,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
         // Can I use this instead of picking chunks in order? Compare performance
         VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-        std::array<VkFormat, 1> ColorAttachmentFormats = { InferusRenderer.SurfaceFormat.format };
+        std::array<VkFormat, 1> ColorAttachmentFormats = { VulkanContext::SurfaceFormat.format };
         auto TerrainColorBlendState = Recipes::Pipeline::Parts::ColorBlendAttachmentState::Default();
         std::vector<VkPipelineColorBlendAttachmentState> TerrainBlendAttachments(ColorAttachmentFormats.size(), TerrainColorBlendState);
         VkPipelineRenderingCreateInfo RenderingCreateInfo{};
@@ -281,7 +281,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
     }
 
     // --- Creation wise command buffer begins
-    VkCommandBuffer TransferCmd = InferusRenderer.SingleTimeCmdBegin(InferusRenderer.Transfer);
+    VkCommandBuffer TransferCmd = InferusRenderer.SingleTimeCmdBegin(VulkanContext::Transfer);
 
     // Terrain plane mesh indices buffer
     std::array<uint32_t, TerrainConfig::Chunk::INDICES_COUNT> TerrainPlaneMeshIndices;
@@ -304,7 +304,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
         );
 
     // --- Creation wise command buffer ends
-    InferusRenderer.SingleTimeCmdSubmit(InferusRenderer.Transfer, TransferCmd);
+    InferusRenderer.SingleTimeCmdSubmit(VulkanContext::Transfer, TransferCmd);
 
     // Zeroing terrain push constants
     TerrainPushConstants = {
@@ -318,7 +318,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
 }
 
 void TerrainRenderer::Destroy(InferusRenderer &InferusRenderer) {
-    VkDevice& Device = InferusRenderer.Device;
+    VkDevice& Device = VulkanContext::Device;
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
     BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
 
@@ -346,8 +346,8 @@ void TerrainRenderer::FullFeedTerrainData(
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
     BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
 
-    QueueContext& Transfer = InferusRenderer.Transfer;
-    QueueContext& Graphics = InferusRenderer.Graphics;
+    QueueContext& Transfer = VulkanContext::Transfer;
+    QueueContext& Graphics = VulkanContext::Graphics;
 
     TerrainSystem.FeedTerrainRenderer(
         (ChunkHeightmapLink*)BufferSystem.map(ChunkHeightmapLinks_CPU),

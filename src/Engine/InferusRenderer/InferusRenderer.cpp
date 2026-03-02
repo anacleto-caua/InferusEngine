@@ -6,19 +6,25 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Engine/Core/Window.hpp"
 #include "Engine/InferusRenderer/Recipes.hpp"
-#include "Engine/InferusRenderer/InitSkinner.hpp"
 
-InferusResult InferusRenderer::Init(Window& Window) {
-    // Instance
-    if ( InitSkinner::Instance::CreateInstance(Window, Instance) != InferusResult::SUCCESS ) {
-        spdlog::error("Instance creation failed");
-        return InferusResult::FAIL;
+using namespace VulkanContext; // Yes I know
+
+InferusResult InferusRenderer::Create() {
+    VulkanContext::Create();
+    // Memory resources management systems
+    BufferSystem.create(VulkanContext::VmaAllocator);
+    BufferId CreationWiseStagingBuffer;
+    {
+        BufferCreateDescription CreationWiseStagingBufferCreateDesc = {
+            .size = CREATION_WISE_STAGING_BUFFER_SIZE,
+            .memType = BufferMemoryType::STAGING_UPLOAD,
+            .usage = BufferUsage::STAGING
+        };
+        CreationWiseStagingBuffer = BufferSystem.add(CreationWiseStagingBufferCreateDesc);
     }
-
-#ifndef NDEBUG
-    _SetupDebugMessenger();
-#endif
+    ImageSystem.create(Device, VulkanContext::VmaAllocator);
 
     QuerySurfaceCapabilities();
     Extent = SurfaceCapabilities.currentExtent;
@@ -49,7 +55,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
     }
 
     // Finally create the Swapchain
-    Window.GetFramebufferSize(Extent.width, Extent.height);
+    Window::GetFramebufferSize(Extent.width, Extent.height);
     RecreateSwapchain(VK_NULL_HANDLE);
 
     PresentInfo = {};
@@ -129,7 +135,7 @@ InferusResult InferusRenderer::Init(Window& Window) {
     PipelineCmdSubmitInfo.signalSemaphoreCount = 1;
 
     if (
-        ImGuiRenderer.Init(Window, *this) !=  InferusResult::SUCCESS
+        ImGuiRenderer::Create(*this) !=  InferusResult::SUCCESS
     ) {
         spdlog::error("Dear ImGui Renderer creation failed");
         return InferusResult::FAIL;
@@ -144,11 +150,11 @@ InferusResult InferusRenderer::Init(Window& Window) {
     return InferusResult::SUCCESS;
 }
 
-InferusRenderer::~InferusRenderer() {
+void InferusRenderer::Destroy() {
     vkDeviceWaitIdle(Device);
 
     TerrainRenderer.Destroy(*this);
-    ImGuiRenderer.Destroy();
+    ImGuiRenderer::Destroy();
 
     BufferSystem.destroy();
     ImageSystem.destroy();
@@ -162,20 +168,7 @@ InferusRenderer::~InferusRenderer() {
     CleanupSwapchainImages();
     DestroySwapchain(Swapchain);
 
-    std::array Queues = { &Graphics, &Present, &Transfer, &Compute };
-    for (QueueContext *Queue : Queues) {
-        if (Queue->MainCmdPool) { vkDestroyCommandPool(Device, Queue->MainCmdPool, nullptr); }
-    }
-
-    if (VmaAllocator) { vmaDestroyAllocator(VmaAllocator); }
-    if (Device) { vkDestroyDevice(Device, nullptr); }
-    if (Surface) { vkDestroySurfaceKHR(Instance, Surface, nullptr); }
-
-#ifndef NDEBUG
-    _DestroyDebugUtilsMessengerEXT();
-#endif
-
-    if (Instance) { vkDestroyInstance(Instance, nullptr); }
+    VulkanContext::Destroy();
 }
 
 // TODO: Make this async
@@ -245,7 +238,7 @@ void InferusRenderer::Resize(uint32_t Width, uint32_t Height) {
 }
 
 void InferusRenderer::EarlyRender() {
-    ImGuiRenderer.EarlyRender();
+    ImGuiRenderer::EarlyRender();
 }
 
 void InferusRenderer::LateRender() {
@@ -295,7 +288,7 @@ void InferusRenderer::LateRender() {
 
     TerrainRenderer.Render(cmd);
 
-    ImGuiRenderer.LateRender(cmd);
+    ImGuiRenderer::LateRender(cmd);
 
     // Actual frame ends
 
@@ -364,74 +357,3 @@ void InferusRenderer::SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd
 
     vkFreeCommandBuffers(Device, ctx.MainCmdPool, 1, &cmd);
 }
-
-#ifndef NDEBUG
-VKAPI_ATTR VkBool32 VKAPI_CALL InferusRenderer::_DebugMessageCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-        [[maybe_unused]]void *pUserData)
-{
-    std::string strMessageType;
-    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)     strMessageType += "General|";
-    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)  strMessageType += "Validation|";
-    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) strMessageType += "Performance|";
-
-    // Result: [Validation] ID: 0x12345 | Message: ...
-    std::string msg = fmt::format("[{}] ID: {} | {}",
-        strMessageType,
-        pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "None",
-        pCallbackData->pMessage);
-
-    switch (messageSeverity) {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            spdlog::error(msg);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            spdlog::warn(msg);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            spdlog::info(msg);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            spdlog::debug(msg);
-            break;
-        default:
-            spdlog::critical("Unknown Severity Validation Error: {}", msg);
-            break;
-    }
-    return VK_FALSE;
-}
-
-void InferusRenderer::_SetupDebugMessenger() {
-    VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
-    CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    CreateInfo.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    CreateInfo.messageType =
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    CreateInfo.pfnUserCallback = _DebugMessageCallback;
-
-    PFN_vkCreateDebugUtilsMessengerEXT Func =
-        (PFN_vkCreateDebugUtilsMessengerEXT)
-            vkGetInstanceProcAddr(
-                Instance,
-                "vkCreateDebugUtilsMessengerEXT"
-            );
-    if ((Func == nullptr) || (Func(Instance, &CreateInfo, nullptr, &_DebugMessenger) != VK_SUCCESS)) {
-        throw std::runtime_error("failed to set up debug messenger! it may not be supported by the driver");
-    }
-
-}
-
-void InferusRenderer::_DestroyDebugUtilsMessengerEXT() {
-    PFN_vkDestroyDebugUtilsMessengerEXT Func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (Func != nullptr) {
-        Func(Instance, _DebugMessenger, nullptr);
-    }
-}
-#endif

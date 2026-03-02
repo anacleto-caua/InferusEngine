@@ -1,7 +1,7 @@
 #include "Window.hpp"
 
 namespace Window {
-    InferusResult Init(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback Callback) {
+    InferusResult Create(uint32_t Width, uint32_t Height, const std::string &Title, ResizeCallback Callback) {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -43,7 +43,6 @@ namespace Window {
     }
 
     void StaticFramebufferResizeCallback([[maybe_unused]]GLFWwindow* window, int width, int height) {
-        OnResize(width, height);
         userResizeCallback(width, height);
     }
 

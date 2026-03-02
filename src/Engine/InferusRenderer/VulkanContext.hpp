@@ -32,5 +32,8 @@ namespace VulkanContext {
 
     InferusResult Create();
     void Destroy();
+
+    VkCommandBuffer SingleTimeCmdBegin(QueueContext& ctx);
+    void SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd);
 };
 

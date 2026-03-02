@@ -489,4 +489,36 @@ namespace VulkanContext {
 #endif
         if (Instance) { vkDestroyInstance(Instance, nullptr); }
     }
+
+    VkCommandBuffer SingleTimeCmdBegin(QueueContext& ctx) {
+        VkCommandBufferAllocateInfo AllocInfo{};
+        AllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        AllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        AllocInfo.commandPool = ctx.MainCmdPool;
+        AllocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer cmd;
+        vkAllocateCommandBuffers(Device, &AllocInfo, &cmd);
+
+        VkCommandBufferBeginInfo BeginInfo{};
+        BeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(cmd, &BeginInfo);
+
+        return cmd;
+    }
+
+    void SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd) {
+        vkEndCommandBuffer(cmd);
+
+        VkSubmitInfo SubmitInfo{};
+        SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        SubmitInfo.commandBufferCount = 1;
+        SubmitInfo.pCommandBuffers = &cmd;
+        vkQueueSubmit(ctx.Queue, 1, &SubmitInfo, VK_NULL_HANDLE);
+
+        vkQueueWaitIdle(ctx.Queue);
+
+        vkFreeCommandBuffers(Device, ctx.MainCmdPool, 1, &cmd);
+    }
 }

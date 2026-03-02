@@ -80,9 +80,6 @@ public:
 
     void Resize(uint32_t Width, uint32_t Height);
 
-    VkCommandBuffer SingleTimeCmdBegin(QueueContext& ctx);
-    void SingleTimeCmdSubmit(QueueContext& ctx, VkCommandBuffer cmd);
-
 private:
     void RefreshExtent();
 

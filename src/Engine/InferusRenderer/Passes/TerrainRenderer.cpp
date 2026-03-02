@@ -281,7 +281,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
     }
 
     // --- Creation wise command buffer begins
-    VkCommandBuffer TransferCmd = InferusRenderer.SingleTimeCmdBegin(VulkanContext::Transfer);
+    VkCommandBuffer TransferCmd = VulkanContext::SingleTimeCmdBegin(VulkanContext::Transfer);
 
     // Terrain plane mesh indices buffer
     std::array<uint32_t, TerrainConfig::Chunk::INDICES_COUNT> TerrainPlaneMeshIndices;
@@ -304,7 +304,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
         );
 
     // --- Creation wise command buffer ends
-    InferusRenderer.SingleTimeCmdSubmit(VulkanContext::Transfer, TransferCmd);
+    VulkanContext::SingleTimeCmdSubmit(VulkanContext::Transfer, TransferCmd);
 
     // Zeroing terrain push constants
     TerrainPushConstants = {
@@ -354,7 +354,7 @@ void TerrainRenderer::FullFeedTerrainData(
         (uint16_t*)BufferSystem.map(Heightmap_CPU)
     );
 
-    VkCommandBuffer cmd = InferusRenderer.SingleTimeCmdBegin(Transfer);
+    VkCommandBuffer cmd = VulkanContext::SingleTimeCmdBegin(Transfer);
 
     // Copy chunk link buffer
     BufferSystem.copy(
@@ -411,9 +411,9 @@ void TerrainRenderer::FullFeedTerrainData(
         1, &barrier2
     );
 
-    InferusRenderer.SingleTimeCmdSubmit(Transfer, cmd);
+    VulkanContext::SingleTimeCmdSubmit(Transfer, cmd);
 
-    cmd = InferusRenderer.SingleTimeCmdBegin(Graphics);
+    cmd = VulkanContext::SingleTimeCmdBegin(Graphics);
 
     VkImageMemoryBarrier barrier3 = Recipes::ImageMemoryBarrier::ShaderRead(HeightmapImage);
     barrier3.srcQueueFamilyIndex = Transfer.Index;
@@ -432,7 +432,7 @@ void TerrainRenderer::FullFeedTerrainData(
         1, &barrier3
     );
 
-    InferusRenderer.SingleTimeCmdSubmit(Graphics, cmd);
+    VulkanContext::SingleTimeCmdSubmit(Graphics, cmd);
 }
 void TerrainRenderer::Render(VkCommandBuffer cmd) {
     // TODO: I'm quite unsure on what would be the best way of handling this

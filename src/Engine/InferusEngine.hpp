@@ -5,8 +5,8 @@
 
 #include "Engine/Types.hpp"
 #include "Engine/Core/Camera3D.hpp"
-#include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/Systems/Terrain/TerrainSystem.hpp"
+#include "Engine/InferusRenderer/InferusRenderer.hpp"
 
 namespace InferusEngine {
     static constexpr std::string_view ENGINE_NAME = "Inferus Engine";

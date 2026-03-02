@@ -8,9 +8,9 @@ class InferusRenderer; // Circular dependency
 
 #include "Engine/Types.hpp"
 #include "Engine/InferusRenderer/Image/Image.hpp"
-#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
 #include "Engine/Systems/Terrain/TerrainSystem.hpp"
+#include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
 struct TerrainDescriptorSet {
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
@@ -26,7 +26,7 @@ struct TerrainPushConstants {
 class TerrainRenderer {
 public:
     // Terrain plane mesh
-    BufferId PlaneMeshIndexBufferId;
+    BufferSystem::Id PlaneMeshIndexBufferId;
     VkBuffer PlaneMeshIndexVkBuffer;
 
     // Terrain pipeline
@@ -36,12 +36,12 @@ public:
     // Heightmap
     ImageId HeightmapImageId;
     VkSampler HeightmapTextureSampler;
-    BufferId Heightmap_CPU;
+    BufferSystem::Id Heightmap_CPU;
 
     // Chunk to Heightmap linking
     ChunkHeightmapLink ChunkHeightmapLinks[TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT];
-    BufferId ChunkHeightmapLinks_CPU;
-    BufferId ChunkHeightmapLinks_GPU;
+    BufferSystem::Id ChunkHeightmapLinks_CPU;
+    BufferSystem::Id ChunkHeightmapLinks_GPU;
 
     // Terrain descriptor sets
     TerrainDescriptorSet TerrainDescriptorSet {};
@@ -55,7 +55,7 @@ public:
     TerrainRenderer(const TerrainRenderer&) = delete;
     TerrainRenderer& operator=(const TerrainRenderer&) = delete;
 
-    InferusResult Init(InferusRenderer &InferusRenderer, BufferId &CreationWiseStagingBufer);
+    InferusResult Init(InferusRenderer &InferusRenderer, BufferSystem::Id &CreationWiseStagingBufer);
     void FullFeedTerrainData(InferusRenderer &InferusRenderer, TerrainSystem &TerrainSystem);
 
     void Destroy(InferusRenderer &InferusRenderer);

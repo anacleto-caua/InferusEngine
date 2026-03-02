@@ -9,9 +9,7 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "Engine/Types.hpp"
-#include "Engine/InferusRenderer/VulkanContext.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
-#include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 #include "Engine/InferusRenderer/Passes/ImGuiRenderer.hpp"
 #include "Engine/InferusRenderer/Passes/TerrainRenderer.hpp"
 
@@ -32,7 +30,6 @@ struct SwapchainImage {
 class InferusRenderer {
 public:
     static constexpr size_t CREATION_WISE_STAGING_BUFFER_SIZE = 1 * 1024 * 1024;
-    BufferSystem BufferSystem;
     ImageSystem ImageSystem;
 
     // Swapchain

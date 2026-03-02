@@ -8,21 +8,23 @@
 
 #include "Engine/Core/Window.hpp"
 #include "Engine/InferusRenderer/Recipes.hpp"
+#include "Engine/InferusRenderer/VulkanContext.hpp"
+#include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
-using namespace VulkanContext; // Yes I know
+using namespace VulkanContext; // Yes, I know
 
 InferusResult InferusRenderer::Create() {
     VulkanContext::Create();
     // Memory resources management systems
-    BufferSystem.create(VulkanContext::VmaAllocator);
-    BufferId CreationWiseStagingBuffer;
+    BufferSystem::Create();
+    BufferSystem::Id CreationWiseStagingBuffer;
     {
-        BufferCreateDescription CreationWiseStagingBufferCreateDesc = {
+        BufferSystem::CreateInfo CreationWiseStagingBufferCreateDesc = {
             .size = CREATION_WISE_STAGING_BUFFER_SIZE,
-            .memType = BufferMemoryType::STAGING_UPLOAD,
-            .usage = BufferUsage::STAGING
+            .memType = BufferSystem::CreateInfoMemoryType::STAGING_UPLOAD,
+            .usage = BufferSystem::CreateInfoUsage::STAGING
         };
-        CreationWiseStagingBuffer = BufferSystem.add(CreationWiseStagingBufferCreateDesc);
+        CreationWiseStagingBuffer = BufferSystem::add(CreationWiseStagingBufferCreateDesc);
     }
     ImageSystem.create(Device, VulkanContext::VmaAllocator);
 
@@ -156,7 +158,7 @@ void InferusRenderer::Destroy() {
     TerrainRenderer.Destroy(*this);
     ImGuiRenderer::Destroy();
 
-    BufferSystem.destroy();
+    BufferSystem::Destroy();
     ImageSystem.destroy();
 
     for (FrameData &Frame : Frames) {

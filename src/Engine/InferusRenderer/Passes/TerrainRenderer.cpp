@@ -4,19 +4,18 @@
 
 #include "Engine/InferusRenderer/Recipes.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
+#include "Engine/InferusRenderer/VulkanContext.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 #include "Engine/Systems/Terrain/PlaneMeshIndicesGenerator.hpp"
 #include "Engine/InferusRenderer/Image/ImageCreateDescription.hpp"
-#include "Engine/InferusRenderer/Buffer/BufferCreateDescription.hpp"
 
-InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &CreationWiseStagingBuffer) {
+InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer,  BufferSystem::Id &CreationWiseStagingBuffer) {
 
     VkDevice& Device = VulkanContext::Device;
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
-    BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
 
     {
         VkShaderStageFlags AllStages = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
@@ -35,29 +34,29 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
             auto HeightmapSamplerInfo = Recipes::SamplerCreateInfo::HeightmapSampler();
             vkCreateSampler(Device, &HeightmapSamplerInfo, nullptr, &HeightmapTextureSampler);
 
-            BufferCreateDescription HeightmapStagingBufferId_CreateInfo = {
+            BufferSystem::CreateInfo HeightmapStagingBufferId_CreateInfo = {
                 .size = TerrainConfig::Heightmap::HEIGHTMAP_ALL_IMAGES_SIZE,
-                .memType = BufferMemoryType::STAGING_UPLOAD,
-                .usage = BufferUsage::STAGING
+                .memType = BufferSystem::CreateInfoMemoryType::STAGING_UPLOAD,
+                .usage = BufferSystem::CreateInfoUsage::STAGING
             };
-            Heightmap_CPU = BufferSystem.add(HeightmapStagingBufferId_CreateInfo);
+            Heightmap_CPU = BufferSystem::add(HeightmapStagingBufferId_CreateInfo);
         }
 
         // Chunk to Heightmap linking
         {
-            BufferCreateDescription ChunkHeightmapLinksCPU_CreateDesc = {
+            BufferSystem::CreateInfo ChunkHeightmapLinksCPU_CreateDesc = {
                 .size = TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE,
-                .memType = BufferMemoryType::STAGING_UPLOAD,
-                .usage = BufferUsage::STAGING
+                .memType = BufferSystem::CreateInfoMemoryType::STAGING_UPLOAD,
+                .usage = BufferSystem::CreateInfoUsage::STAGING
             };
-            BufferCreateDescription ChunkHeightmapLinksGPU_CreateDesc = {
+            BufferSystem::CreateInfo ChunkHeightmapLinksGPU_CreateDesc = {
                 .size = TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE,
-                .memType = BufferMemoryType::GPU_STATIC,
-                .usage = BufferUsage::SSBO
+                .memType = BufferSystem::CreateInfoMemoryType::GPU_STATIC,
+                .usage = BufferSystem::CreateInfoUsage::SSBO
             };
 
-            ChunkHeightmapLinks_CPU = BufferSystem.add(ChunkHeightmapLinksCPU_CreateDesc);
-            ChunkHeightmapLinks_GPU = BufferSystem.add(ChunkHeightmapLinksGPU_CreateDesc);
+            ChunkHeightmapLinks_CPU = BufferSystem::add(ChunkHeightmapLinksCPU_CreateDesc);
+            ChunkHeightmapLinks_GPU = BufferSystem::add(ChunkHeightmapLinksGPU_CreateDesc);
         }
 
         // Terrain System Descriptors
@@ -86,7 +85,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
 
             // Chunk to Heightmap descriptor
             // TODO: The fact I'm not carrying offsets arround is most definitvelly a bad signal
-            auto ChunkLinkBuffer = BufferSystem.get(ChunkHeightmapLinks_GPU);
+            auto ChunkLinkBuffer = BufferSystem::get(ChunkHeightmapLinks_GPU);
             VkDescriptorBufferInfo ChunkToHeightmapDescriptorBufferInfo {};
             ChunkToHeightmapDescriptorBufferInfo.buffer = ChunkLinkBuffer.buffer;
             ChunkToHeightmapDescriptorBufferInfo.offset = 0;
@@ -287,15 +286,15 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
     std::array<uint32_t, TerrainConfig::Chunk::INDICES_COUNT> TerrainPlaneMeshIndices;
     PlaneMeshIndicesGenerator::GetIndices(TerrainPlaneMeshIndices.data());
 
-    BufferCreateDescription PlaneMeshIndexBufferCreateDescription = {
+    BufferSystem::CreateInfo PlaneMeshIndexBufferCreateDescription = {
         .size = TerrainConfig::Chunk::INDICES_BUFFER_SIZE,
-        .memType = BufferMemoryType::GPU_STATIC,
-        .usage = BufferUsage::INDEX,
+        .memType = BufferSystem::CreateInfoMemoryType::GPU_STATIC,
+        .usage = BufferSystem::CreateInfoUsage::INDEX,
     };
-    PlaneMeshIndexBufferId = BufferSystem.add(PlaneMeshIndexBufferCreateDescription);
-    PlaneMeshIndexVkBuffer = BufferSystem.get(PlaneMeshIndexBufferId).buffer;
+    PlaneMeshIndexBufferId = BufferSystem::add(PlaneMeshIndexBufferCreateDescription);
+    PlaneMeshIndexVkBuffer = BufferSystem::get(PlaneMeshIndexBufferId).buffer;
 
-    BufferSystem.upload(
+    BufferSystem::upload(
         TransferCmd,
         CreationWiseStagingBuffer,
         PlaneMeshIndexBufferId,
@@ -312,7 +311,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
         .PlayerPosition = glm::vec4(0)
     };
 
-    BufferSystem.del(CreationWiseStagingBuffer);
+    BufferSystem::del(CreationWiseStagingBuffer);
 
     return InferusResult::SUCCESS;
 }
@@ -320,14 +319,13 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer, BufferId &
 void TerrainRenderer::Destroy(InferusRenderer &InferusRenderer) {
     VkDevice& Device = VulkanContext::Device;
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
-    BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
 
-    BufferSystem.del(ChunkHeightmapLinks_CPU);
-    BufferSystem.del(ChunkHeightmapLinks_GPU);
+    BufferSystem::del(ChunkHeightmapLinks_CPU);
+    BufferSystem::del(ChunkHeightmapLinks_GPU);
 
-    BufferSystem.del(Heightmap_CPU);
+    BufferSystem::del(Heightmap_CPU);
 
-    BufferSystem.del(PlaneMeshIndexBufferId);
+    BufferSystem::del(PlaneMeshIndexBufferId);
 
     if (HeightmapTextureSampler) { vkDestroySampler(Device, HeightmapTextureSampler, nullptr); }
     ImageSystem.del(HeightmapImageId);
@@ -344,30 +342,29 @@ void TerrainRenderer::FullFeedTerrainData(
         TerrainSystem &TerrainSystem)
 {
     ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
-    BufferSystem& BufferSystem = InferusRenderer.BufferSystem;
 
     QueueContext& Transfer = VulkanContext::Transfer;
     QueueContext& Graphics = VulkanContext::Graphics;
 
     TerrainSystem.FeedTerrainRenderer(
-        (ChunkHeightmapLink*)BufferSystem.map(ChunkHeightmapLinks_CPU),
-        (uint16_t*)BufferSystem.map(Heightmap_CPU)
+        (ChunkHeightmapLink*)BufferSystem::map(ChunkHeightmapLinks_CPU),
+        (uint16_t*)BufferSystem::map(Heightmap_CPU)
     );
 
     VkCommandBuffer cmd = VulkanContext::SingleTimeCmdBegin(Transfer);
 
     // Copy chunk link buffer
-    BufferSystem.copy(
+    BufferSystem::copy(
         cmd,
         ChunkHeightmapLinks_CPU,
         ChunkHeightmapLinks_GPU,
         TerrainConfig::ChunkToHeightmapLinking::LINKING_BUFFER_SIZE
     );
-    BufferSystem.unmap(ChunkHeightmapLinks_CPU);
-    BufferSystem.unmap(Heightmap_CPU);
+    BufferSystem::unmap(ChunkHeightmapLinks_CPU);
+    BufferSystem::unmap(Heightmap_CPU);
 
     // Upload heightmap to staging buffer
-    Buffer HeightmapStagingBuffer = BufferSystem.get(Heightmap_CPU);
+    BufferSystem::Buffer HeightmapStagingBuffer = BufferSystem::get(Heightmap_CPU);
     Image HeightmapImage = ImageSystem.get(HeightmapImageId);
 
     // Transfer data to heightmap image

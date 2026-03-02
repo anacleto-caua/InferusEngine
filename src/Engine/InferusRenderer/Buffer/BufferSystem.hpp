@@ -1,44 +1,65 @@
 #pragma once
 
-#include <vector>
+#include <vulkan/vulkan.h>
+#include <vma/vk_mem_alloc.h>
 
-#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
-#include "Engine/InferusRenderer/Buffer/BufferCreateDescription.hpp"
+namespace BufferSystem {
+    enum class CreateInfoMemoryType {
+        // STRICT GPU-ONLY.
+        GPU_STATIC,
+        // CPU WRITES -> GPU READS.
+        CPU_TO_GPU,
+        // CPU WRITES -> GPU COPIES -> GPU READS.
+        STAGING_UPLOAD,
+        // GPU WRITES -> CPU READS.
+        READBACK,
 
-class BufferSystem {
-public:
-    VmaAllocator Allocator;
-private:
-    std::vector<Buffer> Data;
-    std::vector<BufferId> FreeIndices;
+        _BUFFER_MEMORY_TYPE_COUNT_
+    };
 
-public:
-    BufferSystem() = default;
-    ~BufferSystem() = default;
-    BufferSystem(const BufferSystem&) = delete;
-    BufferSystem& operator=(const BufferSystem&) = delete;
+    enum class CreateInfoUsage {
+        VERTEX,
+        INDEX,
+        SSBO,
+        UBO,
+        STAGING,
 
-    void create(VmaAllocator VmaAllocator);
-    void destroy();
+        _BUFFER_USAGE_COUNT_
+    };
 
-    BufferId add(BufferCreateDescription createDesc);
-    Buffer& get(BufferId id);
+    struct Id {
+        uint32_t index;
+    };
 
-    void copy(BufferId srcId, BufferId dstId, const size_t size);
-    void copy(VkCommandBuffer &cmd, BufferId srcId, BufferId dstId, const size_t size);
+    struct Buffer {
+        VkBuffer buffer;
+        VmaAllocation allocation;
+        size_t size;
+        CreateInfoMemoryType memType;
+        CreateInfoUsage usage;
+    };
 
-    void upload(BufferId dstId, void* upload_data);
-    void upload(BufferId dstId, const void* upload_data, const size_t size);
-    void upload(VkCommandBuffer &cmd, BufferId stagingId, BufferId dstId, const void* upload_data, const size_t size);
+    struct CreateInfo {
+        size_t size = 0;
+        CreateInfoMemoryType memType;
+        CreateInfoUsage usage;
+    };
 
-    void* map(BufferId id);
-    void unmap(BufferId id);
+    void Create();
+    void Destroy();
 
-    void del(BufferId id);
+    Id add(CreateInfo createDesc);
+    void del(Id id);
 
-private:
-    void* map(const VmaAllocation alloc);
-    void unmap(const VmaAllocation alloc);
+    Buffer& get(Id id);
 
-    void destroy(Buffer& buffer);
+    void copy(Id srcId, Id dstId, const size_t size);
+    void copy(VkCommandBuffer &cmd, Id srcId, Id dstId, const size_t size);
+
+    void upload(Id dstId, void* upload_data);
+    void upload(Id dstId, const void* upload_data, const size_t size);
+    void upload(VkCommandBuffer &cmd, Id stagingId, Id dstId, const void* upload_data, const size_t size);
+
+    void* map(Id id);
+    void unmap(Id id);
 };

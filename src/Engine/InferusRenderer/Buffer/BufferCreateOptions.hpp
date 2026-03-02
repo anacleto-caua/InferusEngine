@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "Engine/InferusRenderer/Buffer/Buffer.hpp"
+#include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
 namespace BufferCreateOptions {
     struct BufferOptions {
@@ -21,7 +21,7 @@ namespace BufferCreateOptions {
         }
    };
 
-    inline constexpr std::array<BufferOptions, static_cast<size_t>(BufferMemoryType::_BUFFER_MEMORY_TYPE_COUNT_)> BufferMemoryOptions = {
+    inline constexpr std::array<BufferOptions, static_cast<size_t>(BufferSystem::CreateInfoMemoryType::_BUFFER_MEMORY_TYPE_COUNT_)> BufferMemoryOptions = {
         {
             // GPU_STATIC,
             {
@@ -55,7 +55,7 @@ namespace BufferCreateOptions {
         }
     };
 
-    inline constexpr std::array<BufferOptions, static_cast<size_t>(BufferUsage::_BUFFER_USAGE_COUNT_)> BufferUsageOptions = {
+    inline constexpr std::array<BufferOptions, static_cast<size_t>(BufferSystem::CreateInfoUsage::_BUFFER_USAGE_COUNT_)> BufferUsageOptions = {
         {
             // VERTEX
             {
@@ -95,7 +95,7 @@ namespace BufferCreateOptions {
         }
     };
 
-    inline constexpr BufferOptions GetBufferOptions(BufferMemoryType memType, BufferUsage usage) {
+    inline constexpr BufferOptions GetBufferOptions(BufferSystem::CreateInfoMemoryType memType, BufferSystem::CreateInfoUsage usage) {
         auto MemOptions = BufferMemoryOptions[static_cast<size_t>(memType)];
         auto UsageOptions = BufferUsageOptions[static_cast<size_t>(usage)];
         return BufferOptions{

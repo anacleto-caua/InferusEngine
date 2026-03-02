@@ -77,14 +77,14 @@ target("InferusEngine")
     add_cxflags("-Wshadow")
 
     -- Treat third-party libs as system headers to suppress their warnings
-    add_sysincludedirs("libs/vma", "libs/glm-1.0.2", "libs/spdlog/include", "libs/fnl", "libs/imgui", "libs/imgui/backends")
+    add_sysincludedirs("libs", "libs/vma", "libs/glm-1.0.2", "libs/spdlog/include", "libs/fnl", "libs/imgui", "libs/imgui/backends")
 
     -- Add source files
     add_files("src/**.cpp")
     add_includedirs("src")
 
     -- Include directories and set defines
-    add_includedirs("src", "libs/vma", "libs/glm-1.0.2", "libs/spdlog/include", "libs/fnl", "libs/imgui", "libs/imgui/backends")
+    add_includedirs("src", "libs", "libs/vma", "libs/glm-1.0.2", "libs/spdlog/include", "libs/fnl", "libs/imgui", "libs/imgui/backends")
 
     add_files("libs/imgui/*.cpp")
     add_files("libs/imgui/backends/**.cpp")

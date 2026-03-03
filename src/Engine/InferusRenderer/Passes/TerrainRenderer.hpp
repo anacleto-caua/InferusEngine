@@ -7,9 +7,9 @@
 class InferusRenderer; // Circular dependency
 
 #include "Engine/Types.hpp"
-#include "Engine/InferusRenderer/Image/Image.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
 #include "Engine/Systems/Terrain/TerrainSystem.hpp"
+#include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
 struct TerrainDescriptorSet {
@@ -34,7 +34,7 @@ public:
     VkPipelineLayout TerrainPipelineLayout {};
 
     // Heightmap
-    ImageId HeightmapImageId;
+    ImageSystem::Id HeightmapImageId;
     VkSampler HeightmapTextureSampler;
     BufferSystem::Id Heightmap_CPU;
 
@@ -55,10 +55,10 @@ public:
     TerrainRenderer(const TerrainRenderer&) = delete;
     TerrainRenderer& operator=(const TerrainRenderer&) = delete;
 
-    InferusResult Init(InferusRenderer &InferusRenderer, BufferSystem::Id &CreationWiseStagingBufer);
-    void FullFeedTerrainData(InferusRenderer &InferusRenderer, TerrainSystem &TerrainSystem);
+    InferusResult Init(BufferSystem::Id &CreationWiseStagingBufer);
+    void FullFeedTerrainData(TerrainSystem &TerrainSystem);
 
-    void Destroy(InferusRenderer &InferusRenderer);
+    void Destroy();
 
     void Render(VkCommandBuffer cmd);
 

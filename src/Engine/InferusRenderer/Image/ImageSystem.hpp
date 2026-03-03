@@ -1,33 +1,44 @@
 #pragma once
 
-#include <vector>
-
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
-#include "Engine/InferusRenderer/Image/Image.hpp"
-#include "Engine/InferusRenderer/Image/ImageCreateDescription.hpp"
+namespace ImageSystem {
+    struct ImageCreateInfo {
+        uint32_t width;
+        uint32_t height;
 
-class ImageSystem {
-public:
-private:
-    VkDevice Device;
-    VmaAllocator Allocator;
-    std::vector<Image> Data;
-    std::vector<ImageId> FreeIndices;
-public:
-    ImageSystem() = default;
-    ~ImageSystem() = default;
-    ImageSystem(const ImageSystem&) = delete;
-    ImageSystem& operator=(const ImageSystem&) = delete;
+        uint16_t depth = 1;
+        uint8_t mipLevels = 1;
+        uint8_t arrayLayers = 1;
+        VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+        VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    };
 
-    void create(VkDevice VkDevice, VmaAllocator VmaAllocator);
-    void destroy();
+    struct Image {
+        VkImage image;
+        VkImageView imageView;
+        VmaAllocation allocation;
 
-    ImageId add(ImageCreateDescription imageCreateDesc);
-    Image& get(ImageId id);
-    void del(ImageId id);
-    void upload(ImageId id, void *data, size_t size);
-private:
-    void destroy(Image& image);
+        uint32_t width;
+        uint32_t height;
+        uint16_t depth;
+        uint8_t mipLevels;
+        uint8_t arrayLayers;
+        VkFormat format;
+        VkImageLayout layout;
+    };
+
+    struct Id {
+        uint32_t index;
+    };
+
+    void Create();
+    void Destroy();
+
+    Id add(ImageCreateInfo imageCreateDesc);
+    Image& get(Id id);
+    void del(Id id);
+    void upload(Id id, void *data, size_t size);
+
 };

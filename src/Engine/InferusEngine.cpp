@@ -26,12 +26,7 @@ namespace InferusEngine {
         }
 
         TerrainSystem.Init(&Camera.Position);
-        InferusRenderer
-            .TerrainRenderer.
-            FullFeedTerrainData(
-                    InferusRenderer,
-                    TerrainSystem
-                    );
+        InferusRenderer.TerrainRenderer.FullFeedTerrainData(TerrainSystem);
         Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
 
         return InferusResult::SUCCESS;

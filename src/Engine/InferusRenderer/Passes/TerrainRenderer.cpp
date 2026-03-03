@@ -5,31 +5,28 @@
 #include "Engine/InferusRenderer/Recipes.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
 #include "Engine/InferusRenderer/VulkanContext.hpp"
-#include "Engine/InferusRenderer/InferusRenderer.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 #include "Engine/Systems/Terrain/PlaneMeshIndicesGenerator.hpp"
-#include "Engine/InferusRenderer/Image/ImageCreateDescription.hpp"
 
-InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer,  BufferSystem::Id &CreationWiseStagingBuffer) {
+InferusResult TerrainRenderer::Init(BufferSystem::Id &CreationWiseStagingBuffer) {
 
     VkDevice& Device = VulkanContext::Device;
-    ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
 
     {
         VkShaderStageFlags AllStages = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
         // Terrain heightmap
         {
-            ImageCreateDescription HeightmapImageCreateDesc;
+            ImageSystem::ImageCreateInfo HeightmapImageCreateDesc;
             HeightmapImageCreateDesc.width = TerrainConfig::Chunk::RESOLUTION;
             HeightmapImageCreateDesc.height = TerrainConfig::Chunk::RESOLUTION;
             HeightmapImageCreateDesc.arrayLayers = TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT;
             HeightmapImageCreateDesc.format = TerrainConfig::Heightmap::HEIGHTMAP_IMAGE_FORMAT;
             HeightmapImageCreateDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-            HeightmapImageId = ImageSystem.add(HeightmapImageCreateDesc);
+            HeightmapImageId = ImageSystem::add(HeightmapImageCreateDesc);
 
             auto HeightmapSamplerInfo = Recipes::SamplerCreateInfo::HeightmapSampler();
             vkCreateSampler(Device, &HeightmapSamplerInfo, nullptr, &HeightmapTextureSampler);
@@ -62,7 +59,7 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer,  BufferSys
         // Terrain System Descriptors
         {
             // Heightmap Texture Sampler descriptor
-            auto HeightmapImage = ImageSystem.get(HeightmapImageId);
+            auto HeightmapImage = ImageSystem::get(HeightmapImageId);
             VkDescriptorImageInfo HeightmapTextureDescriptorImageInfo {};
             HeightmapTextureDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             HeightmapTextureDescriptorImageInfo.imageView = HeightmapImage.imageView;
@@ -316,9 +313,8 @@ InferusResult TerrainRenderer::Init(InferusRenderer &InferusRenderer,  BufferSys
     return InferusResult::SUCCESS;
 }
 
-void TerrainRenderer::Destroy(InferusRenderer &InferusRenderer) {
+void TerrainRenderer::Destroy() {
     VkDevice& Device = VulkanContext::Device;
-    ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
 
     BufferSystem::del(ChunkHeightmapLinks_CPU);
     BufferSystem::del(ChunkHeightmapLinks_GPU);
@@ -328,7 +324,7 @@ void TerrainRenderer::Destroy(InferusRenderer &InferusRenderer) {
     BufferSystem::del(PlaneMeshIndexBufferId);
 
     if (HeightmapTextureSampler) { vkDestroySampler(Device, HeightmapTextureSampler, nullptr); }
-    ImageSystem.del(HeightmapImageId);
+    ImageSystem::del(HeightmapImageId);
 
     if (TerrainDescriptorSet.pool) { vkDestroyDescriptorPool(Device, TerrainDescriptorSet.pool, nullptr); }
     if (TerrainDescriptorSet.layout) { vkDestroyDescriptorSetLayout(Device, TerrainDescriptorSet.layout, nullptr); }
@@ -338,11 +334,8 @@ void TerrainRenderer::Destroy(InferusRenderer &InferusRenderer) {
 }
 
 void TerrainRenderer::FullFeedTerrainData(
-        InferusRenderer &InferusRenderer,
         TerrainSystem &TerrainSystem)
 {
-    ImageSystem& ImageSystem = InferusRenderer.ImageSystem;
-
     QueueContext& Transfer = VulkanContext::Transfer;
     QueueContext& Graphics = VulkanContext::Graphics;
 
@@ -365,7 +358,7 @@ void TerrainRenderer::FullFeedTerrainData(
 
     // Upload heightmap to staging buffer
     BufferSystem::Buffer HeightmapStagingBuffer = BufferSystem::get(Heightmap_CPU);
-    Image HeightmapImage = ImageSystem.get(HeightmapImageId);
+    ImageSystem::Image HeightmapImage = ImageSystem::get(HeightmapImageId);
 
     // Transfer data to heightmap image
     VkImageMemoryBarrier barrier1 = Recipes::ImageMemoryBarrier::TransferDest(HeightmapImage);
@@ -458,8 +451,6 @@ void TerrainRenderer::Render(VkCommandBuffer cmd) {
     );
 
     vkCmdDrawIndexed(cmd, TerrainConfig::Chunk::INDICES_COUNT, TerrainConfig::ChunkToHeightmapLinking::INSTANCE_COUNT, 0, 0, 0);
-
-
 }
 
 

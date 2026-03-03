@@ -1,6 +1,5 @@
 #include "InferusRenderer.hpp"
 
-#include <array>
 #include <cstdint>
 #include <algorithm>
 
@@ -9,6 +8,7 @@
 #include "Engine/Core/Window.hpp"
 #include "Engine/InferusRenderer/Recipes.hpp"
 #include "Engine/InferusRenderer/VulkanContext.hpp"
+#include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
 using namespace VulkanContext; // Yes, I know
@@ -26,7 +26,7 @@ InferusResult InferusRenderer::Create() {
         };
         CreationWiseStagingBuffer = BufferSystem::add(CreationWiseStagingBufferCreateDesc);
     }
-    ImageSystem.create(Device, VulkanContext::VmaAllocator);
+    ImageSystem::Create();
 
     QuerySurfaceCapabilities();
     Extent = SurfaceCapabilities.currentExtent;
@@ -144,7 +144,7 @@ InferusResult InferusRenderer::Create() {
     }
 
     if (
-        TerrainRenderer.Init(*this, CreationWiseStagingBuffer) !=  InferusResult::SUCCESS
+        TerrainRenderer.Init(CreationWiseStagingBuffer) !=  InferusResult::SUCCESS
     ) {
         spdlog::error("Terrain Renderer creation failed");
         return InferusResult::FAIL;
@@ -155,11 +155,11 @@ InferusResult InferusRenderer::Create() {
 void InferusRenderer::Destroy() {
     vkDeviceWaitIdle(Device);
 
-    TerrainRenderer.Destroy(*this);
+    TerrainRenderer.Destroy();
     ImGuiRenderer::Destroy();
 
     BufferSystem::Destroy();
-    ImageSystem.destroy();
+    ImageSystem::Destroy();
 
     for (FrameData &Frame : Frames) {
         if (Frame.ImageAvailable) { vkDestroySemaphore(Device, Frame.ImageAvailable, nullptr); }

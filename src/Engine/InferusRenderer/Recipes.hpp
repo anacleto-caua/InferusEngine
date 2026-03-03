@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Engine/InferusRenderer/Image/Image.hpp"
+#include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 
 #define RECIPE static inline
 
@@ -194,7 +194,7 @@ namespace Recipes {
         };
     };
     namespace BufferImageCopy {
-       RECIPE VkBufferImageCopy Default(Image& image) {
+       RECIPE VkBufferImageCopy Default(const ImageSystem::Image& image) {
             VkBufferImageCopy imageCopy {
                 .bufferOffset = 0,
                 .bufferRowLength = 0,
@@ -234,7 +234,7 @@ namespace Recipes {
             return Barrier;
         }
 
-        RECIPE VkImageMemoryBarrier Default(const Image& image) {
+        RECIPE VkImageMemoryBarrier Default(const ImageSystem::Image& image) {
             VkImageMemoryBarrier barrier {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 .pNext = nullptr,
@@ -256,7 +256,7 @@ namespace Recipes {
             return barrier;
         }
 
-        RECIPE VkImageMemoryBarrier TransferDest(const Image& image) {
+        RECIPE VkImageMemoryBarrier TransferDest(const ImageSystem::Image& image) {
             VkImageMemoryBarrier barrier = Default(image);
             barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -266,7 +266,7 @@ namespace Recipes {
             return barrier;
         }
 
-        RECIPE VkImageMemoryBarrier ShaderRead(const Image& image) {
+        RECIPE VkImageMemoryBarrier ShaderRead(const ImageSystem::Image& image) {
             VkImageMemoryBarrier barrier = Default(image);
             barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

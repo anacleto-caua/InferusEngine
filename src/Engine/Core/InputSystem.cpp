@@ -1,5 +1,6 @@
 #include "InputSystem.hpp"
 
+#include <array>
 #include <vector>
 
 #include <spdlog/spdlog.h>
@@ -7,9 +8,42 @@
 #include "Engine/Core/Window.hpp"
 
 namespace InputSystem {
-    std::vector<UserAction> PressActions;
-    std::vector<UserAction> RepeatActions;
-    std::vector<UserAction> ReleaseActions;
+    static constexpr size_t KEY_COUNT = static_cast<size_t>(InfKey::_KEY_COUNT_);
+    static constexpr std::array<int, KEY_COUNT>GlfwKeyMap = {
+        GLFW_KEY_W,
+        GLFW_KEY_S,
+        GLFW_KEY_D,
+        GLFW_KEY_A,
+        GLFW_KEY_Q,
+        GLFW_KEY_E,
+        GLFW_KEY_F,
+        GLFW_KEY_ESCAPE,
+        GLFW_KEY_LEFT_CONTROL
+    };
+
+    struct KeyState {
+        bool IsPressed = false;
+    };
+    std::vector<KeyState> KeyStates {};
+
+    std::vector<UserAction> PressActions {};
+    std::vector<UserAction> ReleaseActions {};
+
+    std::vector<UserAction> RepeatActions {};
+    std::vector<size_t> PollingKeys {}; // It's carries glfw keys which map to the repeat actions array
+
+    // Map to find the InfKey
+    static const std::unordered_map<int, InfKey> ReverseKeyMap = []() {
+        std::unordered_map<int, InfKey> map;
+        for (size_t i = 0; i < KEY_COUNT; ++i) {
+            map[GlfwKeyMap[i]] = static_cast<InfKey>(i);
+        }
+        return map;
+    }();
+
+    InfKey ReverseMapInfKey(int glfwKey) {
+        return ReverseKeyMap.find(glfwKey)->second;
+    }
 
     void KeyCallbackStrain(
             [[maybe_unused]]GLFWwindow* window,
@@ -23,14 +57,7 @@ namespace InputSystem {
                 if (PressActions[key]) {
                     PressActions[key]();
                 }
-            }
-            return;
-        }
-        if (action == GLFW_REPEAT) {
-            if (static_cast<size_t>(key) < RepeatActions.size()) {
-                if (RepeatActions[key]) {
-                    RepeatActions[key]();
-                }
+                KeyStates[key].IsPressed = true;
             }
             return;
         }
@@ -39,6 +66,7 @@ namespace InputSystem {
                 if (ReleaseActions[key]) {
                     ReleaseActions[key]();
                 }
+                KeyStates[key].IsPressed = false;
             }
             return;
         }
@@ -52,13 +80,26 @@ namespace InputSystem {
         // ...
     }
 
-    void RegisterCallback(ActionType ActionType, InfKey Key, UserAction Callback) {
+    void PollInput() {
+        for(size_t glfwKey : PollingKeys) {
+            if (KeyStates[glfwKey].IsPressed) {
+                RepeatActions[glfwKey]();
+            }
+        }
+    }
 
-        auto PushKeyAction = [&Callback, &Key](std::vector<UserAction>& vec) {
-            size_t KeyIndex = static_cast<size_t>(GlfwKeyMap[static_cast<size_t>(Key)]);
-            if (vec.size() < KeyIndex) {
+    void RegisterCallback(ActionType ActionType, InfKey Key, UserAction Callback) {
+        size_t KeyIndex = static_cast<size_t>(GlfwKeyMap[static_cast<size_t>(Key)]);
+
+        if (KeyIndex > KeyStates.size()) {
+            KeyStates.resize(KeyIndex + 1);
+        }
+
+        auto PushKeyAction = [&KeyIndex, &Callback](std::vector<UserAction>& vec) {
+            if (KeyIndex > vec.size()) {
                 vec.resize(KeyIndex + 1);
             }
+
             if (vec[KeyIndex]) {
                 spdlog::warn("Input action is being overwriten");
             }
@@ -71,6 +112,7 @@ namespace InputSystem {
                 break;
             case ActionType::Repeat:
                 PushKeyAction(RepeatActions);
+                PollingKeys.push_back(KeyIndex);
                 break;
             case ActionType::Release:
                 PushKeyAction(ReleaseActions);

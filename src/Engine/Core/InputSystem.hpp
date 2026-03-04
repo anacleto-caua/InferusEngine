@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <array>
 #include <functional>
 
 #include <GLFW/glfw3.h>
@@ -24,23 +23,9 @@ namespace InputSystem {
         Down,
         Interact,
         Escape,
-        Crtl,
+        Ctrl,
 
         _KEY_COUNT_
-    };
-
-    static constexpr size_t KEY_COUNT = static_cast<size_t>(InfKey::_KEY_COUNT_);
-
-    static constexpr std::array<int, KEY_COUNT>GlfwKeyMap = {
-        GLFW_KEY_W,
-        GLFW_KEY_S,
-        GLFW_KEY_D,
-        GLFW_KEY_A,
-        GLFW_KEY_Q,
-        GLFW_KEY_E,
-        GLFW_KEY_F,
-        GLFW_KEY_ESCAPE,
-        GLFW_KEY_LEFT_CONTROL
     };
 
     using UserAction = std::function<void()>;
@@ -49,6 +34,8 @@ namespace InputSystem {
 
     void Create();
     void Destroy();
+
+    void PollInput();
 
     void RegisterCallback(ActionType ActionType, InfKey Key, UserAction Callback);
     void RegisterCallback(InfKey Key, UserAction Callback);

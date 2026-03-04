@@ -52,6 +52,7 @@ namespace InferusEngine {
             TerrainSystem.Update();
             OutFps(DeltaTime);
             InferusRenderer.LateRender();
+            InputSystem::PollInput();
 
             auto FrameEnd = std::chrono::high_resolution_clock::now();
             auto ElapsedTime = FrameBegin - FrameEnd;

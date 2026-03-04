@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Engine/Core/Window.hpp"
-#include "Engine/Core/InputSystem.hpp"
+#include "Engine/Core/Input.hpp"
 
 namespace InferusEngine {
     InferusResult Init(){
@@ -17,7 +17,7 @@ namespace InferusEngine {
             return InferusResult::FAIL;
         }
 
-        InputSystem::Create();
+        Input::Create();
 
         auto RendererResult = InferusRenderer.Create();
         if (RendererResult != InferusResult::SUCCESS) {
@@ -34,7 +34,7 @@ namespace InferusEngine {
 
     void Destroy() {
         Window::Destroy();
-        InputSystem::Destroy();
+        Input::Destroy();
         InferusRenderer.Destroy();
     }
 
@@ -52,7 +52,7 @@ namespace InferusEngine {
             TerrainSystem.Update();
             OutFps(DeltaTime);
             InferusRenderer.LateRender();
-            InputSystem::PollInput();
+            Input::PollInput();
 
             auto FrameEnd = std::chrono::high_resolution_clock::now();
             auto ElapsedTime = FrameBegin - FrameEnd;

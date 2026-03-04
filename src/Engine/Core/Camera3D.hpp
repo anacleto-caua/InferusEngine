@@ -6,6 +6,7 @@
 class Camera3D {
 public:
     static constexpr float SPEED = 20;
+    static constexpr float LOOK_SENSIBILITY = .1;
 
     float FOV;
     float Aspect;
@@ -21,6 +22,8 @@ public:
     glm::mat4* ModelViewProjection;
 
     glm::vec3 FrameMovement;
+
+    glm::vec3 FrameLookDir;
 
 public:
     Camera3D() = default;

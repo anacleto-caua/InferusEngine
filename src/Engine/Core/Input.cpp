@@ -100,10 +100,10 @@ namespace Input {
 
             XDelta = LastFrameXPos - XPos;
             YDelta = LastFrameYPos - YPos;
-            if (XDelta < MOUSE_DELTA_CAP) {
+            if (XDelta < MOUSE_DELTA_CAP && XDelta > MOUSE_DELTA_CAP) {
                 XDelta = 0;
             }
-            if (YDelta < MOUSE_DELTA_CAP) {
+            if (YDelta < MOUSE_DELTA_CAP && YDelta > MOUSE_DELTA_CAP) {
                 YDelta = 0;
             }
 

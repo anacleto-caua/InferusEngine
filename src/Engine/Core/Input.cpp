@@ -3,12 +3,15 @@
 #include <array>
 #include <vector>
 
+#include <imgui.h>
 #include <spdlog/spdlog.h>
 
 #include "Engine/Core/Window.hpp"
 
 namespace Input {
     namespace Mouse {
+        static constexpr float MOUSE_DELTA_CAP = .000001f;
+
         static constexpr size_t BUTTON_COUNT = static_cast<size_t>(Button::_BUTTON_COUNT_);
         static constexpr std::array<int, BUTTON_COUNT>GlfwMouseButtonMap = {
            GLFW_MOUSE_BUTTON_LEFT,
@@ -88,6 +91,24 @@ namespace Input {
             RegisterCallback(ActionType::Press, Button, Callback);
             RegisterCallback(ActionType::Repeat, Button, Callback);
             RegisterCallback(ActionType::Release, Button, Callback);
+        }
+
+        double LastFrameXPos = 0;
+        double LastFrameYPos = 0;
+        void Poll() {
+            glfwGetCursorPos(Window::glfwWindow, &XPos, &YPos);
+
+            XDelta = LastFrameXPos - XPos;
+            YDelta = LastFrameYPos - YPos;
+            if (XDelta < MOUSE_DELTA_CAP) {
+                XDelta = 0;
+            }
+            if (YDelta < MOUSE_DELTA_CAP) {
+                YDelta = 0;
+            }
+
+            LastFrameXPos = XPos;
+            LastFrameYPos = YPos;
         }
 
         bool IsMouseFreed = true;
@@ -237,5 +258,7 @@ namespace Input {
                 Mouse::RepeatActions[glfwButton]();
             }
         }
+
+        Mouse::Poll();
     }
 };

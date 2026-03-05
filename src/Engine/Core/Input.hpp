@@ -33,6 +33,14 @@ namespace Input {
 
         void RegisterCallback(ActionType ActionType, Button Button, UserAction Callback);
         void RegisterCallback(Button Button, UserAction Callback);
+
+        inline double XPos = 0;
+        inline double YPos = 0;
+
+        inline double XDelta = 0;
+        inline double YDelta = 0;
+
+        void Poll();
     };
 
     namespace Keyboard {

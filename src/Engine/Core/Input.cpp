@@ -98,7 +98,7 @@ namespace Input {
         void Poll() {
             glfwGetCursorPos(Window::glfwWindow, &XPos, &YPos);
 
-            XDelta = LastFrameXPos - XPos;
+            XDelta = XPos - LastFrameXPos;
             YDelta = LastFrameYPos - YPos;
             if (XDelta < MOUSE_DELTA_CAP && XDelta > MOUSE_DELTA_CAP) {
                 XDelta = 0;

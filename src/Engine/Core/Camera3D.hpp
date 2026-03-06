@@ -3,10 +3,20 @@
 #include <glm/fwd.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 
+#include "Default.hpp"
+
 class Camera3D {
 public:
     static constexpr float SPEED = 20;
-    static constexpr float LOOK_SENSIBILITY = .1;
+
+    static constexpr float PITCH_SENSIBILITY = 10;
+    static constexpr float YAW_SENSIBILITY = 15;
+
+    static constexpr float PITCH_CLAMP_MIN = -89;
+    static constexpr float PITCH_CLAMP_MAX = +89;
+
+    static constexpr float YAW_CLAMP_MIN = 0;
+    static constexpr float YAW_CLAMP_MAX = 360;
 
     float FOV;
     float Aspect;
@@ -21,9 +31,11 @@ public:
 
     glm::mat4* ModelViewProjection;
 
-    glm::vec3 FrameMovement;
+    glm::vec3 FrameMovement = Vector3::ZERO;
 
-    glm::vec3 FrameLookDir;
+    float Yaw = 90;
+    float Pitch = 0;
+    glm::vec3 LookDir = Vector3::FORWARD;
 
 public:
     Camera3D() = default;

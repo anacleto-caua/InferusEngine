@@ -89,7 +89,14 @@ target("InferusEngine")
     add_files("libs/imgui/*.cpp")
     add_files("libs/imgui/backends/**.cpp")
 
-    add_defines("GLM_FORCE_RADIANS", "GLM_FORCE_DEPTH_ZERO_TO_ONE", "GLM_ENABLE_EXPERIMENTAL", "GLFW_INCLUDE_VULKAN")
+    -- Global definitions
+    add_defines(
+        "GLM_FORCE_RADIANS",
+        "GLM_FORCE_LEFT_HANDED",
+        "GLM_FORCE_DEPTH_ZERO_TO_ONE",
+        "GLM_ENABLE_EXPERIMENTAL",
+        "GLFW_INCLUDE_VULKAN"
+    )
 
     if is_plat("windows") then
         -- VULKAN (Env Var)
@@ -130,9 +137,6 @@ target("InferusEngine")
         add_syslinks("vulkan", "glfw")
         add_syslinks("dl", "pthread", "X11", "Xxf86vm", "Xrandr", "Xi")
     end
-
-    -- Global definitions
-    add_defines("GLM_FORCE_RADIANS", "GLM_FORCE_DEPTH_ZERO_TO_ONE", "GLM_ENABLE_EXPERIMENTAL", "GLFW_INCLUDE_VULKAN")
 
     -- Build Output Directory
     set_targetdir("build/$(plat)/$(mode)")

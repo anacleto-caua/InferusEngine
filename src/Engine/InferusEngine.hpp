@@ -5,7 +5,6 @@
 
 #include "Engine/Types.hpp"
 #include "Engine/Core/Camera3D.hpp"
-#include "Engine/Systems/Terrain/TerrainSystem.hpp"
 #include "Engine/InferusRenderer/InferusRenderer.hpp"
 
 namespace InferusEngine {
@@ -19,7 +18,6 @@ namespace InferusEngine {
     inline bool ShouldClose = false;
 
     inline InferusRenderer InferusRenderer;
-    inline TerrainSystem TerrainSystem;
     inline Camera3D Camera;
 
     InferusResult Init();

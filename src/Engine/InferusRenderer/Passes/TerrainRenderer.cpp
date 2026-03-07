@@ -5,6 +5,7 @@
 #include "Engine/InferusRenderer/Recipes.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
 #include "Engine/InferusRenderer/VulkanContext.hpp"
+#include "Engine/Systems/Terrain/TerrainSystem.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/ShaderStageBuilder.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
@@ -333,13 +334,11 @@ void TerrainRenderer::Destroy() {
     if (TerrainPipelineLayout) { vkDestroyPipelineLayout(Device, TerrainPipelineLayout, nullptr); }
 }
 
-void TerrainRenderer::FullFeedTerrainData(
-        TerrainSystem &TerrainSystem)
-{
+void TerrainRenderer::FeedTerrainSystemPointers() {
     QueueContext& Transfer = VulkanContext::Transfer;
     QueueContext& Graphics = VulkanContext::Graphics;
 
-    TerrainSystem.FeedTerrainRenderer(
+    TerrainSystem::FeedTerrainRenderer(
         (ChunkHeightmapLink*)BufferSystem::map(ChunkHeightmapLinks_CPU),
         (uint16_t*)BufferSystem::map(Heightmap_CPU)
     );

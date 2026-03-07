@@ -8,7 +8,6 @@ class InferusRenderer; // Circular dependency
 
 #include "Engine/Types.hpp"
 #include "Engine/Systems/Terrain/TerrainConfig.hpp"
-#include "Engine/Systems/Terrain/TerrainSystem.hpp"
 #include "Engine/InferusRenderer/Image/ImageSystem.hpp"
 #include "Engine/InferusRenderer/Buffer/BufferSystem.hpp"
 
@@ -56,7 +55,7 @@ public:
     TerrainRenderer& operator=(const TerrainRenderer&) = delete;
 
     InferusResult Init(BufferSystem::Id &CreationWiseStagingBufer);
-    void FullFeedTerrainData(TerrainSystem &TerrainSystem);
+    void FeedTerrainSystemPointers();
 
     void Destroy();
 

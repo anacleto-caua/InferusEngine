@@ -5,8 +5,9 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Engine/Core/Window.hpp"
 #include "Engine/Core/Input.hpp"
+#include "Engine/Core/Window.hpp"
+#include "Engine/Systems/Terrain/TerrainSystem.hpp"
 
 namespace InferusEngine {
     InferusResult Init(){
@@ -25,8 +26,8 @@ namespace InferusEngine {
             return InferusResult::FAIL;
         }
 
-        TerrainSystem.Init(&Camera.Position);
-        InferusRenderer.TerrainRenderer.FullFeedTerrainData(TerrainSystem);
+        TerrainSystem::Create(&Camera.Position);
+        InferusRenderer.TerrainRenderer.FeedTerrainSystemPointers();
         Camera.Init(float(WIDTH)/float(HEIGHT), &InferusRenderer.TerrainRenderer.TerrainPushConstants.CameraMVP);
 
         return InferusResult::SUCCESS;
@@ -35,6 +36,7 @@ namespace InferusEngine {
     void Destroy() {
         Window::Destroy();
         Input::Destroy();
+        TerrainSystem::Destroy();
         InferusRenderer.Destroy();
     }
 
@@ -49,7 +51,7 @@ namespace InferusEngine {
             InferusRenderer.EarlyRender();
             Camera.Update(DeltaTime);
             Window::Update();
-            TerrainSystem.Update();
+            TerrainSystem::Update();
             OutFps(DeltaTime);
             Input::PollInput();
 

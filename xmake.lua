@@ -11,6 +11,54 @@ set_defaultmode("debug")
 
 set_toolchains("clang")
 
+local glfw_root = "libs/_libs_to_build/glfw"
+target("glfw")
+    add_defines(
+        "_GLFW_WIN32",
+        "_GLFW_VULKAN_STATIC",
+        "_GLFW_NO_OPENGL",
+        "_GLFW_NO_EGL",
+        "_GLFW_NO_OSMESA",
+        "_GLFW_NO_NULL"
+    )
+    set_kind("static")
+
+    add_includedirs(path.join(glfw_root, "include"), {public = true})
+
+    -- common
+    add_files(
+        path.join(glfw_root, "src/context.c"),
+        path.join(glfw_root, "src/init.c"),
+        path.join(glfw_root, "src/input.c"),
+        path.join(glfw_root, "src/monitor.c"),
+        path.join(glfw_root, "src/platform.c"),
+        path.join(glfw_root, "src/vulkan.c"),
+        path.join(glfw_root, "src/window.c")
+    )
+
+    if is_plat("windows") then
+        add_defines("_GLFW_WIN32")
+        add_files(
+            path.join(glfw_root, "src/win32_*.c"),
+            path.join(glfw_root, "src/wgl_context.c"),
+            path.join(glfw_root, "src/egl_context.c"),
+            path.join(glfw_root, "src/osmesa_context.c"),
+            path.join(glfw_root, "src/null_*.c")
+        )
+        add_syslinks("user32", "gdi32", "shell32")
+    elseif is_plat("linux") then
+        -- I enable both X11 and Wayland, hopefully it wont bring me problems
+        add_defines("_GLFW_X11", "_GLFW_WAYLAND")
+
+        add_files(
+            path.join(glfw_root, "src/x11_*.c"),
+            path.join(glfw_root, "src/wl_*.c"),
+            path.join(glfw_root, "src/glx_context.c"),
+            path.join(glfw_root, "src/egl_context.c")
+        )
+
+        add_syslinks("X11", "wayland-client", "wayland-cursor", "wayland-egl", "pthread", "dl")
+    end
 
 -- Custom rule for shader compilation
 rule("compile_shaders")
@@ -67,6 +115,8 @@ target("InferusEngine")
     set_kind("binary")
     set_default()
 
+    add_deps("glfw")
+
     -- Generate debug files, keep symbols and disable optimazations
     set_symbols("debug")
     set_strip("none")
@@ -107,34 +157,10 @@ target("InferusEngine")
         end
         add_syslinks("vulkan-1")
 
-        -- Find GLFW based on the GLFW_ROOT PATH variable - Author's Note: Install it alongside clang using Scoop
-        local glfw_root = os.getenv("GLFW_ROOT")
-        if not glfw_root or not os.isdir(glfw_root) then
-            utils.error("Error: GLFW_ROOT environment variable is not set! Please point it to your GLFW folder.")
-        end
-
-        -- Add Include
-        add_includedirs(path.join(glfw_root, "include"))
-
-        -- Add Lib
-        local lib_dir = path.join(glfw_root, "lib-vc2022")
-
-        -- Fallback for older versions
-        if not os.isdir(lib_dir) then lib_dir = path.join(glfw_root, "lib-vc2019") end
-        if not os.isdir(lib_dir) then lib_dir = path.join(glfw_root, "lib-vc2017") end
-
-        if os.isdir(lib_dir) then
-            add_linkdirs(lib_dir)
-            print("Linking GLFW from: " .. lib_dir)
-        else
-            utils.error("Error: Could not find a compatible 'lib-vcXXXX' folder in " .. glfw_root)
-        end
-
-        add_syslinks("glfw3")
         add_syslinks("user32", "gdi32", "shell32")
 
     elseif is_plat("linux") then
-        add_syslinks("vulkan", "glfw")
+        add_syslinks("vulkan")
         add_syslinks("dl", "pthread", "X11", "Xxf86vm", "Xrandr", "Xi")
     end
 
